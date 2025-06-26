@@ -8,6 +8,8 @@
 **Transform unstructured data into structured semantic layers for LLMs, Agents, RAG systems, and Knowledge Graphs.**
 
 SemantiCore bridges the gap between raw unstructured data and intelligent AI systems by providing a comprehensive toolkit for semantic extraction, schema generation, and knowledge representation.
+SemantiCore is an open-source toolkit that transforms raw, unstructured data into semantic knowledge representations including ontologies, knowledge graphs, and context-aware embeddings. Built for developers creating AI agents, RAG systems, and intelligent applications that need to understand meaning, not just text.
+
 
 ---
 
@@ -20,6 +22,38 @@ Modern AI systems require structured, semantically rich data to perform effectiv
 - **🕸️ Knowledge Graphs** - Automatically extracted entities, relations, and triples
 - **🛠️ LLM Tools** - Wrapped with semantic contracts for reliable operation
 - **📊 Data Pipelines** - Consistent, validated data flows across your stack
+
+- **🧠 Semantic Processing**
+- Multi-layer Understanding: Lexical, syntactic, semantic, and pragmatic analysis
+- Entity & Relationship Extraction: Named entities, relationships, and complex event detection
+- Context Preservation: Maintain semantic context across document boundaries
+- Domain Adaptation: Specialized processing for cybersecurity, finance, healthcare, research
+- **🎯 LLM Optimization**
+- Context Engineering: Intelligent context compression and enhancement for LLMs
+- Prompt Optimization: Semantic-aware prompt engineering and optimization
+- Memory Management: Episodic, semantic, and procedural memory systems
+- Multi-Model Support: OpenAI, Anthropic, Google Gemini, Hugging Face, local models
+- **🕸️ Knowledge Graphs**
+- Automated Construction: Build knowledge graphs from unstructured data
+- Graph Databases: Neo4j, KuzuDB, ArangoDB, Amazon Neptune integration
+- Semantic Reasoning: Inductive, deductive, and abductive reasoning capabilities
+- Temporal Modeling: Time-aware relationships and evolution tracking
+- **📊 Vector & Embeddings**
+- Contextual Embeddings: Semantic embeddings with preserved context
+- Vector Stores: Pinecone, Milvus, Weaviate, Chroma, FAISS integration
+- Hybrid Search: Combine semantic and keyword search strategies
+- Embedding Models: OpenAI, Cohere, Sentence Transformers, custom models
+- **🔗 Ontology Generation**
+- Automated Ontology Creation: Generate OWL/RDF ontologies from data
+- Schema Evolution: Dynamic schema adaptation and versioning
+- Standard Compliance: Schema.org, FIBO, domain-specific ontologies
+- Multi-format Export: OWL, RDF, JSON-LD, Turtle formats
+- **🤖 Agent Integration**
+- Semantic Routing: Intelligent request routing based on semantic understanding
+- Agent Orchestration: Coordinate multiple AI agents with shared semantic context
+- Framework Integration: LangChain, LlamaIndex, CrewAI, AutoGen compatibility
+- Real-time Processing: Stream processing for live data semantic analysis
+
 
 ---
 
@@ -392,6 +426,338 @@ config = load_config("semanticore.yaml")
 core = SemantiCore(config=config)
 ```
 
+
+
+30-Second Demo
+from semanticore import SemantiCore
+
+# Initialize with your preferred providers
+core = SemantiCore(
+    llm_provider="openai",
+    embedding_model="text-embedding-3-large",
+    vector_store="pinecone",
+    graph_db="neo4j"
+)
+
+# Transform unstructured text into semantic knowledge
+text = """
+Tesla reported Q4 2024 earnings with $25.2B revenue, a 15% increase year-over-year.
+CEO Elon Musk highlighted the success of the Model Y and expansion in the Chinese market.
+The company plans to launch three new models in 2025, including the long-awaited Cybertruck.
+"""
+
+# Extract semantic information
+result = core.extract_semantics(text)
+
+print("Entities:", result.entities)
+# [Entity(name="Tesla", type="ORGANIZATION"), Entity(name="Elon Musk", type="PERSON")]
+
+print("Relationships:", result.relationships) 
+# [Relation(subject="Tesla", predicate="reported", object="Q4 2024 earnings")]
+
+print("Events:", result.events)
+# [Event(type="EARNINGS_REPORT", date="Q4 2024", amount="$25.2B")]
+
+# Generate knowledge graph
+knowledge_graph = core.build_knowledge_graph(text)
+print("Graph nodes:", len(knowledge_graph.nodes))
+print("Graph edges:", len(knowledge_graph.edges))
+🔧 Integration Examples
+🤖 LLM Provider Integration
+from semanticore.llm import LLMProvider
+
+# OpenAI Integration
+openai_provider = LLMProvider(
+    provider="openai",
+    model="gpt-4-turbo",
+    api_key="your-openai-key"
+)
+
+# Anthropic Integration
+anthropic_provider = LLMProvider(
+    provider="anthropic", 
+    model="claude-3-opus-20240229",
+    api_key="your-anthropic-key"
+)
+
+# Google Gemini Integration
+gemini_provider = LLMProvider(
+    provider="google",
+    model="gemini-pro",
+    api_key="your-google-key"
+)
+
+# Hugging Face Integration
+hf_provider = LLMProvider(
+    provider="huggingface",
+    model="mistralai/Mistral-7B-Instruct-v0.1",
+    api_key="your-hf-key"
+)
+
+# Local Model Integration
+local_provider = LLMProvider(
+    provider="local",
+    model_path="/path/to/model",
+    device="cuda"
+)
+
+# Use with SemantiCore
+core = SemantiCore(llm_provider=openai_provider)
+🕸️ Knowledge Graph Database Integration
+from semanticore.graph import GraphDatabase
+
+# Neo4j Integration
+neo4j_db = GraphDatabase(
+    provider="neo4j",
+    uri="bolt://localhost:7687",
+    username="neo4j",
+    password="password"
+)
+
+# KuzuDB Integration (Embedded Graph Database)
+kuzu_db = GraphDatabase(
+    provider="kuzu",
+    database_path="/path/to/kuzu/db"
+)
+
+# ArangoDB Integration
+arango_db = GraphDatabase(
+    provider="arangodb",
+    host="localhost",
+    port=8529,
+    username="root",
+    password="password"
+)
+
+# Amazon Neptune Integration
+neptune_db = GraphDatabase(
+    provider="neptune",
+    endpoint="your-neptune-endpoint.amazonaws.com",
+    port=8182,
+    region="us-east-1"
+)
+
+# Build knowledge graph
+from semanticore import SemantiCore
+
+core = SemantiCore(graph_db=neo4j_db)
+documents = ["doc1.txt", "doc2.txt", "doc3.txt"]
+
+# Automatically extract entities and relationships, build graph
+knowledge_graph = core.build_knowledge_graph_from_documents(documents)
+print(f"Created graph with {knowledge_graph.node_count} nodes and {knowledge_graph.edge_count} edges")
+📊 Vector Store Integration
+from semanticore.vector import VectorStore
+
+# Pinecone Integration
+pinecone_store = VectorStore(
+    provider="pinecone",
+    api_key="your-pinecone-key",
+    environment="us-west1-gcp",
+    index_name="semanticore-index"
+)
+
+# Milvus Integration
+milvus_store = VectorStore(
+    provider="milvus",
+    host="localhost",
+    port=19530,
+    collection_name="semantic_embeddings"
+)
+
+# Weaviate Integration
+weaviate_store = VectorStore(
+    provider="weaviate",
+    url="http://localhost:8080",
+    class_name="SemanticChunk"
+)
+
+# Chroma Integration
+chroma_store = VectorStore(
+    provider="chroma",
+    persist_directory="/path/to/chroma/db",
+    collection_name="documents"
+)
+
+# FAISS Integration (Local)
+faiss_store = VectorStore(
+    provider="faiss",
+    index_path="/path/to/faiss/index",
+    dimension=1536
+)
+
+# Use with SemantiCore for RAG
+core = SemantiCore(
+    vector_store=pinecone_store,
+    embedding_model="text-embedding-3-large"
+)
+
+# Semantic chunking and embedding
+chunks = core.semantic_chunk_documents(documents)
+embeddings = core.embed_chunks(chunks)
+vector_store.store_embeddings(chunks, embeddings)
+
+# Semantic search
+query = "What are the latest AI developments?"
+results = core.semantic_search(query, top_k=5)
+🔗 Framework Integration
+# LangChain Integration
+from semanticore.integrations.langchain import SemanticChain
+from langchain.chains import ConversationalRetrievalChain
+
+semantic_chain = SemanticChain(
+    semanticore_instance=core,
+    retriever_type="semantic",
+    context_engineering=True
+)
+
+langchain_chain = ConversationalRetrievalChain(
+    retriever=semantic_chain.as_retriever(),
+    memory=semantic_chain.get_memory(),
+    return_source_documents=True
+)
+
+# LlamaIndex Integration
+from semanticore.integrations.llamaindex import SemanticIndex
+from llama_index import VectorStoreIndex
+
+semantic_index = SemanticIndex(
+    semanticore_instance=core,
+    enable_semantic_routing=True
+)
+
+llama_index = VectorStoreIndex.from_vector_store(
+    semantic_index.get_vector_store()
+)
+
+# CrewAI Integration
+from semanticore.integrations.crewai import SemanticCrew
+from crewai import Agent, Task, Crew
+
+# Create semantic-aware agents
+researcher = Agent(
+    role='Research Analyst',
+    goal='Analyze semantic patterns in data',
+    backstory='Expert in semantic data analysis',
+    semantic_memory=core.get_semantic_memory()
+)
+
+writer = Agent(
+    role='Content Writer',
+    goal='Create semantic-rich content',
+    backstory='Specialist in semantic content creation',
+    semantic_memory=core.get_semantic_memory()
+)
+
+# Create semantic crew
+semantic_crew = SemanticCrew(
+    agents=[researcher, writer],
+    semantic_coordination=True,
+    knowledge_sharing=True
+)
+🎯 Advanced Features
+🧠 Multi-Domain Semantic Processing
+from semanticore.domains import CybersecurityProcessor, FinanceProcessor, HealthcareProcessor
+
+# Cybersecurity semantic processing
+cyber_processor = CybersecurityProcessor(
+    threat_intelligence_feeds=["misp", "stix"],
+    ontology="cybersecurity.owl",
+    enable_threat_hunting=True
+)
+
+# Process security incidents
+incident_report = """
+APT29 exploited CVE-2024-1234 in Microsoft Exchange to deploy Cobalt Strike.
+The attack used spear-phishing emails with malicious attachments.
+"""
+
+cyber_analysis = cyber_processor.analyze(incident_report)
+print("Threat Actors:", cyber_analysis.threat_actors)
+print("Vulnerabilities:", cyber_analysis.vulnerabilities)
+print("Attack Techniques:", cyber_analysis.mitre_techniques)
+
+# Financial semantic processing
+finance_processor = FinanceProcessor(
+    market_data_sources=["yahoo", "alpha_vantage"],
+    ontology="finance.owl",
+    enable_sentiment_analysis=True
+)
+
+# Healthcare semantic processing
+health_processor = HealthcareProcessor(
+    medical_ontologies=["snomed", "icd10"],
+    enable_drug_interaction_detection=True
+)
+🎯 Context Engineering for RAG
+from semanticore.context import ContextEngineer
+
+# Advanced context engineering
+context_engineer = ContextEngineer(
+    max_context_length=128000,
+    compression_strategy="semantic_preservation",
+    relevance_scoring=True
+)
+
+# Optimize context for specific queries
+query = "How can we improve cloud security against APT attacks?"
+documents = load_security_documents()
+
+# Intelligent context compression
+optimized_context = context_engineer.optimize_context(
+    query=query,
+    documents=documents,
+    preserve_entities=True,
+    maintain_relationships=True,
+    compression_ratio=0.3  # 70% reduction while preserving meaning
+)
+
+print(f"Context compressed from {len(documents)} to {len(optimized_context)} tokens")
+print(f"Semantic preservation: {context_engineer.preservation_score:.2%}")
+🔄 Real-time Semantic Processing
+from semanticore.streaming import SemanticStreamProcessor
+
+# Real-time semantic processing
+stream_processor = SemanticStreamProcessor(
+    input_streams=["kafka://events", "websocket://feeds"],
+    processing_pipeline=[
+        "entity_extraction",
+        "relationship_detection", 
+        "ontology_mapping",
+        "knowledge_graph_update"
+    ],
+    batch_size=100,
+    processing_interval="5s"
+)
+
+# Process streaming data
+async for semantic_event in stream_processor.process():
+    if semantic_event.confidence > 0.8:
+        # Update knowledge graph
+        core.update_knowledge_graph(semantic_event)
+        
+        # Trigger alerts if needed
+        if semantic_event.importance == "critical":
+            await alert_system.send_alert(semantic_event)
+🔀 Semantic Routing & Orchestration
+from semanticore.routing import SemanticRouter
+
+# Multi-dimensional semantic routing
+router = SemanticRouter(
+    routing_dimensions=["intent", "domain", "complexity", "urgency"],
+    agents={
+        "security_analyst": SecurityAgent(),
+        "data_scientist": DataScienceAgent(),
+        "business_analyst": BusinessAgent()
+    }
+)
+
+# Route queries to appropriate agents
+query = "Analyze the security implications of our latest data breach"
+routed_agent = router.route_query(query)
+response = routed_agent.process(query)
+
+
 ---
 
 ## 🏗️ Architecture
@@ -439,23 +805,6 @@ SemantiCore follows a modular, extensible architecture:
 - ✅ Neo4j and RDF export
 - ✅ Vector database integration
 
-### 🔮 Version 1.1 (Q3 2025)
-- 🔄 **Web-based visual schema editor**
-- 🔄 **Real-time streaming support** (Kafka, MQTT, WebSockets)
-- 🔄 **Advanced semantic routing** with learning capabilities
-- 🔄 **Multi-modal support** (images, audio, video)
-
-### 🔮 Version 1.2 (Q4 2025)
-- ⏳ **Domain-specific modules** (Legal, Healthcare, Finance)
-- ⏳ **Graph reasoning engine** with inference capabilities
-- ⏳ **Distributed processing** support
-- ⏳ **Model fine-tuning** utilities
-
-### 🔮 Version 2.0 (2026)
-- ⏳ **Custom DSL** for semantic pipeline definition
-- ⏳ **AutoML** for extraction model optimization
-- ⏳ **Federated learning** across distributed deployments
-- ⏳ **Enterprise management** console
 
 ---
 
