@@ -25,7 +25,7 @@
 
 SemantiCore is the most comprehensive open-source semantic intelligence platform that transforms raw, unstructured data from **any source** into intelligent, contextual knowledge. Built for developers, researchers, and enterprises, it bridges the gap between chaotic data and AI-ready semantic understanding.
 
-> **"Your data deserves better than simple processing — it deserves semantic intelligence."**
+> **"The missing link between your data and AI — turning unstructured chaos into structured, intelligent semantic knowledge."**
 
 ### 🎯 Why Choose SemantiCore?
 
