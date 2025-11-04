@@ -5,17 +5,29 @@ This module identifies conflicts from multiple sources and
 provides investigation guides for discrepancies.
 """
 
-# from .conflict_detector import ConflictDetector
-# from .source_tracker import SourceTracker
-# from .conflict_resolver import ConflictResolver
-# from .investigation_guide import InvestigationGuideGenerator
-# from .conflict_analyzer import ConflictAnalyzer
+from .conflict_detector import ConflictDetector, Conflict, ConflictType
+from .source_tracker import SourceTracker, SourceReference, PropertySource
+from .conflict_resolver import ConflictResolver, ResolutionResult, ResolutionStrategy
+from .investigation_guide import (
+    InvestigationGuideGenerator,
+    InvestigationGuide,
+    InvestigationStep,
+)
+from .conflict_analyzer import ConflictAnalyzer, ConflictPattern
 
-# TODO: Implement conflict detection
-# - Multi-source conflict identification
-# - Property value conflict detection
-# - Relationship conflict detection
-# - Source tracking for conflicts
-# - Investigation guide generation
-# - Conflict resolution strategies
-# - Conflict pattern analysis
+__all__ = [
+    "ConflictDetector",
+    "Conflict",
+    "ConflictType",
+    "SourceTracker",
+    "SourceReference",
+    "PropertySource",
+    "ConflictResolver",
+    "ResolutionResult",
+    "ResolutionStrategy",
+    "InvestigationGuideGenerator",
+    "InvestigationGuide",
+    "InvestigationStep",
+    "ConflictAnalyzer",
+    "ConflictPattern",
+]

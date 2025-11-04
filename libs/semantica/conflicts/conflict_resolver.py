@@ -5,10 +5,380 @@ Provides strategies for resolving detected conflicts including
 voting mechanisms, credibility-based resolution, and expert review.
 """
 
-# TODO: Implement conflict resolution
-# - Automatic conflict resolution strategies
-# - Voting-based resolution from multiple sources
-# - Credibility-weighted conflict resolution
-# - Manual conflict resolution workflow
-# - Resolution rule configuration
-# - Conflict resolution history tracking
+from typing import Any, Dict, List, Optional, Callable
+from dataclasses import dataclass, field
+from enum import Enum
+from collections import Counter
+
+from .conflict_detector import Conflict, ConflictType
+from .source_tracker import SourceTracker
+from ..utils.exceptions import ValidationError, ProcessingError
+from ..utils.logging import get_logger
+
+
+class ResolutionStrategy(str, Enum):
+    """Conflict resolution strategy."""
+    VOTING = "voting"
+    CREDIBILITY_WEIGHTED = "credibility_weighted"
+    MOST_RECENT = "most_recent"
+    FIRST_SEEN = "first_seen"
+    HIGHEST_CONFIDENCE = "highest_confidence"
+    MANUAL_REVIEW = "manual_review"
+    EXPERT_REVIEW = "expert_review"
+
+
+@dataclass
+class ResolutionResult:
+    """Conflict resolution result."""
+    conflict_id: str
+    resolved: bool
+    resolved_value: Any = None
+    resolution_strategy: Optional[str] = None
+    confidence: float = 0.0
+    sources_used: List[str] = field(default_factory=list)
+    resolution_notes: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+class ConflictResolver:
+    """
+    Conflict resolver with multiple resolution strategies.
+    
+    • Automatic conflict resolution strategies
+    • Voting-based resolution from multiple sources
+    • Credibility-weighted conflict resolution
+    • Manual conflict resolution workflow
+    • Resolution rule configuration
+    • Conflict resolution history tracking
+    """
+    
+    def __init__(self, config: Optional[Dict[str, Any]] = None, **kwargs):
+        """
+        Initialize conflict resolver.
+        
+        Args:
+            config: Configuration dictionary
+            **kwargs: Additional configuration options:
+                - default_strategy: Default resolution strategy
+                - source_tracker: Source tracker instance
+                - resolution_rules: Custom resolution rules
+        """
+        self.logger = get_logger("conflict_resolver")
+        self.config = config or {}
+        self.config.update(kwargs)
+        
+        self.source_tracker = self.config.get("source_tracker") or SourceTracker()
+        self.default_strategy = ResolutionStrategy(
+            self.config.get("default_strategy", "voting")
+        )
+        self.resolution_rules: Dict[str, ResolutionStrategy] = self.config.get(
+            "resolution_rules", {}
+        )
+        
+        self.resolution_history: List[ResolutionResult] = []
+    
+    def resolve_conflict(
+        self,
+        conflict: Conflict,
+        strategy: Optional[ResolutionStrategy] = None
+    ) -> ResolutionResult:
+        """
+        Resolve a conflict using specified strategy.
+        
+        Args:
+            conflict: Conflict to resolve
+            strategy: Resolution strategy (uses default if None)
+            
+        Returns:
+            Resolution result
+        """
+        if not strategy:
+            # Check for property-specific rule
+            if conflict.property_name:
+                rule_key = f"{conflict.entity_id}.{conflict.property_name}"
+                if rule_key in self.resolution_rules:
+                    strategy = self.resolution_rules[rule_key]
+                else:
+                    strategy = self.default_strategy
+            else:
+                strategy = self.default_strategy
+        
+        self.logger.info(
+            f"Resolving conflict {conflict.conflict_id} using strategy: {strategy.value}"
+        )
+        
+        if strategy == ResolutionStrategy.VOTING:
+            result = self._resolve_by_voting(conflict)
+        elif strategy == ResolutionStrategy.CREDIBILITY_WEIGHTED:
+            result = self._resolve_by_credibility(conflict)
+        elif strategy == ResolutionStrategy.MOST_RECENT:
+            result = self._resolve_by_recency(conflict)
+        elif strategy == ResolutionStrategy.FIRST_SEEN:
+            result = self._resolve_by_first_seen(conflict)
+        elif strategy == ResolutionStrategy.HIGHEST_CONFIDENCE:
+            result = self._resolve_by_confidence(conflict)
+        elif strategy == ResolutionStrategy.MANUAL_REVIEW:
+            result = self._flag_for_manual_review(conflict)
+        elif strategy == ResolutionStrategy.EXPERT_REVIEW:
+            result = self._flag_for_expert_review(conflict)
+        else:
+            result = self._resolve_by_voting(conflict)
+        
+        result.resolution_strategy = strategy.value
+        self.resolution_history.append(result)
+        
+        return result
+    
+    def resolve_conflicts(
+        self,
+        conflicts: List[Conflict],
+        strategy: Optional[ResolutionStrategy] = None
+    ) -> List[ResolutionResult]:
+        """
+        Resolve multiple conflicts.
+        
+        Args:
+            conflicts: List of conflicts to resolve
+            strategy: Resolution strategy (uses default if None)
+            
+        Returns:
+            List of resolution results
+        """
+        results = []
+        
+        for conflict in conflicts:
+            result = self.resolve_conflict(conflict, strategy)
+            results.append(result)
+        
+        return results
+    
+    def _resolve_by_voting(self, conflict: Conflict) -> ResolutionResult:
+        """Resolve conflict by voting (most common value wins)."""
+        if not conflict.conflicting_values:
+            return ResolutionResult(
+                conflict_id=conflict.conflict_id,
+                resolved=False,
+                resolution_notes="No conflicting values to resolve"
+            )
+        
+        # Count value occurrences
+        value_counts = Counter(conflict.conflicting_values)
+        most_common_value, count = value_counts.most_common(1)[0]
+        
+        # Calculate confidence based on vote ratio
+        total_votes = len(conflict.conflicting_values)
+        confidence = count / total_votes if total_votes > 0 else 0.0
+        
+        sources_used = [s.get("document", "unknown") for s in conflict.sources]
+        
+        return ResolutionResult(
+            conflict_id=conflict.conflict_id,
+            resolved=True,
+            resolved_value=most_common_value,
+            confidence=confidence,
+            sources_used=sources_used,
+            resolution_notes=f"Resolved by voting: {count}/{total_votes} votes for this value"
+        )
+    
+    def _resolve_by_credibility(self, conflict: Conflict) -> ResolutionResult:
+        """Resolve conflict by credibility-weighted voting."""
+        if not conflict.conflicting_values or not conflict.sources:
+            return ResolutionResult(
+                conflict_id=conflict.conflict_id,
+                resolved=False,
+                resolution_notes="Insufficient data for credibility-based resolution"
+            )
+        
+        # Weight values by source credibility
+        value_weights: Dict[Any, float] = {}
+        
+        for i, value in enumerate(conflict.conflicting_values):
+            source = conflict.sources[i] if i < len(conflict.sources) else {}
+            document = source.get("document", "unknown")
+            source_confidence = source.get("confidence", 0.5)
+            credibility = self.source_tracker.get_source_credibility(document)
+            
+            weight = source_confidence * credibility
+            
+            if value not in value_weights:
+                value_weights[value] = 0.0
+            value_weights[value] += weight
+        
+        # Get value with highest weight
+        if not value_weights:
+            return ResolutionResult(
+                conflict_id=conflict.conflict_id,
+                resolved=False,
+                resolution_notes="Could not calculate credibility weights"
+            )
+        
+        resolved_value = max(value_weights.items(), key=lambda x: x[1])[0]
+        total_weight = sum(value_weights.values())
+        confidence = value_weights[resolved_value] / total_weight if total_weight > 0 else 0.0
+        
+        sources_used = [s.get("document", "unknown") for s in conflict.sources]
+        
+        return ResolutionResult(
+            conflict_id=conflict.conflict_id,
+            resolved=True,
+            resolved_value=resolved_value,
+            confidence=confidence,
+            sources_used=sources_used,
+            resolution_notes=f"Resolved by credibility-weighted voting (weight: {value_weights[resolved_value]:.2f})"
+        )
+    
+    def _resolve_by_recency(self, conflict: Conflict) -> ResolutionResult:
+        """Resolve conflict by using most recent value."""
+        if not conflict.sources:
+            return ResolutionResult(
+                conflict_id=conflict.conflict_id,
+                resolved=False,
+                resolution_notes="No source timestamps available"
+            )
+        
+        # Find most recent source (by timestamp if available)
+        most_recent_idx = 0
+        most_recent_time = None
+        
+        for i, source in enumerate(conflict.sources):
+            # Check metadata for timestamp
+            timestamp = source.get("metadata", {}).get("timestamp")
+            if timestamp:
+                if not most_recent_time or timestamp > most_recent_time:
+                    most_recent_time = timestamp
+                    most_recent_idx = i
+        
+        resolved_value = conflict.conflicting_values[most_recent_idx]
+        sources_used = [conflict.sources[most_recent_idx].get("document", "unknown")]
+        
+        return ResolutionResult(
+            conflict_id=conflict.conflict_id,
+            resolved=True,
+            resolved_value=resolved_value,
+            confidence=0.8,
+            sources_used=sources_used,
+            resolution_notes="Resolved by most recent value"
+        )
+    
+    def _resolve_by_first_seen(self, conflict: Conflict) -> ResolutionResult:
+        """Resolve conflict by using first seen value."""
+        if not conflict.conflicting_values:
+            return ResolutionResult(
+                conflict_id=conflict.conflict_id,
+                resolved=False
+            )
+        
+        resolved_value = conflict.conflicting_values[0]
+        sources_used = [conflict.sources[0].get("document", "unknown")] if conflict.sources else []
+        
+        return ResolutionResult(
+            conflict_id=conflict.conflict_id,
+            resolved=True,
+            resolved_value=resolved_value,
+            confidence=0.7,
+            sources_used=sources_used,
+            resolution_notes="Resolved by first seen value"
+        )
+    
+    def _resolve_by_confidence(self, conflict: Conflict) -> ResolutionResult:
+        """Resolve conflict by using value with highest confidence."""
+        if not conflict.sources:
+            return ResolutionResult(
+                conflict_id=conflict.conflict_id,
+                resolved=False,
+                resolution_notes="No source confidence data available"
+            )
+        
+        # Find source with highest confidence
+        max_confidence = 0.0
+        best_idx = 0
+        
+        for i, source in enumerate(conflict.sources):
+            confidence = source.get("confidence", 0.0)
+            if confidence > max_confidence:
+                max_confidence = confidence
+                best_idx = i
+        
+        resolved_value = conflict.conflicting_values[best_idx]
+        sources_used = [conflict.sources[best_idx].get("document", "unknown")]
+        
+        return ResolutionResult(
+            conflict_id=conflict.conflict_id,
+            resolved=True,
+            resolved_value=resolved_value,
+            confidence=max_confidence,
+            sources_used=sources_used,
+            resolution_notes=f"Resolved by highest confidence ({max_confidence:.2f})"
+        )
+    
+    def _flag_for_manual_review(self, conflict: Conflict) -> ResolutionResult:
+        """Flag conflict for manual review."""
+        return ResolutionResult(
+            conflict_id=conflict.conflict_id,
+            resolved=False,
+            resolution_notes="Flagged for manual review",
+            metadata={"requires_manual_review": True, "severity": conflict.severity}
+        )
+    
+    def _flag_for_expert_review(self, conflict: Conflict) -> ResolutionResult:
+        """Flag conflict for expert review."""
+        return ResolutionResult(
+            conflict_id=conflict.conflict_id,
+            resolved=False,
+            resolution_notes="Flagged for expert review",
+            metadata={"requires_expert_review": True, "severity": conflict.severity}
+        )
+    
+    def set_resolution_rule(
+        self,
+        entity_id: str,
+        property_name: str,
+        strategy: ResolutionStrategy
+    ) -> bool:
+        """
+        Set custom resolution rule for specific property.
+        
+        Args:
+            entity_id: Entity identifier
+            property_name: Property name
+            strategy: Resolution strategy
+            
+        Returns:
+            True if rule set successfully
+        """
+        rule_key = f"{entity_id}.{property_name}"
+        self.resolution_rules[rule_key] = strategy
+        self.logger.info(f"Set resolution rule: {rule_key} -> {strategy.value}")
+        return True
+    
+    def get_resolution_history(self) -> List[ResolutionResult]:
+        """
+        Get conflict resolution history.
+        
+        Returns:
+            List of resolution results
+        """
+        return self.resolution_history.copy()
+    
+    def get_resolution_statistics(self) -> Dict[str, Any]:
+        """
+        Get resolution statistics.
+        
+        Returns:
+            Statistics dictionary
+        """
+        total = len(self.resolution_history)
+        resolved = sum(1 for r in self.resolution_history if r.resolved)
+        
+        by_strategy = {}
+        for result in self.resolution_history:
+            strategy = result.resolution_strategy or "unknown"
+            by_strategy[strategy] = by_strategy.get(strategy, 0) + 1
+        
+        return {
+            "total_resolutions": total,
+            "resolved_count": resolved,
+            "unresolved_count": total - resolved,
+            "resolution_rate": resolved / total if total > 0 else 0.0,
+            "by_strategy": by_strategy
+        }
