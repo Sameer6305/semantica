@@ -1,8 +1,33 @@
 """
-Parallelism manager for Semantica framework.
+Parallelism Manager Module
 
-This module provides parallel execution management
-for pipeline tasks and operations.
+This module provides parallel execution management for pipeline tasks and operations,
+supporting thread-based and process-based parallelism with load balancing and
+performance optimization.
+
+Key Features:
+    - Parallel task execution and coordination
+    - Resource allocation and scheduling
+    - Load balancing and optimization
+    - Performance monitoring and tuning
+    - Error handling and recovery
+    - Thread and process pool execution
+    - Task priority management
+
+Main Classes:
+    - ParallelismManager: Parallelism management system
+    - ParallelExecutor: Parallel execution coordinator
+    - Task: Dataclass for parallel task definition
+    - ParallelExecutionResult: Dataclass for parallel execution results
+
+Example Usage:
+    >>> from semantica.pipeline import ParallelismManager, Task
+    >>> manager = ParallelismManager(max_workers=4)
+    >>> tasks = [Task("task1", handler, args), Task("task2", handler2, args2)]
+    >>> results = manager.execute_parallel(tasks)
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Callable

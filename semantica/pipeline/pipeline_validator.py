@@ -1,8 +1,29 @@
 """
-Pipeline validator for Semantica framework.
+Pipeline Validator Module
 
-This module provides pipeline validation and testing
-for workflow correctness and performance.
+This module provides pipeline validation and testing for workflow correctness and
+performance, detecting errors, circular dependencies, and performance issues.
+
+Key Features:
+    - Pipeline validation and testing
+    - Workflow correctness checking
+    - Performance validation and benchmarking
+    - Error detection and reporting
+    - Circular dependency detection
+    - Step dependency validation
+
+Main Classes:
+    - PipelineValidator: Pipeline validation engine
+    - ValidationResult: Dataclass for validation results
+
+Example Usage:
+    >>> from semantica.pipeline import PipelineValidator
+    >>> validator = PipelineValidator()
+    >>> result = validator.validate_pipeline(pipeline)
+    >>> if result.valid: print("Pipeline is valid")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Union

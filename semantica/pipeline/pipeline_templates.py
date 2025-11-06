@@ -1,8 +1,29 @@
 """
-Pipeline templates for Semantica framework.
+Pipeline Templates Module
 
-This module provides pre-built pipeline templates
-for common use cases and workflows.
+This module provides pre-built pipeline templates for common use cases and workflows,
+enabling quick pipeline creation with customizable configurations.
+
+Key Features:
+    - Pre-built pipeline templates
+    - Common workflow patterns
+    - Template customization and configuration
+    - Performance optimization
+    - Error handling and recovery
+    - Template registration and management
+
+Main Classes:
+    - PipelineTemplateManager: Pipeline template management system
+    - PipelineTemplate: Dataclass for pipeline template definition
+
+Example Usage:
+    >>> from semantica.pipeline import PipelineTemplateManager
+    >>> manager = PipelineTemplateManager()
+    >>> template = manager.get_template("knowledge_graph")
+    >>> pipeline = manager.create_from_template("knowledge_graph", config={})
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional

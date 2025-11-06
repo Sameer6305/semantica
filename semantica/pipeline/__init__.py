@@ -1,9 +1,22 @@
 """
 Pipeline and Orchestration Module
 
-This module provides comprehensive pipeline construction and orchestration capabilities.
+This module provides comprehensive pipeline construction and orchestration capabilities,
+enabling the creation, execution, validation, and management of complex data processing
+workflows with error handling, parallelism, and resource scheduling.
 
-Exports:
+Key Features:
+    - Pipeline construction DSL for building workflows
+    - Pipeline execution engine with status tracking
+    - Error handling and retry mechanisms
+    - Parallel execution management
+    - Resource allocation and scheduling
+    - Pipeline validation and testing
+    - Pre-built pipeline templates
+    - Progress tracking and monitoring
+    - Failure recovery strategies
+
+Main Classes:
     - PipelineBuilder: Pipeline construction DSL
     - ExecutionEngine: Pipeline execution engine
     - FailureHandler: Error handling and retry mechanisms
@@ -11,6 +24,18 @@ Exports:
     - ResourceScheduler: Resource allocation and scheduling
     - PipelineValidator: Pipeline validation and testing
     - PipelineTemplateManager: Pre-built pipeline templates
+    - Pipeline: Pipeline definition dataclass
+    - PipelineStep: Pipeline step definition dataclass
+
+Example Usage:
+    >>> from semantica.pipeline import PipelineBuilder, ExecutionEngine
+    >>> builder = PipelineBuilder()
+    >>> pipeline = builder.add_step("ingest", "file_ingest").add_step("parse", "document_parse").build()
+    >>> engine = ExecutionEngine()
+    >>> result = engine.execute(pipeline)
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from .pipeline_builder import (

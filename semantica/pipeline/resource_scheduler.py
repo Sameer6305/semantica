@@ -1,8 +1,31 @@
 """
-Resource scheduler for Semantica framework.
+Resource Scheduler Module
 
-This module provides resource allocation and scheduling
-for pipeline execution and optimization.
+This module provides resource allocation and scheduling for pipeline execution and
+optimization, managing CPU, GPU, memory, disk, and network resources.
+
+Key Features:
+    - Resource allocation and scheduling
+    - Multiple resource types (CPU, GPU, memory, disk, network)
+    - Resource capacity management
+    - Allocation tracking and monitoring
+    - Resource optimization
+    - Thread-safe resource management
+
+Main Classes:
+    - ResourceScheduler: Resource scheduler for pipeline execution
+    - Resource: Dataclass for resource definition
+    - ResourceAllocation: Dataclass for resource allocation records
+    - ResourceType: Enum for resource types
+
+Example Usage:
+    >>> from semantica.pipeline import ResourceScheduler, ResourceType
+    >>> scheduler = ResourceScheduler()
+    >>> scheduler.register_resource("cpu1", ResourceType.CPU, capacity=100.0)
+    >>> allocation = scheduler.allocate_resource("cpu1", ResourceType.CPU, 50.0, "pipeline1")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional

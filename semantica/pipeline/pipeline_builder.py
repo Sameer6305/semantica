@@ -1,7 +1,8 @@
 """
 Pipeline Construction Module
 
-Handles construction and configuration of processing pipelines.
+This module handles construction and configuration of processing pipelines, providing
+a fluent DSL for building workflows, step chaining, validation, and serialization.
 
 Key Features:
     - Pipeline construction DSL
@@ -9,6 +10,24 @@ Key Features:
     - Pipeline validation and optimization
     - Error handling and recovery
     - Pipeline serialization and deserialization
+    - Dependency management
+    - Step status tracking
+
+Main Classes:
+    - PipelineBuilder: Pipeline construction DSL
+    - Pipeline: Pipeline definition dataclass
+    - PipelineStep: Pipeline step definition dataclass
+    - StepStatus: Enum for step status
+    - PipelineSerializer: Pipeline serialization utility
+
+Example Usage:
+    >>> from semantica.pipeline import PipelineBuilder
+    >>> builder = PipelineBuilder()
+    >>> pipeline = builder.add_step("ingest", "file_ingest").add_step("parse", "document_parse").build()
+    >>> serialized = builder.serialize(pipeline)
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Callable, Union

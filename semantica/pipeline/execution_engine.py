@@ -1,8 +1,35 @@
 """
-Pipeline execution engine for Semantica framework.
+Pipeline Execution Engine Module
 
-This module provides pipeline execution and orchestration
-for complex data processing workflows.
+This module provides pipeline execution and orchestration for complex data processing
+workflows, including task scheduling, resource management, progress tracking, and
+performance monitoring.
+
+Key Features:
+    - Pipeline execution and orchestration
+    - Task scheduling and management
+    - Resource allocation and monitoring
+    - Performance optimization
+    - Progress tracking and reporting
+    - Status management (pending, running, paused, completed, failed)
+    - Execution result tracking
+    - Thread-safe execution
+
+Main Classes:
+    - ExecutionEngine: Pipeline execution engine
+    - ExecutionResult: Dataclass for execution results
+    - PipelineStatus: Enum for pipeline status
+    - ProgressTracker: Progress tracking utility
+
+Example Usage:
+    >>> from semantica.pipeline import ExecutionEngine, Pipeline
+    >>> engine = ExecutionEngine()
+    >>> result = engine.execute(pipeline)
+    >>> status = engine.get_status(pipeline)
+    >>> progress = engine.get_progress(pipeline)
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Callable

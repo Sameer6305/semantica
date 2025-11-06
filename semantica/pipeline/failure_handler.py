@@ -1,8 +1,37 @@
 """
-Failure handler for Semantica framework.
+Failure Handler Module
 
-This module provides error handling and retry mechanisms
-for pipeline execution and recovery.
+This module provides error handling and retry mechanisms for pipeline execution
+and recovery, including configurable retry policies, fallback strategies, and
+error severity classification.
+
+Key Features:
+    - Error handling and retry mechanisms
+    - Configurable retry policies (linear, exponential, fixed)
+    - Fallback handler support
+    - Error severity classification (low, medium, high, critical)
+    - Recovery action management
+    - Retry delay calculation
+    - Error recovery strategies
+
+Main Classes:
+    - FailureHandler: Main failure handler
+    - RetryHandler: Retry mechanism handler
+    - FallbackHandler: Fallback strategy handler
+    - ErrorRecovery: Error recovery coordinator
+    - RetryPolicy: Dataclass for retry policy configuration
+    - RetryStrategy: Enum for retry strategies
+    - ErrorSeverity: Enum for error severity levels
+    - FailureRecovery: Dataclass for failure recovery results
+
+Example Usage:
+    >>> from semantica.pipeline import FailureHandler, RetryPolicy
+    >>> handler = FailureHandler()
+    >>> policy = RetryPolicy(max_retries=3, strategy=RetryStrategy.EXPONENTIAL)
+    >>> recovery = handler.handle_failure(exception, policy)
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Callable
