@@ -1,8 +1,24 @@
 """
-Cluster Builder for Deduplication
+Cluster Builder Module
 
-Builds clusters of similar entities for batch deduplication
-using clustering algorithms and similarity graphs.
+This module provides cluster building capabilities for the Semantica framework,
+creating clusters of similar entities for batch deduplication using clustering
+algorithms and similarity graphs.
+
+Key Features:
+    - Graph-based clustering using union-find algorithm
+    - Hierarchical clustering for large datasets
+    - Cluster quality assessment and metrics
+    - Incremental cluster updates
+    - Configurable cluster size constraints
+
+Example Usage:
+    >>> from semantica.deduplication import ClusterBuilder
+    >>> builder = ClusterBuilder(similarity_threshold=0.8)
+    >>> result = builder.build_clusters(entities)
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -36,26 +52,76 @@ class ClusterResult:
 
 class ClusterBuilder:
     """
-    Cluster building engine.
+    Cluster building engine for entity clustering.
     
-    • Builds entity clusters using similarity graphs
-    • Supports cluster-based deduplication workflows
-    • Assesses cluster quality
-    • Uses hierarchical clustering for large datasets
-    • Supports incremental cluster updates
+    This class builds clusters of similar entities for batch deduplication using
+    graph-based or hierarchical clustering algorithms. Clusters can be used for
+    efficient batch processing of duplicate detection and merging.
+    
+    Features:
+        - Graph-based clustering using union-find algorithm
+        - Hierarchical clustering for large datasets
+        - Cluster quality assessment and metrics
+        - Incremental cluster updates
+        - Configurable cluster size constraints
+    
+    Example Usage:
+        >>> builder = ClusterBuilder(
+        ...     similarity_threshold=0.8,
+        ...     min_cluster_size=2,
+        ...     max_cluster_size=50
+        ... )
+        >>> result = builder.build_clusters(entities)
+        >>> print(f"Found {len(result.clusters)} clusters")
     """
     
-    def __init__(self, config=None, **kwargs):
-        """Initialize cluster builder."""
+    def __init__(
+        self,
+        similarity_threshold: float = 0.7,
+        min_cluster_size: int = 2,
+        max_cluster_size: int = 100,
+        use_hierarchical: bool = False,
+        config: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ):
+        """
+        Initialize cluster builder.
+        
+        Sets up the cluster builder with similarity calculator and clustering
+        configuration parameters.
+        
+        Args:
+            similarity_threshold: Minimum similarity for entities to be in same cluster
+                                (0.0 to 1.0, default: 0.7)
+            min_cluster_size: Minimum number of entities in a valid cluster (default: 2)
+            max_cluster_size: Maximum number of entities in a cluster (default: 100)
+            use_hierarchical: Whether to use hierarchical clustering (default: False).
+                            If False, uses faster graph-based clustering.
+            config: Configuration dictionary (merged with kwargs)
+            **kwargs: Additional configuration options:
+                - similarity: Configuration for SimilarityCalculator
+        """
         self.logger = get_logger("cluster_builder")
+        
+        # Merge configuration
         self.config = config or {}
         self.config.update(kwargs)
         
-        self.similarity_calculator = SimilarityCalculator(**config.get("similarity", {}))
-        self.similarity_threshold = config.get("similarity_threshold", 0.7)
-        self.min_cluster_size = config.get("min_cluster_size", 2)
-        self.max_cluster_size = config.get("max_cluster_size", 100)
-        self.use_hierarchical = config.get("use_hierarchical", False)
+        # Initialize similarity calculator
+        similarity_config = self.config.get("similarity", {})
+        self.similarity_calculator = SimilarityCalculator(**similarity_config)
+        
+        # Clustering parameters
+        self.similarity_threshold = similarity_threshold
+        self.min_cluster_size = min_cluster_size
+        self.max_cluster_size = max_cluster_size
+        self.use_hierarchical = use_hierarchical
+        
+        self.logger.debug(
+            f"Cluster builder initialized: threshold={similarity_threshold}, "
+            f"size_range=[{min_cluster_size}, {max_cluster_size}], "
+            f"hierarchical={use_hierarchical}"
+        )
     
     def build_clusters(
         self,

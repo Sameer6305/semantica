@@ -1,8 +1,26 @@
 """
-Similarity Calculator for Deduplication
+Similarity Calculator Module
 
-Calculates semantic similarity between entities to identify
-potential duplicates using various similarity metrics.
+This module provides comprehensive similarity calculation capabilities for the
+Semantica framework, computing semantic similarity between entities using multiple
+metrics including string similarity, property similarity, relationship similarity,
+and embedding similarity.
+
+Key Features:
+    - Multi-factor similarity calculation (string, property, relationship, embedding)
+    - Multiple string similarity algorithms (Levenshtein, Jaro-Winkler, cosine)
+    - Weighted aggregation of similarity components
+    - Batch similarity calculation for efficiency
+    - Configurable similarity thresholds and weights
+
+Example Usage:
+    >>> from semantica.deduplication import SimilarityCalculator
+    >>> calculator = SimilarityCalculator()
+    >>> similarity = calculator.calculate_similarity(entity1, entity2)
+    >>> batch_results = calculator.batch_calculate_similarity(entities)
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Tuple
@@ -25,26 +43,77 @@ class SimilarityResult:
 
 class SimilarityCalculator:
     """
-    Similarity calculation engine.
+    Similarity calculation engine for entity comparison.
     
-    • Calculates semantic similarity using embeddings
-    • Uses string similarity metrics (Levenshtein, Jaro-Winkler)
-    • Compares property-based similarity
-    • Scores relationship-based similarity
-    • Aggregates multi-factor similarity
+    This class provides comprehensive similarity calculation using multiple factors:
+    string similarity, property similarity, relationship similarity, and embedding
+    similarity. Results are aggregated using configurable weights.
+    
+    Similarity Components:
+        - String similarity: Name/identifier comparison using various algorithms
+        - Property similarity: Comparison of entity properties
+        - Relationship similarity: Comparison of entity relationships
+        - Embedding similarity: Semantic similarity using vector embeddings
+    
+    Example Usage:
+        >>> calculator = SimilarityCalculator(
+        ...     string_weight=0.4,
+        ...     property_weight=0.3,
+        ...     embedding_weight=0.3
+        ... )
+        >>> result = calculator.calculate_similarity(entity1, entity2)
+        >>> print(f"Similarity: {result.score:.2f}")
     """
     
-    def __init__(self, config=None, **kwargs):
-        """Initialize similarity calculator."""
+    def __init__(
+        self,
+        embedding_weight: float = 0.4,
+        string_weight: float = 0.3,
+        property_weight: float = 0.2,
+        relationship_weight: float = 0.1,
+        similarity_threshold: float = 0.7,
+        config: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ):
+        """
+        Initialize similarity calculator.
+        
+        Sets up the calculator with configurable weights for different similarity
+        components. Weights are normalized automatically if they don't sum to 1.0.
+        
+        Args:
+            embedding_weight: Weight for embedding similarity (default: 0.4)
+            string_weight: Weight for string similarity (default: 0.3)
+            property_weight: Weight for property similarity (default: 0.2)
+            relationship_weight: Weight for relationship similarity (default: 0.1)
+            similarity_threshold: Default similarity threshold for filtering (default: 0.7)
+            config: Configuration dictionary (merged with kwargs)
+            **kwargs: Additional configuration options
+        """
         self.logger = get_logger("similarity_calculator")
+        
+        # Merge configuration
         self.config = config or {}
         self.config.update(kwargs)
         
-        self.embedding_weight = config.get("embedding_weight", 0.4)
-        self.string_weight = config.get("string_weight", 0.3)
-        self.property_weight = config.get("property_weight", 0.2)
-        self.relationship_weight = config.get("relationship_weight", 0.1)
-        self.similarity_threshold = config.get("similarity_threshold", 0.7)
+        # Component weights (used for weighted aggregation)
+        self.embedding_weight = embedding_weight
+        self.string_weight = string_weight
+        self.property_weight = property_weight
+        self.relationship_weight = relationship_weight
+        self.similarity_threshold = similarity_threshold
+        
+        # Validate weights sum to approximately 1.0
+        total_weight = (
+            self.embedding_weight + self.string_weight +
+            self.property_weight + self.relationship_weight
+        )
+        if abs(total_weight - 1.0) > 0.01:
+            self.logger.debug(
+                f"Weights sum to {total_weight:.2f}, will be normalized during calculation"
+            )
+        
+        self.logger.debug("Similarity calculator initialized")
     
     def calculate_similarity(
         self,
@@ -55,13 +124,36 @@ class SimilarityCalculator:
         """
         Calculate overall similarity between two entities.
         
+        This method computes a comprehensive similarity score by combining multiple
+        similarity factors: string similarity, property similarity, relationship
+        similarity, and embedding similarity (if available). Results are aggregated
+        using configurable weights.
+        
+        Similarity Components:
+            - String: Name/identifier similarity (Levenshtein, Jaro-Winkler, etc.)
+            - Property: Property value similarity
+            - Relationship: Relationship overlap (Jaccard similarity)
+            - Embedding: Cosine similarity of embeddings (if available)
+        
         Args:
-            entity1: First entity dictionary
-            entity2: Second entity dictionary
-            **options: Calculation options
+            entity1: First entity dictionary. Should have "name" field and optionally
+                    "properties", "relationships", and "embedding" fields.
+            entity2: Second entity dictionary (same structure as entity1)
+            **options: Additional calculation options (currently unused)
             
         Returns:
-            SimilarityResult with overall score
+            SimilarityResult object containing:
+                - score: Overall similarity score (0.0 to 1.0)
+                - method: Calculation method used ("multi_factor")
+                - components: Dict of individual component scores
+                - metadata: Weights used for aggregation
+                
+        Example:
+            >>> entity1 = {"name": "Apple Inc.", "type": "Company"}
+            >>> entity2 = {"name": "Apple", "type": "Company"}
+            >>> result = calculator.calculate_similarity(entity1, entity2)
+            >>> print(f"Similarity: {result.score:.2f}")
+            >>> print(f"Components: {result.components}")
         """
         components = {}
         

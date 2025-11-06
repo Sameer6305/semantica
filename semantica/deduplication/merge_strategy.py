@@ -1,8 +1,24 @@
 """
-Merge Strategy Manager
+Merge Strategy Manager Module
 
-Manages different strategies for merging duplicate entities
-including property merging rules and relationship preservation.
+This module provides comprehensive merge strategy management for the Semantica
+framework, handling different strategies for merging duplicate entities including
+property merging rules, relationship preservation, and conflict resolution.
+
+Key Features:
+    - Multiple merge strategies (keep_first, keep_most_complete, etc.)
+    - Property-specific merge rules
+    - Custom conflict resolution functions
+    - Relationship preservation during merges
+    - Merge quality validation
+
+Example Usage:
+    >>> from semantica.deduplication import MergeStrategyManager, MergeStrategy
+    >>> manager = MergeStrategyManager()
+    >>> result = manager.merge_entities(entities, strategy=MergeStrategy.KEEP_MOST_COMPLETE)
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Callable
@@ -46,25 +62,70 @@ class MergeResult:
 
 class MergeStrategyManager:
     """
-    Merge strategy management engine.
+    Merge strategy management engine for entity merging.
     
-    • Manages property merging strategies
-    • Preserves relationships during merge
-    • Resolves merge conflicts
-    • Makes confidence-based merge decisions
-    • Validates merge quality
-    • Supports custom merge strategies
+    This class manages different strategies for merging duplicate entities, handling
+    property merging rules, relationship preservation, conflict resolution, and
+    merge quality validation.
+    
+    Features:
+        - Multiple merge strategies (keep_first, keep_most_complete, etc.)
+        - Property-specific merge rules with custom conflict resolution
+        - Relationship preservation during merges
+        - Automatic conflict detection and resolution
+        - Merge quality validation
+        - Support for custom merge strategies
+    
+    Example Usage:
+        >>> manager = MergeStrategyManager(default_strategy="keep_most_complete")
+        >>> manager.add_property_rule("name", MergeStrategy.KEEP_FIRST)
+        >>> result = manager.merge_entities(entities)
     """
     
-    def __init__(self, config=None, **kwargs):
-        """Initialize merge strategy manager."""
+    def __init__(
+        self,
+        default_strategy: str = "keep_most_complete",
+        config: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ):
+        """
+        Initialize merge strategy manager.
+        
+        Sets up the manager with a default merge strategy and empty property rules.
+        Property rules can be added later using add_property_rule().
+        
+        Args:
+            default_strategy: Default merge strategy name (default: "keep_most_complete").
+                            Options: "keep_first", "keep_last", "keep_most_complete",
+                            "keep_highest_confidence", "merge_all"
+            config: Configuration dictionary (merged with kwargs)
+            **kwargs: Additional configuration options
+        """
         self.logger = get_logger("merge_strategy_manager")
+        
+        # Merge configuration
         self.config = config or {}
         self.config.update(kwargs)
         
-        self.default_strategy = MergeStrategy(config.get("default_strategy", "keep_most_complete"))
+        # Default merge strategy
+        strategy_name = self.config.get("default_strategy", default_strategy)
+        try:
+            self.default_strategy = MergeStrategy(strategy_name)
+        except ValueError:
+            self.logger.warning(
+                f"Invalid default strategy '{strategy_name}', using 'keep_most_complete'"
+            )
+            self.default_strategy = MergeStrategy.KEEP_MOST_COMPLETE
+        
+        # Property-specific merge rules
         self.property_rules: Dict[str, PropertyMergeRule] = {}
+        
+        # Custom merge strategies (callable functions)
         self.custom_strategies: Dict[str, Callable] = {}
+        
+        self.logger.debug(
+            f"Merge strategy manager initialized (default: {self.default_strategy.value})"
+        )
     
     def add_property_rule(
         self,
