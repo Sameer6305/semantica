@@ -1,8 +1,31 @@
 """
-Word document parser for Semantica framework.
+Word Document Parser Module
 
-This module handles DOCX document parsing using python-docx
-for text, formatting, and structure extraction.
+This module handles DOCX document parsing using python-docx for text, formatting,
+and structure extraction, including sections, paragraphs, tables, and metadata.
+
+Key Features:
+    - DOCX text and formatting extraction
+    - Document structure analysis (sections, headings)
+    - Table extraction
+    - Metadata extraction (title, author, dates)
+    - Paragraph and style information
+    - Embedded image handling
+
+Main Classes:
+    - DOCXParser: DOCX document parser
+    - DocxSection: Dataclass for document section representation
+    - DocxMetadata: Dataclass for document metadata representation
+
+Example Usage:
+    >>> from semantica.parse import DOCXParser
+    >>> parser = DOCXParser()
+    >>> text = parser.parse("document.docx")
+    >>> sections = parser.extract_sections("document.docx")
+    >>> metadata = parser.extract_metadata("document.docx")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from dataclasses import dataclass, field

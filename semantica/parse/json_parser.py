@@ -1,7 +1,30 @@
 """
-JSON document parser for Semantica framework.
+JSON Document Parser Module
 
-This module handles JSON file parsing for structured data extraction.
+This module handles JSON file parsing for structured data extraction, supporting
+nested structures, arrays, and various data types with validation and flattening.
+
+Key Features:
+    - JSON file and string parsing
+    - Nested structure handling
+    - Data type validation
+    - Structure flattening
+    - JSON path extraction
+    - Large file processing
+
+Main Classes:
+    - JSONParser: JSON document parser
+    - JSONData: Dataclass for JSON data representation
+
+Example Usage:
+    >>> from semantica.parse import JSONParser
+    >>> parser = JSONParser()
+    >>> data = parser.parse("data.json")
+    >>> flattened = parser.parse("data.json", flatten=True)
+    >>> paths = parser.extract_paths("data.json")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 import json

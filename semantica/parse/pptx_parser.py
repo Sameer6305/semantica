@@ -1,8 +1,31 @@
 """
-PowerPoint document parser for Semantica framework.
+PowerPoint Document Parser Module
 
-This module handles PPTX file parsing using python-pptx
-for presentation content extraction.
+This module handles PPTX file parsing using python-pptx for presentation content
+extraction, including slides, notes, shapes, and images.
+
+Key Features:
+    - PPTX presentation parsing
+    - Slide content extraction
+    - Notes and speaker notes extraction
+    - Shape and image extraction
+    - Presentation metadata
+    - Multi-slide processing
+
+Main Classes:
+    - PPTXParser: PPTX document parser
+    - SlideContent: Dataclass for slide content representation
+    - PPTXData: Dataclass for PPTX presentation representation
+
+Example Usage:
+    >>> from semantica.parse import PPTXParser
+    >>> parser = PPTXParser()
+    >>> data = parser.parse("presentation.pptx")
+    >>> slides = data.slides
+    >>> title = data.title
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from dataclasses import dataclass, field

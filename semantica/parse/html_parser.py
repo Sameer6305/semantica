@@ -1,8 +1,31 @@
 """
-HTML document parser for Semantica framework.
+HTML Document Parser Module
 
-This module handles HTML parsing using BeautifulSoup and lxml
-for content extraction and structure analysis.
+This module handles HTML parsing using BeautifulSoup and lxml for content extraction
+and structure analysis, including metadata, links, and element extraction.
+
+Key Features:
+    - HTML content parsing and cleaning
+    - Metadata extraction (title, description, Open Graph, Twitter cards)
+    - Link and media extraction
+    - Element structure analysis
+    - Text content extraction
+    - BeautifulSoup integration
+
+Main Classes:
+    - HTMLParser: HTML document parser
+    - HTMLMetadata: Dataclass for HTML metadata representation
+    - HTMLElement: Dataclass for HTML element representation
+
+Example Usage:
+    >>> from semantica.parse import HTMLParser
+    >>> parser = HTMLParser()
+    >>> text = parser.parse("page.html")
+    >>> metadata = parser.extract_metadata("page.html")
+    >>> links = parser.extract_links("page.html")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from dataclasses import dataclass, field

@@ -1,8 +1,31 @@
 """
-Excel document parser for Semantica framework.
+Excel Document Parser Module
 
-This module handles Excel file parsing using openpyxl and pandas
-for spreadsheet data extraction.
+This module handles Excel file parsing using openpyxl and pandas for spreadsheet
+data extraction, supporting multiple sheets, formulas, and metadata.
+
+Key Features:
+    - Excel spreadsheet parsing (XLSX, XLS)
+    - Multiple sheet support
+    - Data extraction with pandas
+    - Formula and cell value extraction
+    - Metadata extraction
+    - Large file processing
+
+Main Classes:
+    - ExcelParser: Excel document parser
+    - ExcelSheet: Dataclass for Excel sheet representation
+    - ExcelData: Dataclass for Excel workbook representation
+
+Example Usage:
+    >>> from semantica.parse import ExcelParser
+    >>> parser = ExcelParser()
+    >>> data = parser.parse("spreadsheet.xlsx")
+    >>> sheet = parser.parse_sheet("spreadsheet.xlsx", "Sheet1")
+    >>> sheets = data.sheets
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from dataclasses import dataclass, field

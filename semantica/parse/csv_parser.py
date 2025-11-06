@@ -1,7 +1,30 @@
 """
-CSV document parser for Semantica framework.
+CSV Document Parser Module
 
-This module handles CSV file parsing for structured data extraction.
+This module handles CSV file parsing for structured data extraction, supporting
+various delimiters, encodings, and data type conversions.
+
+Key Features:
+    - CSV file parsing with configurable delimiters
+    - Header detection and extraction
+    - Data type conversion and validation
+    - Large file processing support
+    - Encoding detection and handling
+    - Row and column filtering
+
+Main Classes:
+    - CSVParser: CSV document parser
+    - CSVData: Dataclass for CSV data representation
+
+Example Usage:
+    >>> from semantica.parse import CSVParser
+    >>> parser = CSVParser()
+    >>> data = parser.parse("data.csv", delimiter=",")
+    >>> rows = parser.parse_to_dict("data.csv")
+    >>> headers = data.headers
+
+Author: Semantica Contributors
+License: MIT
 """
 
 import csv

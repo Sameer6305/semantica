@@ -1,19 +1,35 @@
 """
 Email Content Parsing Module
 
-Handles parsing of email content and metadata.
+This module handles parsing of email content and metadata, including headers,
+MIME messages, body content, attachments, and email thread analysis.
 
 Key Features:
-    - Email header parsing
+    - Email header parsing (From, To, CC, BCC, Subject, Date)
     - MIME message processing
-    - Email body content extraction
+    - Email body content extraction (plain text, HTML)
     - Attachment handling
     - Email thread analysis
+    - Encoded header decoding
+    - Multi-part message processing
 
 Main Classes:
     - EmailParser: Main email parsing class
     - MIMEParser: MIME message parser
     - EmailThreadAnalyzer: Email thread processor
+    - EmailHeaders: Dataclass for email headers
+    - EmailBody: Dataclass for email body content
+    - EmailData: Dataclass for complete email data
+
+Example Usage:
+    >>> from semantica.parse import EmailParser
+    >>> parser = EmailParser()
+    >>> email_data = parser.parse("email.eml")
+    >>> headers = parser.parse_headers("email.eml")
+    >>> thread = parser.analyze_thread("email.eml")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 import email

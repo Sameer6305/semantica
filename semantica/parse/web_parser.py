@@ -1,7 +1,8 @@
 """
 Web Content Parsing Module
 
-Handles parsing of web content and HTML documents.
+This module handles parsing of web content and HTML documents, including JavaScript
+rendering, content extraction, and web scraping support.
 
 Key Features:
     - HTML content parsing and cleaning
@@ -9,11 +10,23 @@ Key Features:
     - Web scraping content extraction
     - JavaScript rendering support
     - Content structure analysis
+    - Link and media extraction
+    - BeautifulSoup integration
 
 Main Classes:
     - WebParser: Main web content parser
     - HTMLContentParser: HTML-specific parser
     - JavaScriptRenderer: JavaScript rendering engine
+
+Example Usage:
+    >>> from semantica.parse import WebParser
+    >>> parser = WebParser()
+    >>> content = parser.parse_html("https://example.com")
+    >>> text = parser.extract_text("https://example.com")
+    >>> links = parser.extract_links("https://example.com")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from pathlib import Path

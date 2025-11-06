@@ -1,8 +1,31 @@
 """
-XML document parser for Semantica framework.
+XML Document Parser Module
 
-This module handles XML file parsing using lxml and xml.etree
-for structured data extraction.
+This module handles XML file parsing using lxml and xml.etree for structured data
+extraction, including namespace handling and element tree processing.
+
+Key Features:
+    - XML file and string parsing
+    - Namespace handling
+    - Element tree processing
+    - Attribute and text extraction
+    - XPath query support
+    - Large file processing
+
+Main Classes:
+    - XMLParser: XML document parser
+    - XMLElement: Dataclass for XML element representation
+    - XMLData: Dataclass for XML document representation
+
+Example Usage:
+    >>> from semantica.parse import XMLParser
+    >>> parser = XMLParser()
+    >>> data = parser.parse("data.xml")
+    >>> root = data.root
+    >>> elements = parser.find_elements("data.xml", "//item")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 import io

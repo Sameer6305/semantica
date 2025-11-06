@@ -1,8 +1,31 @@
 """
-PDF document parser for Semantica framework.
+PDF Document Parser Module
 
-This module handles PDF document parsing using PyPDF2 and pdfplumber
-for text, table, and image extraction.
+This module handles PDF document parsing using PyPDF2 and pdfplumber for text,
+table, and image extraction, including metadata and page-level processing.
+
+Key Features:
+    - PDF text extraction
+    - Table extraction from PDFs
+    - Image extraction
+    - Metadata extraction (title, author, dates)
+    - Page-level processing
+    - Multi-page document support
+
+Main Classes:
+    - PDFParser: PDF document parser
+    - PDFPage: Dataclass for PDF page representation
+    - PDFMetadata: Dataclass for PDF metadata representation
+
+Example Usage:
+    >>> from semantica.parse import PDFParser
+    >>> parser = PDFParser()
+    >>> text = parser.parse("document.pdf")
+    >>> pages = parser.extract_pages("document.pdf")
+    >>> metadata = parser.extract_metadata("document.pdf")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 import io

@@ -1,7 +1,8 @@
 """
 Document Parsing Module
 
-Handles parsing of various document formats.
+This module handles parsing of various document formats including PDF, DOCX,
+HTML, and plain text files, extracting text content, metadata, and document structure.
 
 Key Features:
     - PDF text and metadata extraction
@@ -9,9 +10,22 @@ Key Features:
     - HTML content cleaning
     - Plain text processing
     - Document structure analysis
+    - Batch document processing
+    - Password-protected document handling
+    - Embedded image and table extraction
 
 Main Classes:
     - DocumentParser: Main document parsing class
+
+Example Usage:
+    >>> from semantica.parse import DocumentParser
+    >>> parser = DocumentParser()
+    >>> text = parser.parse_document("document.pdf")
+    >>> metadata = parser.extract_metadata("document.docx")
+    >>> documents = parser.parse_batch(["doc1.pdf", "doc2.docx"])
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from pathlib import Path

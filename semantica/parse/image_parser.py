@@ -1,8 +1,31 @@
 """
-Image parser for Semantica framework.
+Image Parser Module
 
-This module handles image parsing using Tesseract OCR and PIL
-for text extraction and image analysis.
+This module handles image parsing using Tesseract OCR and PIL for text extraction
+and image analysis, including metadata extraction and OCR processing.
+
+Key Features:
+    - Image metadata extraction (EXIF, format, size)
+    - OCR text extraction using Tesseract
+    - Image format support (JPEG, PNG, GIF, BMP, TIFF)
+    - Image analysis and properties
+    - Optional Tesseract OCR integration
+    - PIL/Pillow integration
+
+Main Classes:
+    - ImageParser: Image parser for OCR and metadata extraction
+    - ImageMetadata: Dataclass for image metadata representation
+    - OCRResult: Dataclass for OCR result representation
+
+Example Usage:
+    >>> from semantica.parse import ImageParser
+    >>> parser = ImageParser()
+    >>> metadata = parser.extract_metadata("image.jpg")
+    >>> ocr_result = parser.extract_text("image.jpg")
+    >>> text = ocr_result.text
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from dataclasses import dataclass, field

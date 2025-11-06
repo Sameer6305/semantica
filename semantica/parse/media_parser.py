@@ -1,7 +1,8 @@
 """
 Media Content Parsing Module
 
-Handles parsing of media files and content.
+This module handles parsing of media files and content, including images, audio,
+and video files, extracting metadata and analyzing media characteristics.
 
 Key Features:
     - Image metadata extraction
@@ -9,12 +10,21 @@ Key Features:
     - Video metadata analysis
     - Media file information extraction
     - Content type detection
+    - Format support detection
+    - Batch media processing
 
 Main Classes:
     - MediaParser: Main media parsing class
-    - ImageParser: Image file parser
-    - AudioParser: Audio file parser
-    - VideoParser: Video file parser
+
+Example Usage:
+    >>> from semantica.parse import MediaParser
+    >>> parser = MediaParser()
+    >>> metadata = parser.parse("image.jpg")
+    >>> info = parser.get_media_info("video.mp4")
+    >>> formats = parser.get_supported_formats()
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from pathlib import Path

@@ -1,15 +1,49 @@
 """
 Data Parsing Module
 
-This module provides comprehensive data parsing capabilities for various file formats.
+This module provides comprehensive data parsing capabilities for various file formats,
+enabling extraction of text, metadata, and structured data from documents, web content,
+emails, code files, and media files.
 
-Exports:
+Key Features:
+    - Document format parsing (PDF, DOCX, PPTX, HTML, TXT)
+    - Web content parsing (HTML, XML, JavaScript-rendered content)
+    - Structured data parsing (JSON, CSV, XML, YAML)
+    - Email content parsing (headers, body, attachments, threads)
+    - Source code parsing (multi-language, syntax trees, dependencies)
+    - Media content parsing (images, audio, video metadata)
+    - Batch processing support
+    - Metadata extraction
+    - Content structure analysis
+
+Main Classes:
     - DocumentParser: Document format parsing (PDF, DOCX, etc.)
     - WebParser: Web content parsing (HTML, XML, etc.)
     - StructuredDataParser: Structured data parsing (JSON, CSV, etc.)
     - EmailParser: Email content parsing
     - CodeParser: Source code parsing
     - MediaParser: Media content parsing
+    - PDFParser: PDF document parser
+    - DOCXParser: Word document parser
+    - PPTXParser: PowerPoint parser
+    - ExcelParser: Excel spreadsheet parser
+    - HTMLParser: HTML document parser
+    - JSONParser: JSON data parser
+    - CSVParser: CSV data parser
+    - XMLParser: XML document parser
+    - ImageParser: Image file parser with OCR
+
+Example Usage:
+    >>> from semantica.parse import DocumentParser, WebParser, StructuredDataParser
+    >>> doc_parser = DocumentParser()
+    >>> text = doc_parser.parse_document("document.pdf")
+    >>> web_parser = WebParser()
+    >>> content = web_parser.parse_html("https://example.com")
+    >>> data_parser = StructuredDataParser()
+    >>> data = data_parser.parse_json("data.json")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from .document_parser import DocumentParser

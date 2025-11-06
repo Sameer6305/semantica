@@ -1,7 +1,8 @@
 """
 Structured Data Parsing Module
 
-Handles parsing of structured data formats.
+This module handles parsing of structured data formats including JSON, CSV, XML,
+and YAML, providing validation, type conversion, and data transformation.
 
 Key Features:
     - JSON data parsing and validation
@@ -9,9 +10,21 @@ Key Features:
     - XML data extraction
     - YAML configuration parsing
     - Data type conversion and validation
+    - Nested structure handling
+    - Batch processing support
 
 Main Classes:
     - StructuredDataParser: Main structured data parser
+
+Example Usage:
+    >>> from semantica.parse import StructuredDataParser
+    >>> parser = StructuredDataParser()
+    >>> json_data = parser.parse_json("data.json")
+    >>> csv_data = parser.parse_csv("data.csv")
+    >>> xml_data = parser.parse_xml("data.xml")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from pathlib import Path

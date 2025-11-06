@@ -1,20 +1,36 @@
 """
 Source Code Parsing Module
 
-Handles parsing of source code files and repositories.
+This module handles parsing of source code files and repositories, providing
+syntax tree analysis, code structure extraction, comment parsing, and dependency
+analysis for multiple programming languages.
 
 Key Features:
-    - Multi-language code parsing
-    - Syntax tree analysis
-    - Code structure extraction
+    - Multi-language code parsing (Python, JavaScript, Java, etc.)
+    - Syntax tree analysis using AST
+    - Code structure extraction (functions, classes, imports)
     - Comment and documentation parsing
     - Dependency analysis
+    - Code metadata extraction
+    - Repository-wide analysis
 
 Main Classes:
     - CodeParser: Main code parsing class
     - SyntaxTreeParser: Syntax tree analyzer
     - CommentExtractor: Code comment processor
     - DependencyAnalyzer: Code dependency analyzer
+    - CodeStructure: Dataclass for code structure representation
+    - CodeComment: Dataclass for code comment representation
+
+Example Usage:
+    >>> from semantica.parse import CodeParser
+    >>> parser = CodeParser()
+    >>> structure = parser.parse_file("script.py")
+    >>> comments = parser.extract_comments("script.py")
+    >>> dependencies = parser.analyze_dependencies("script.py")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 import ast
