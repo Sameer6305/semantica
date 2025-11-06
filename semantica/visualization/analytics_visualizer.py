@@ -1,8 +1,34 @@
 """
-Graph Analytics Visualizer
+Graph Analytics Visualizer Module
 
-This module provides visualization capabilities for graph analytics including
-centrality rankings, community structures, connectivity analysis, and graph metrics.
+This module provides comprehensive visualization capabilities for graph analytics in the
+Semantica framework, including centrality rankings, community structures, connectivity
+analysis, degree distributions, and comprehensive metrics dashboards.
+
+Key Features:
+    - Centrality ranking visualizations (degree, betweenness, closeness, eigenvector)
+    - Community structure visualizations
+    - Connectivity analysis with component visualization
+    - Degree distribution histograms
+    - Comprehensive metrics dashboards
+    - Centrality comparison across multiple measures
+    - Interactive and static output formats
+
+Main Classes:
+    - AnalyticsVisualizer: Main graph analytics visualizer coordinator
+
+Example Usage:
+    >>> from semantica.visualization import AnalyticsVisualizer
+    >>> viz = AnalyticsVisualizer(color_scheme="default")
+    >>> fig = viz.visualize_centrality_rankings(centrality, centrality_type="degree", top_n=20)
+    >>> viz.visualize_community_structure(graph, communities, file_path="communities.html")
+    >>> viz.visualize_connectivity(connectivity, output="interactive")
+    >>> viz.visualize_degree_distribution(graph, file_path="degree_dist.png")
+    >>> viz.visualize_metrics_dashboard(metrics, output="interactive")
+    >>> viz.visualize_centrality_comparison(centrality_results, top_n=10)
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Union

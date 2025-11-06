@@ -1,8 +1,35 @@
 """
-Ontology Visualizer
+Ontology Visualizer Module
 
-This module provides visualization capabilities for ontologies including
-class hierarchies, property graphs, and ontology structure visualizations.
+This module provides comprehensive visualization capabilities for ontologies in the
+Semantica framework, including class hierarchy trees, property graphs, ontology structure
+networks, class-property matrices, and ontology metrics dashboards.
+
+Key Features:
+    - Class hierarchy tree visualizations
+    - Property graphs with domain/range relationships
+    - Ontology structure network visualizations
+    - Class-property relationship matrices
+    - Ontology metrics dashboards
+    - Support for multiple input formats (dict, SemanticNetwork, OntologyGenerator result)
+    - Graphviz integration for hierarchy visualization
+    - Interactive and static output formats
+
+Main Classes:
+    - OntologyVisualizer: Main ontology visualizer coordinator
+
+Example Usage:
+    >>> from semantica.visualization import OntologyVisualizer
+    >>> viz = OntologyVisualizer(color_scheme="default")
+    >>> fig = viz.visualize_hierarchy(ontology, output="interactive")
+    >>> viz.visualize_properties(ontology, file_path="properties.html")
+    >>> viz.visualize_structure(ontology, output="interactive")
+    >>> viz.visualize_class_property_matrix(ontology, file_path="matrix.png")
+    >>> viz.visualize_metrics(ontology, output="interactive")
+    >>> viz.visualize_semantic_model(semantic_model, file_path="model.html")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Union

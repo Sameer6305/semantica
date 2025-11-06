@@ -1,8 +1,33 @@
 """
-Embedding Visualizer
+Embedding Visualizer Module
 
-This module provides visualization capabilities for embeddings including
-2D/3D projections, similarity heatmaps, clustering visualizations, and multi-modal comparisons.
+This module provides comprehensive visualization capabilities for vector embeddings in the
+Semantica framework, including 2D/3D dimensionality reduction projections, similarity heatmaps,
+clustering visualizations, multi-modal comparisons, and quality metrics analysis.
+
+Key Features:
+    - 2D and 3D dimensionality reduction (UMAP, t-SNE, PCA)
+    - Similarity heatmap visualization
+    - Clustering visualization with color coding
+    - Multi-modal embedding comparisons (text, image, audio)
+    - Embedding quality metrics (norms, distributions)
+    - Interactive and static output formats
+    - Optional dependency handling (UMAP, sklearn)
+
+Main Classes:
+    - EmbeddingVisualizer: Main embedding visualizer coordinator
+
+Example Usage:
+    >>> from semantica.visualization import EmbeddingVisualizer
+    >>> viz = EmbeddingVisualizer(color_scheme="vibrant")
+    >>> fig = viz.visualize_2d_projection(embeddings, labels, method="umap")
+    >>> viz.visualize_3d_projection(embeddings, method="tsne", file_path="3d.html")
+    >>> viz.visualize_similarity_heatmap(embeddings, labels, output="interactive")
+    >>> viz.visualize_clustering(embeddings, cluster_labels, method="umap")
+    >>> viz.visualize_multimodal_comparison(text_emb, image_emb, audio_emb)
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Union, Tuple

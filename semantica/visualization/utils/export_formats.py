@@ -1,7 +1,33 @@
 """
-Export utilities for visualizations.
+Export Formats Module
 
-This module provides functions for exporting visualizations to various formats.
+This module provides functions for exporting visualizations to various formats in the
+Semantica framework, supporting Plotly figures, Matplotlib figures, and HTML content
+with multiple output formats and configurable options.
+
+Key Features:
+    - Plotly figure export (HTML, PNG, SVG, PDF, JSON)
+    - Matplotlib figure export (PNG, SVG, PDF, JPG)
+    - HTML content saving
+    - Configurable export options (DPI, bbox, etc.)
+    - Error handling and logging
+
+Main Functions:
+    - export_plotly_figure: Export Plotly figure to various formats
+    - export_matplotlib_figure: Export Matplotlib figure to various formats
+    - save_html: Save HTML content to file
+
+Example Usage:
+    >>> from semantica.visualization.utils import export_plotly_figure, export_matplotlib_figure
+    >>> export_plotly_figure(fig, "output.html", format="html")
+    >>> export_plotly_figure(fig, "output.png", format="png", width=1200, height=800)
+    >>> export_matplotlib_figure(fig, "output.pdf", format="pdf", dpi=300)
+    >>> 
+    >>> from semantica.visualization.utils import save_html
+    >>> save_html(html_content, "output.html")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Optional, Union

@@ -1,7 +1,38 @@
 """
-Graph layout algorithms for visualization.
+Layout Algorithms Module
 
-This module provides various layout algorithms for positioning nodes in graph visualizations.
+This module provides various layout algorithms for positioning nodes in graph visualizations
+in the Semantica framework, including force-directed, hierarchical, and circular layouts
+with NetworkX integration and fallback implementations.
+
+Key Features:
+    - Force-directed spring layout algorithm
+    - Hierarchical tree layout algorithm
+    - Circular node positioning algorithm
+    - NetworkX integration with fallback implementations
+    - Configurable layout parameters
+    - Optional dependency handling
+
+Main Classes:
+    - LayoutAlgorithm: Abstract base class for layout algorithms
+    - ForceDirectedLayout: Force-directed spring layout with NetworkX support
+    - HierarchicalLayout: Hierarchical tree layout with graphviz support
+    - CircularLayout: Circular node positioning algorithm
+
+Example Usage:
+    >>> from semantica.visualization.utils import ForceDirectedLayout, HierarchicalLayout
+    >>> force_layout = ForceDirectedLayout(k=1.0, iterations=50)
+    >>> positions = force_layout.compute_layout(nodes, edges)
+    >>> 
+    >>> hierarchical_layout = HierarchicalLayout(vertical_spacing=2.0)
+    >>> positions = hierarchical_layout.compute_layout(nodes, edges, root="root_node")
+    >>> 
+    >>> from semantica.visualization.utils import CircularLayout
+    >>> circular_layout = CircularLayout(radius=1.5)
+    >>> positions = circular_layout.compute_layout(nodes, edges)
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Tuple

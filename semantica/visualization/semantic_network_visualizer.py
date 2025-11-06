@@ -1,7 +1,33 @@
 """
-Semantic Network Visualizer
+Semantic Network Visualizer Module
 
-This module provides visualization capabilities for semantic networks.
+This module provides comprehensive visualization capabilities for semantic networks in the
+Semantica framework, including network structure visualizations, node type distributions,
+and edge type distributions with support for multiple input formats.
+
+Key Features:
+    - Semantic network structure visualizations
+    - Node type distribution charts
+    - Edge type distribution charts
+    - Support for SemanticNetwork dataclass, dictionaries, and semantic models
+    - Integration with KGVisualizer for network rendering
+    - Interactive and static output formats
+
+Main Classes:
+    - SemanticNetworkVisualizer: Main semantic network visualizer coordinator
+
+Example Usage:
+    >>> from semantica.visualization import SemanticNetworkVisualizer
+    >>> viz = SemanticNetworkVisualizer(color_scheme="vibrant")
+    >>> fig = viz.visualize_network(semantic_network, output="interactive")
+    >>> viz.visualize_node_types(semantic_network, file_path="node_types.png")
+    >>> viz.visualize_edge_types(semantic_network, output="interactive")
+    >>> 
+    >>> # Works with SemanticNetwork objects, dicts, or semantic models
+    >>> viz.visualize_network({"nodes": nodes, "edges": edges}, file_path="network.html")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Union

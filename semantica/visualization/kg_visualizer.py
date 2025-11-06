@@ -1,8 +1,33 @@
 """
-Knowledge Graph Visualizer
+Knowledge Graph Visualizer Module
 
-This module provides visualization capabilities for knowledge graphs including
-network graphs, community views, centrality visualizations, and entity/relationship analysis.
+This module provides comprehensive visualization capabilities for knowledge graphs in the
+Semantica framework, including interactive network graphs, community visualizations,
+centrality-based node sizing, entity/relationship distributions, and relationship matrices.
+
+Key Features:
+    - Interactive network graph visualizations
+    - Community detection visualization with color coding
+    - Centrality-based node sizing and coloring
+    - Entity type distribution charts
+    - Relationship frequency matrices
+    - Multiple layout algorithms (force-directed, hierarchical, circular)
+    - Customizable color schemes and node/edge styling
+
+Main Classes:
+    - KGVisualizer: Main knowledge graph visualizer coordinator
+
+Example Usage:
+    >>> from semantica.visualization import KGVisualizer
+    >>> viz = KGVisualizer(layout="force", color_scheme="vibrant")
+    >>> fig = viz.visualize_network(graph, output="interactive")
+    >>> viz.visualize_communities(graph, communities, file_path="communities.html")
+    >>> viz.visualize_centrality(graph, centrality, centrality_type="degree")
+    >>> viz.visualize_entity_types(graph, file_path="entity_types.png")
+    >>> viz.visualize_relationship_matrix(graph, output="interactive")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Union, Tuple

@@ -1,8 +1,33 @@
 """
-Quality Metrics Visualizer
+Quality Metrics Visualizer Module
 
-This module provides visualization capabilities for knowledge graph quality metrics,
-including quality dashboards, completeness metrics, consistency analysis, and issue tracking.
+This module provides comprehensive visualization capabilities for knowledge graph quality
+metrics in the Semantica framework, including quality dashboards, completeness metrics,
+consistency analysis, issue tracking, and quality score distributions.
+
+Key Features:
+    - Comprehensive quality dashboards with gauge indicators
+    - Quality score distribution histograms
+    - Quality issue analysis by type and severity
+    - Completeness metrics visualization
+    - Consistency heatmap visualization
+    - Support for QualityReport objects and dictionaries
+    - Interactive and static output formats
+
+Main Classes:
+    - QualityVisualizer: Main quality metrics visualizer coordinator
+
+Example Usage:
+    >>> from semantica.visualization import QualityVisualizer
+    >>> viz = QualityVisualizer(color_scheme="default")
+    >>> fig = viz.visualize_dashboard(quality_report, output="interactive")
+    >>> viz.visualize_score_distribution(quality_scores, file_path="scores.png")
+    >>> viz.visualize_issues(quality_report, output="interactive")
+    >>> viz.visualize_completeness_metrics(completeness_metrics, file_path="completeness.html")
+    >>> viz.visualize_consistency_heatmap(consistency_data, output="interactive")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Union

@@ -1,7 +1,31 @@
 """
-Color schemes for visualizations.
+Color Schemes Module
 
-This module provides color schemes and palettes for consistent visualization styling.
+This module provides color schemes and palettes for consistent visualization styling in the
+Semantica framework, supporting multiple predefined color schemes and dynamic color generation
+for entities, communities, and visualization elements.
+
+Key Features:
+    - Predefined color schemes (Default, Vibrant, Pastel, Dark, Light, Colorblind)
+    - Dynamic color generation for arbitrary counts
+    - Entity type color mapping
+    - Community color assignment
+    - Color scheme enumeration and lookup
+
+Main Classes:
+    - ColorScheme: Color scheme enumeration with predefined schemes
+    - ColorPalette: Color palette manager with color generation methods
+
+Example Usage:
+    >>> from semantica.visualization.utils import ColorPalette, ColorScheme, get_color_scheme
+    >>> colors = ColorPalette.get_colors(ColorScheme.VIBRANT, count=10)
+    >>> entity_colors = ColorPalette.get_entity_type_colors(["PERSON", "ORG"], ColorScheme.DEFAULT)
+    >>> community_colors = ColorPalette.get_community_colors(5, ColorScheme.PASTEL)
+    >>> color = ColorPalette.get_color_by_index(ColorScheme.DEFAULT, 3)
+    >>> scheme = get_color_scheme("vibrant")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import List, Dict, Optional

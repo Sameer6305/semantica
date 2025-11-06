@@ -1,8 +1,33 @@
 """
-Temporal Graph Visualizer
+Temporal Graph Visualizer Module
 
-This module provides visualization capabilities for temporal knowledge graphs including
-timeline views, temporal network animations, snapshot comparisons, and temporal pattern visualizations.
+This module provides comprehensive visualization capabilities for temporal knowledge graphs
+in the Semantica framework, including timeline views, temporal pattern visualizations,
+snapshot comparisons, version history, and metrics evolution over time.
+
+Key Features:
+    - Timeline visualization of entity/relationship changes
+    - Temporal pattern detection and visualization
+    - Snapshot comparison across time points
+    - Version history tree visualization
+    - Metrics evolution over time
+    - Multi-metric time series visualization
+    - Interactive and static output formats
+
+Main Classes:
+    - TemporalVisualizer: Main temporal graph visualizer coordinator
+
+Example Usage:
+    >>> from semantica.visualization import TemporalVisualizer
+    >>> viz = TemporalVisualizer(color_scheme="default")
+    >>> fig = viz.visualize_timeline(temporal_data, output="interactive")
+    >>> viz.visualize_temporal_patterns(patterns, file_path="patterns.html")
+    >>> viz.visualize_snapshot_comparison(snapshots, output="interactive")
+    >>> viz.visualize_version_history(version_history, file_path="versions.png")
+    >>> viz.visualize_metrics_evolution(metrics_history, timestamps, output="interactive")
+
+Author: Semantica Contributors
+License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Union
