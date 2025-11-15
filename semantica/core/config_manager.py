@@ -3,6 +3,23 @@ Configuration Management Module
 
 This module provides comprehensive configuration management for the Semantica framework,
 including loading from files, environment variables, validation, and dynamic updates.
+It supports multiple configuration sources and formats with automatic fallback chains
+and validation.
+
+Supported Configuration Sources:
+    - Configuration files: YAML, JSON formats
+    - Environment variables: SEMANTICA_ prefix for automatic loading
+    - Programmatic: Python API for setting configuration values
+    - Dictionary: Direct dictionary-based configuration
+
+Algorithms Used:
+    - YAML Parsing: YAML parser for configuration file loading
+    - JSON Parsing: JSON parser for configuration file loading
+    - Environment Variable Parsing: OS-level environment variable access with prefix matching
+    - Fallback Chain: Priority-based configuration resolution (file -> env -> defaults)
+    - Dictionary Merging: Deep merge algorithms for configuration updates
+    - Validation: Type checking, range validation, required field checking
+    - Nested Access: Dot notation parsing for nested configuration access
 
 Key Features:
     - YAML/JSON configuration file parsing
@@ -11,12 +28,24 @@ Key Features:
     - Dynamic configuration updates at runtime
     - Configuration inheritance and merging
     - Nested configuration access via dot notation
+    - Automatic type conversion for environment variables
+    - Progress tracking for configuration loading operations
+
+Main Classes:
+    - Config: Configuration data class with validation
+    - ConfigManager: Configuration loading, validation, and management
 
 Example Usage:
     >>> from semantica.core import ConfigManager
     >>> manager = ConfigManager()
     >>> config = manager.load_from_file("config.yaml")
     >>> batch_size = config.get("processing.batch_size", default=32)
+    >>> 
+    >>> # Merge multiple configurations
+    >>> merged = manager.merge_configs(config1, config2, config3)
+    >>> 
+    >>> # Load from dictionary
+    >>> config = manager.load_from_dict({"processing": {"batch_size": 64}})
 
 Author: Semantica Contributors
 License: MIT
@@ -369,41 +398,47 @@ class ConfigManager:
             file_path = Path(file_path)
             
             if not file_path.exists():
-            raise ConfigurationError(
-                f"Configuration file not found: {file_path}",
-                config_context={"file_path": str(file_path)}
-            )
-        
-        # Detect format from extension
-        suffix = file_path.suffix.lower()
-        
-        try:
-            if suffix in (".yaml", ".yml"):
-                with open(file_path, "r", encoding="utf-8") as f:
-                    config_dict = yaml.safe_load(f)
-                    
-            elif suffix == ".json":
-                config_dict = read_json_file(file_path)
-            else:
                 raise ConfigurationError(
-                    f"Unsupported configuration file format: {suffix}. "
-                    "Supported formats: .yaml, .yml, .json"
+                    f"Configuration file not found: {file_path}",
+                    config_context={"file_path": str(file_path)}
                 )
             
-            # Create config object from loaded dictionary
-            config = Config(config_dict=config_dict)
+            # Detect format from extension
+            suffix = file_path.suffix.lower()
             
-            # Validate configuration if requested
-            if validate:
-                config.validate()
-            
-            # Store config and file path for potential reload
-            self._config = config
-            self._last_file_path = file_path
-            
-            self.progress_tracker.stop_tracking(tracking_id, status="completed",
-                                               message="Configuration loaded successfully")
-            return config
+            try:
+                if suffix in (".yaml", ".yml"):
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        config_dict = yaml.safe_load(f)
+                        
+                elif suffix == ".json":
+                    config_dict = read_json_file(file_path)
+                else:
+                    raise ConfigurationError(
+                        f"Unsupported configuration file format: {suffix}. "
+                        "Supported formats: .yaml, .yml, .json"
+                    )
+                
+                # Create config object from loaded dictionary
+                config = Config(config_dict=config_dict)
+                
+                # Validate configuration if requested
+                if validate:
+                    config.validate()
+                
+                # Store config and file path for potential reload
+                self._config = config
+                self._last_file_path = file_path
+                
+                self.progress_tracker.stop_tracking(tracking_id, status="completed",
+                                                   message="Configuration loaded successfully")
+                return config
+            except Exception as e:
+                # Re-raise as ConfigurationError if inner try fails
+                raise ConfigurationError(
+                    f"Failed to parse configuration file: {str(e)}",
+                    config_context={"file_path": str(file_path)}
+                ) from e
             
         except Exception as e:
             self.progress_tracker.stop_tracking(tracking_id, status="failed", message=str(e))
