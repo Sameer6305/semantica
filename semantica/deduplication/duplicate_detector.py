@@ -5,19 +5,36 @@ This module provides comprehensive duplicate detection capabilities for the Sema
 framework, identifying duplicate entities and relationships in knowledge graphs using
 similarity thresholds, clustering algorithms, and confidence scoring.
 
+Algorithms Used:
+    - Pairwise Comparison: O(n²) all-pairs similarity calculation for complete duplicate detection
+    - Batch Processing: Vectorized similarity calculations for efficiency
+    - Union-Find Algorithm: Disjoint set union (DSU) for duplicate group formation
+    - Confidence Scoring: Multi-factor confidence calculation combining similarity, name matches, property matches, and type matches
+    - Incremental Processing: O(n×m) efficient comparison for new vs existing entities
+    - Representative Selection: Most complete entity selection from duplicate groups
+
 Key Features:
-    - Entity duplicate detection using similarity metrics
-    - Relationship duplicate detection
-    - Duplicate group formation using union-find algorithm
-    - Incremental duplicate detection for new entities
-    - Confidence scoring for duplicate candidates
-    - Representative entity selection from duplicate groups
+    - Entity duplicate detection using multi-factor similarity metrics
+    - Relationship duplicate detection with threshold-based matching
+    - Duplicate group formation using union-find algorithm for transitive closure
+    - Incremental duplicate detection for new entities (streaming scenarios)
+    - Confidence scoring for duplicate candidates with multiple factors
+    - Representative entity selection from duplicate groups (most complete)
+    - Batch and pairwise detection methods for different use cases
+
+Main Classes:
+    - DuplicateDetector: Main duplicate detection engine
+    - DuplicateCandidate: Duplicate candidate representation with confidence scores
+    - DuplicateGroup: Group of duplicate entities with representative selection
 
 Example Usage:
     >>> from semantica.deduplication import DuplicateDetector
-    >>> detector = DuplicateDetector(similarity_threshold=0.8)
+    >>> detector = DuplicateDetector(similarity_threshold=0.8, confidence_threshold=0.7)
     >>> duplicates = detector.detect_duplicates(entities)
     >>> groups = detector.detect_duplicate_groups(entities)
+    >>> 
+    >>> # Incremental detection
+    >>> new_candidates = detector.incremental_detect(new_entities, existing_entities)
 
 Author: Semantica Contributors
 License: MIT

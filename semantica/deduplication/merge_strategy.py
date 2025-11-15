@@ -5,17 +5,37 @@ This module provides comprehensive merge strategy management for the Semantica
 framework, handling different strategies for merging duplicate entities including
 property merging rules, relationship preservation, and conflict resolution.
 
+Algorithms Used:
+    - Strategy Pattern: Multiple merge strategies (keep_first, keep_last, keep_most_complete, keep_highest_confidence, merge_all)
+    - Conflict Resolution: Voting (majority), credibility-weighted (weighted average), temporal (most recent), confidence-based selection
+    - Property Merging: Rule-based property combination with custom rules, priorities, and conflict resolution functions
+    - Relationship Preservation: Union of relationship sets during merges
+    - Merge Quality Validation: Validation of merged entities for completeness, consistency, and quality metrics
+
 Key Features:
-    - Multiple merge strategies (keep_first, keep_most_complete, etc.)
-    - Property-specific merge rules
-    - Custom conflict resolution functions
-    - Relationship preservation during merges
-    - Merge quality validation
+    - Multiple merge strategies (keep_first, keep_most_complete, keep_highest_confidence, etc.)
+    - Property-specific merge rules with custom conflict resolution
+    - Custom conflict resolution functions for complex merging scenarios
+    - Relationship preservation during merges (union of all relationships)
+    - Merge quality validation with completeness and consistency checks
+    - Support for custom merge strategies and property-specific rules
+
+Main Classes:
+    - MergeStrategyManager: Main merge strategy management engine
+    - MergeStrategy: Enumeration of available merge strategies
+    - MergeResult: Result of merge operation with conflicts and metadata
+    - PropertyMergeRule: Rule for merging specific properties
 
 Example Usage:
-    >>> from semantica.deduplication import MergeStrategyManager, MergeStrategy
-    >>> manager = MergeStrategyManager()
+    >>> from semantica.deduplication import MergeStrategyManager, MergeStrategy, PropertyMergeRule
+    >>> manager = MergeStrategyManager(default_strategy="keep_most_complete")
+    >>> manager.add_property_rule("name", MergeStrategy.KEEP_FIRST)
     >>> result = manager.merge_entities(entities, strategy=MergeStrategy.KEEP_MOST_COMPLETE)
+    >>> 
+    >>> # Custom conflict resolution
+    >>> def resolve_conflict(values):
+    ...     return max(values, key=len)  # Return longest value
+    >>> manager.add_property_rule("description", MergeStrategy.CUSTOM, conflict_resolution=resolve_conflict)
 
 Author: Semantica Contributors
 License: MIT

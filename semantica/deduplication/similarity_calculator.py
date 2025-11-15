@@ -6,18 +6,40 @@ Semantica framework, computing semantic similarity between entities using multip
 metrics including string similarity, property similarity, relationship similarity,
 and embedding similarity.
 
+Algorithms Used:
+    - Levenshtein Distance: Dynamic programming algorithm for edit distance calculation
+    - Jaro Similarity: Character-based similarity with match window algorithm
+    - Jaro-Winkler Similarity: Jaro with prefix bonus (up to 4 characters, 0.1 weight)
+    - Cosine Similarity: Vector dot product divided by magnitudes for embeddings
+    - Jaccard Similarity: Intersection over union for relationship sets
+    - Property Matching: Weighted comparison of property values with type-aware matching
+    - Multi-factor Aggregation: Weighted sum of similarity components with normalization
+
 Key Features:
     - Multi-factor similarity calculation (string, property, relationship, embedding)
     - Multiple string similarity algorithms (Levenshtein, Jaro-Winkler, cosine)
-    - Weighted aggregation of similarity components
-    - Batch similarity calculation for efficiency
-    - Configurable similarity thresholds and weights
+    - Weighted aggregation of similarity components with automatic normalization
+    - Batch similarity calculation for efficiency (O(n²) optimized)
+    - Configurable similarity thresholds and component weights
+    - Support for exact matching, fuzzy matching, and semantic matching
+
+Main Classes:
+    - SimilarityCalculator: Main similarity calculation engine
+    - SimilarityResult: Similarity calculation result with component scores
 
 Example Usage:
     >>> from semantica.deduplication import SimilarityCalculator
-    >>> calculator = SimilarityCalculator()
+    >>> calculator = SimilarityCalculator(
+    ...     string_weight=0.4,
+    ...     property_weight=0.3,
+    ...     embedding_weight=0.3
+    ... )
     >>> similarity = calculator.calculate_similarity(entity1, entity2)
-    >>> batch_results = calculator.batch_calculate_similarity(entities)
+    >>> batch_results = calculator.batch_calculate_similarity(entities, threshold=0.7)
+    >>> 
+    >>> # String similarity methods
+    >>> lev_score = calculator.calculate_string_similarity("Apple", "Apple Inc.", method="levenshtein")
+    >>> jaro_score = calculator.calculate_string_similarity("Apple", "Apple Inc.", method="jaro_winkler")
 
 Author: Semantica Contributors
 License: MIT

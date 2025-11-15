@@ -5,17 +5,38 @@ This module provides entity merging capabilities for the Semantica framework,
 performing semantic deduplication to merge semantically similar entities and
 maintain knowledge graph cleanliness.
 
+Algorithms Used:
+    - Strategy Pattern: Multiple merge strategies (keep_first, keep_last, keep_most_complete, etc.)
+    - Conflict Resolution: Voting, credibility-weighted, temporal, confidence-based resolution
+    - Property Merging: Rule-based property combination with custom rules and priorities
+    - Relationship Preservation: Union of relationship sets during merges
+    - Provenance Tracking: Metadata preservation during merges with source tracking
+    - Merge Quality Validation: Validation of merged entities for completeness and consistency
+
 Key Features:
     - Merge duplicate entities using configurable strategies
-    - Preserve provenance information during merges
+    - Preserve provenance information during merges (tracks merged entity sources)
     - Incremental merging of new entities with existing ones
     - Conflict resolution for property and relationship merging
     - Merge history tracking and quality validation
+    - Automatic duplicate detection and grouping before merging
+    - Support for custom merge strategies and conflict resolution functions
+
+Main Classes:
+    - EntityMerger: Main entity merging engine
+    - MergeOperation: Entity merge operation representation with metadata
 
 Example Usage:
-    >>> from semantica.deduplication import EntityMerger
+    >>> from semantica.deduplication import EntityMerger, MergeStrategy
     >>> merger = EntityMerger(preserve_provenance=True)
-    >>> operations = merger.merge_duplicates(entities)
+    >>> operations = merger.merge_duplicates(
+    ...     entities,
+    ...     strategy=MergeStrategy.KEEP_MOST_COMPLETE
+    ... )
+    >>> history = merger.get_merge_history()
+    >>> 
+    >>> # Access merged entities
+    >>> merged = [op.merged_entity for op in operations]
 
 Author: Semantica Contributors
 License: MIT

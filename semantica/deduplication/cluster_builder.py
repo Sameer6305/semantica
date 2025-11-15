@@ -5,17 +5,37 @@ This module provides cluster building capabilities for the Semantica framework,
 creating clusters of similar entities for batch deduplication using clustering
 algorithms and similarity graphs.
 
+Algorithms Used:
+    - Union-Find (Disjoint Set Union): Connected component detection for graph-based clustering
+    - Hierarchical Clustering: Agglomerative bottom-up clustering for large datasets
+    - Similarity Graph: Graph construction from similarity scores with threshold filtering
+    - Cluster Quality Metrics: Cohesion (intra-cluster similarity) and separation (inter-cluster dissimilarity) measures
+    - Centroid Calculation: Representative entity calculation for clusters
+
 Key Features:
-    - Graph-based clustering using union-find algorithm
-    - Hierarchical clustering for large datasets
-    - Cluster quality assessment and metrics
-    - Incremental cluster updates
-    - Configurable cluster size constraints
+    - Graph-based clustering using union-find algorithm for efficient connected component detection
+    - Hierarchical clustering for large datasets with configurable linkage criteria
+    - Cluster quality assessment and metrics (cohesion, separation, silhouette score)
+    - Incremental cluster updates for streaming scenarios
+    - Configurable cluster size constraints (min/max cluster size)
+    - Similarity threshold-based filtering for cluster formation
+
+Main Classes:
+    - ClusterBuilder: Main cluster building engine
+    - Cluster: Entity cluster representation with centroid and quality score
+    - ClusterResult: Cluster building result with quality metrics
 
 Example Usage:
     >>> from semantica.deduplication import ClusterBuilder
-    >>> builder = ClusterBuilder(similarity_threshold=0.8)
+    >>> builder = ClusterBuilder(
+    ...     similarity_threshold=0.8,
+    ...     min_cluster_size=2,
+    ...     max_cluster_size=50,
+    ...     use_hierarchical=False
+    ... )
     >>> result = builder.build_clusters(entities)
+    >>> print(f"Found {len(result.clusters)} clusters")
+    >>> print(f"Quality metrics: {result.quality_metrics}")
 
 Author: Semantica Contributors
 License: MIT
