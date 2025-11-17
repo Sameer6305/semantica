@@ -1,6 +1,6 @@
 # Semantic Extract Module Usage Guide
 
-This guide demonstrates how to use the semantic extraction module for extracting entities, relations, events, triples, and semantic networks from text.
+This comprehensive guide demonstrates how to use the semantic extraction module for extracting entities, relations, events, triples, and semantic networks from text. The module provides multiple extraction methods including pattern-based, ML-based, and LLM-based approaches, with support for custom method registration and configuration management.
 
 ## Table of Contents
 

@@ -1,6 +1,6 @@
 # Split Module Usage Guide
 
-This guide demonstrates how to use the split module for text chunking and splitting using various methods.
+This comprehensive guide demonstrates how to use the split module for text chunking and splitting using various methods. The module supports standard text splitting methods (recursive, token-based, sentence-based, etc.) as well as KG/ontology-aware methods (entity-aware, relation-aware, graph-based, etc.) for knowledge graph workflows.
 
 ## Table of Contents
 
