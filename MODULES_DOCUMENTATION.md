@@ -3687,9 +3687,9 @@ The conflict resolver supports 7 different resolution strategies:
 
 **Strategy 1: Voting (Most Common Value Wins)**
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy, Conflict
+from semantica.conflicts import ConflictResolver, Conflict
 
-resolver = ConflictResolver(default_strategy=ResolutionStrategy.VOTING)
+resolver = ConflictResolver(default_strategy="voting")
 
 # Conflict with multiple conflicting values
 conflict = Conflict(
@@ -3702,7 +3702,7 @@ conflict = Conflict(
 )
 
 # Resolve by voting (most common value wins)
-result = resolver.resolve_conflict(conflict, ResolutionStrategy.VOTING)
+result = resolver.resolve_conflict(conflict, strategy="voting")
 
 print(f"Resolved value: {result.resolved_value}")  # "Apple Inc." (2 votes)
 print(f"Confidence: {result.confidence:.2f}")  # 0.5 (2/4 votes)
@@ -3711,11 +3711,11 @@ print(f"Resolution: {result.resolution_notes}")
 
 **Strategy 2: Credibility Weighted (Source Quality Matters)**
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictResolver
 
 # Initialize with credibility tracking
 resolver = ConflictResolver(
-    default_strategy=ResolutionStrategy.CREDIBILITY_WEIGHTED
+    default_strategy="credibility_weighted"
 )
 
 # Set source credibility scores
@@ -3737,7 +3737,7 @@ conflict = Conflict(
 )
 
 # Resolve by credibility-weighted voting
-result = resolver.resolve_conflict(conflict, ResolutionStrategy.CREDIBILITY_WEIGHTED)
+result = resolver.resolve_conflict(conflict, strategy="credibility_weighted")
 
 # Official database value wins due to high credibility
 print(f"Resolved value: {result.resolved_value}")  # 1976
@@ -3746,7 +3746,7 @@ print(f"Confidence: {result.confidence:.2f}")
 
 **Strategy 3: Most Recent (Temporal Priority)**
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictResolver
 from datetime import datetime
 
 resolver = ConflictResolver()
@@ -3770,7 +3770,7 @@ conflict = Conflict(
 )
 
 # Resolve by most recent value
-result = resolver.resolve_conflict(conflict, ResolutionStrategy.MOST_RECENT)
+result = resolver.resolve_conflict(conflict, strategy="most_recent")
 
 print(f"Resolved value: {result.resolved_value}")  # "Tim Cook" (most recent)
 print(f"Confidence: {result.confidence:.2f}")  # 0.8
@@ -3778,7 +3778,7 @@ print(f"Confidence: {result.confidence:.2f}")  # 0.8
 
 **Strategy 4: First Seen (Original Priority)**
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictResolver
 
 resolver = ConflictResolver()
 
@@ -3792,7 +3792,7 @@ conflict = Conflict(
 )
 
 # Resolve by first seen (original value)
-result = resolver.resolve_conflict(conflict, ResolutionStrategy.FIRST_SEEN)
+result = resolver.resolve_conflict(conflict, strategy="first_seen")
 
 print(f"Resolved value: {result.resolved_value}")  # "Apple Computer" (first)
 print(f"Confidence: {result.confidence:.2f}")  # 0.7
@@ -3800,7 +3800,7 @@ print(f"Confidence: {result.confidence:.2f}")  # 0.7
 
 **Strategy 5: Highest Confidence (Quality-based)**
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictResolver
 
 resolver = ConflictResolver()
 
@@ -3818,7 +3818,7 @@ conflict = Conflict(
 )
 
 # Resolve by highest confidence
-result = resolver.resolve_conflict(conflict, ResolutionStrategy.HIGHEST_CONFIDENCE)
+result = resolver.resolve_conflict(conflict, strategy="highest_confidence")
 
 print(f"Resolved value: {result.resolved_value}")  # 1200000 (highest confidence)
 print(f"Confidence: {result.confidence:.2f}")  # 0.9
@@ -3826,7 +3826,7 @@ print(f"Confidence: {result.confidence:.2f}")  # 0.9
 
 **Strategy 6: Manual Review (Human Judgment)**
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictResolver
 
 resolver = ConflictResolver()
 
@@ -3841,7 +3841,7 @@ conflict = Conflict(
 )
 
 # Flag for manual review
-result = resolver.resolve_conflict(conflict, ResolutionStrategy.MANUAL_REVIEW)
+result = resolver.resolve_conflict(conflict, strategy="manual_review")
 
 print(f"Resolved: {result.resolved}")  # False
 print(f"Requires review: {result.metadata.get('requires_manual_review')}")  # True
@@ -3855,7 +3855,7 @@ result.resolution_notes = "Manually resolved by domain expert"
 
 **Strategy 7: Expert Review (Domain Expertise)**
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictResolver
 
 resolver = ConflictResolver()
 
@@ -3870,14 +3870,14 @@ conflict = Conflict(
 )
 
 # Flag for expert review
-result = resolver.resolve_conflict(conflict, ResolutionStrategy.EXPERT_REVIEW)
+result = resolver.resolve_conflict(conflict, strategy="expert_review")
 
 print(f"Requires expert review: {result.metadata.get('requires_expert_review')}")  # True
 ```
 
 **Strategy 8: Custom Resolution Rules (Property-specific)**
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictResolver
 
 resolver = ConflictResolver()
 
@@ -3885,13 +3885,13 @@ resolver = ConflictResolver()
 resolver.set_resolution_rule(
     entity_id="entity_1",
     property_name="name",
-    strategy=ResolutionStrategy.VOTING
+    strategy="voting"
 )
 
 resolver.set_resolution_rule(
     entity_id="entity_1",
     property_name="founded_year",
-    strategy=ResolutionStrategy.MOST_RECENT  # Years should use most recent
+    strategy="most_recent"  # Years should use most recent
 )
 
 # Conflicts will automatically use appropriate strategy
@@ -3908,9 +3908,9 @@ result = resolver.resolve_conflict(conflict)  # Uses VOTING automatically
 
 **Strategy 9: Batch Conflict Resolution**
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictResolver
 
-resolver = ConflictResolver(default_strategy=ResolutionStrategy.VOTING)
+resolver = ConflictResolver(default_strategy="voting")
 
 # Resolve multiple conflicts at once
 conflicts = [

@@ -44,7 +44,7 @@ print(f"Resolved {sum(1 for r in results if r.resolved)} conflicts")
 ### Using Main Classes
 
 ```python
-from semantica.conflicts import ConflictDetector, ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictDetector, ConflictResolver
 
 # Step 1: Detect conflicts
 detector = ConflictDetector(
@@ -57,7 +57,7 @@ print(f"Found {len(conflicts)} conflicts")
 
 # Step 2: Resolve conflicts
 resolver = ConflictResolver(
-    default_strategy=ResolutionStrategy.VOTING
+    default_strategy="voting"
 )
 
 results = resolver.resolve_conflicts(conflicts)
@@ -211,14 +211,14 @@ conflicts = detect_conflicts(
 ### Voting Strategy
 
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictResolver
 
 resolver = ConflictResolver()
 
 # Resolve using voting (majority wins)
 results = resolver.resolve_conflicts(
     conflicts,
-    strategy=ResolutionStrategy.VOTING
+    strategy="voting"
 )
 
 for result in results:
@@ -230,14 +230,14 @@ for result in results:
 ### Credibility Weighted Strategy
 
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictResolver
 
 resolver = ConflictResolver()
 
 # Resolve using credibility-weighted voting
 results = resolver.resolve_conflicts(
     conflicts,
-    strategy=ResolutionStrategy.CREDIBILITY_WEIGHTED
+    strategy="credibility_weighted"
 )
 
 for result in results:
@@ -250,14 +250,14 @@ for result in results:
 ### Most Recent Strategy
 
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictResolver
 
 resolver = ConflictResolver()
 
 # Resolve using most recent value
 results = resolver.resolve_conflicts(
     conflicts,
-    strategy=ResolutionStrategy.MOST_RECENT
+    strategy="most_recent"
 )
 
 for result in results:
@@ -268,14 +268,14 @@ for result in results:
 ### Highest Confidence Strategy
 
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictResolver
 
 resolver = ConflictResolver()
 
 # Resolve using highest confidence source
 results = resolver.resolve_conflicts(
     conflicts,
-    strategy=ResolutionStrategy.HIGHEST_CONFIDENCE
+    strategy="highest_confidence"
 )
 
 for result in results:
@@ -287,14 +287,14 @@ for result in results:
 ### Manual Review Strategy
 
 ```python
-from semantica.conflicts import ConflictResolver, ResolutionStrategy
+from semantica.conflicts import ConflictResolver
 
 resolver = ConflictResolver()
 
 # Flag conflicts for manual review
 results = resolver.resolve_conflicts(
     conflicts,
-    strategy=ResolutionStrategy.MANUAL_REVIEW
+    strategy="manual_review"
 )
 
 for result in results:
@@ -800,7 +800,6 @@ from semantica.conflicts import (
     ConflictAnalyzer,
     SourceTracker,
     InvestigationGuideGenerator,
-    ResolutionStrategy,
     SourceReference
 )
 from datetime import datetime
@@ -834,10 +833,10 @@ print(f"Detected {len(conflicts)} conflicts")
 analysis = analyzer.analyze_conflicts(conflicts)
 print(f"Analysis: {analysis['statistics']}")
 
-# Resolve conflicts
+# Resolve conflicts - using string strategy
 results = resolver.resolve_conflicts(
     conflicts,
-    strategy=ResolutionStrategy.CREDIBILITY_WEIGHTED
+    strategy="credibility_weighted"
 )
 
 # Generate investigation guides for unresolved conflicts
@@ -855,14 +854,17 @@ for guide in guides:
 ```python
 from semantica.conflicts import (
     ConflictResolver,
-    ResolutionStrategy,
     ResolutionResult,
     Conflict
 )
 
 class CustomResolver(ConflictResolver):
-    def resolve_conflict(self, conflict: Conflict, strategy: ResolutionStrategy = None):
-        """Custom resolution with domain-specific logic."""
+    def resolve_conflict(self, conflict: Conflict, strategy=None):
+        """
+        Custom resolution with domain-specific logic.
+        
+        Note: strategy can be a string (e.g., "voting") or None.
+        """
         # Custom logic: prefer values from trusted sources
         trusted_sources = ["doc1", "doc2"]
         

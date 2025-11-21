@@ -46,16 +46,16 @@ Main Classes:
     - ConflictResolver: Conflict resolver with multiple resolution strategies
 
 Example Usage:
-    >>> from semantica.conflicts import ConflictResolver, ResolutionStrategy
+    >>> from semantica.conflicts import ConflictResolver
     >>> resolver = ConflictResolver()
-    >>> result = resolver.resolve_conflict(conflict, ResolutionStrategy.VOTING)
-    >>> results = resolver.resolve_conflicts(conflicts)
+    >>> result = resolver.resolve_conflict(conflict, strategy="voting")
+    >>> results = resolver.resolve_conflicts(conflicts, strategy="voting")
 
 Author: Semantica Contributors
 License: MIT
 """
 
-from typing import Any, Dict, List, Optional, Callable
+from typing import Any, Dict, List, Optional, Callable, Union
 from dataclasses import dataclass, field
 from enum import Enum
 from collections import Counter
@@ -131,20 +131,62 @@ class ConflictResolver:
         
         self.resolution_history: List[ResolutionResult] = []
     
+    def _normalize_strategy(
+        self, 
+        strategy: Union[str, ResolutionStrategy, None]
+    ) -> ResolutionStrategy:
+        """
+        Normalize strategy to ResolutionStrategy enum.
+        
+        Args:
+            strategy: Strategy as string, ResolutionStrategy enum, or None
+            
+        Returns:
+            ResolutionStrategy enum
+            
+        Raises:
+            ValueError: If string strategy is invalid
+            TypeError: If strategy is not str, ResolutionStrategy, or None
+        """
+        if strategy is None:
+            return self.default_strategy
+        if isinstance(strategy, ResolutionStrategy):
+            return strategy
+        if isinstance(strategy, str):
+            try:
+                return ResolutionStrategy(strategy)
+            except ValueError:
+                valid_strategies = [s.value for s in ResolutionStrategy]
+                raise ValueError(
+                    f"Invalid strategy: {strategy}. "
+                    f"Valid strategies: {valid_strategies}"
+                )
+        raise TypeError(
+            f"Strategy must be str or ResolutionStrategy, got {type(strategy)}"
+        )
+    
     def resolve_conflict(
         self,
         conflict: Conflict,
-        strategy: Optional[ResolutionStrategy] = None
+        strategy: Union[str, ResolutionStrategy, None] = None
     ) -> ResolutionResult:
         """
         Resolve a conflict using specified strategy.
         
         Args:
             conflict: Conflict to resolve
-            strategy: Resolution strategy (uses default if None)
+            strategy: Resolution strategy as string (e.g., "voting"), 
+                     ResolutionStrategy enum, or None (uses default).
+                     Valid strings: "voting", "credibility_weighted", 
+                     "most_recent", "first_seen", "highest_confidence",
+                     "manual_review", "expert_review"
             
         Returns:
             Resolution result
+            
+        Examples:
+            >>> resolver = ConflictResolver()
+            >>> result = resolver.resolve_conflict(conflict, strategy="voting")
         """
         # Track conflict resolution
         tracking_id = self.progress_tracker.start_tracking(
@@ -155,16 +197,17 @@ class ConflictResolver:
         )
         
         try:
-            if not strategy:
-                # Check for property-specific rule
+            # Normalize strategy (handles None, string, or enum)
+            normalized_strategy = self._normalize_strategy(strategy)
+            
+            # Check for property-specific rule if strategy was None
+            if strategy is None:
                 if conflict.property_name:
                     rule_key = f"{conflict.entity_id}.{conflict.property_name}"
                     if rule_key in self.resolution_rules:
-                        strategy = self.resolution_rules[rule_key]
-                    else:
-                        strategy = self.default_strategy
-                else:
-                    strategy = self.default_strategy
+                        normalized_strategy = self.resolution_rules[rule_key]
+            
+            strategy = normalized_strategy
             
             self.logger.info(
                 f"Resolving conflict {conflict.conflict_id} using strategy: {strategy.value}"
@@ -201,17 +244,25 @@ class ConflictResolver:
     def resolve_conflicts(
         self,
         conflicts: List[Conflict],
-        strategy: Optional[ResolutionStrategy] = None
+        strategy: Union[str, ResolutionStrategy, None] = None
     ) -> List[ResolutionResult]:
         """
         Resolve multiple conflicts.
         
         Args:
             conflicts: List of conflicts to resolve
-            strategy: Resolution strategy (uses default if None)
+            strategy: Resolution strategy as string (e.g., "voting"), 
+                     ResolutionStrategy enum, or None (uses default).
+                     Valid strings: "voting", "credibility_weighted", 
+                     "most_recent", "first_seen", "highest_confidence",
+                     "manual_review", "expert_review"
             
         Returns:
             List of resolution results
+            
+        Examples:
+            >>> resolver = ConflictResolver()
+            >>> results = resolver.resolve_conflicts(conflicts, strategy="voting")
         """
         results = []
         
@@ -402,7 +453,7 @@ class ConflictResolver:
         self,
         entity_id: str,
         property_name: str,
-        strategy: ResolutionStrategy
+        strategy: Union[str, ResolutionStrategy]
     ) -> bool:
         """
         Set custom resolution rule for specific property.
@@ -410,14 +461,19 @@ class ConflictResolver:
         Args:
             entity_id: Entity identifier
             property_name: Property name
-            strategy: Resolution strategy
+            strategy: Resolution strategy as string (e.g., "voting") or 
+                     ResolutionStrategy enum
             
         Returns:
             True if rule set successfully
+            
+        Examples:
+            >>> resolver.set_resolution_rule("entity_1", "name", "voting")
         """
         rule_key = f"{entity_id}.{property_name}"
-        self.resolution_rules[rule_key] = strategy
-        self.logger.info(f"Set resolution rule: {rule_key} -> {strategy.value}")
+        normalized_strategy = self._normalize_strategy(strategy)
+        self.resolution_rules[rule_key] = normalized_strategy
+        self.logger.info(f"Set resolution rule: {rule_key} -> {normalized_strategy.value}")
         return True
     
     def get_resolution_history(self) -> List[ResolutionResult]:

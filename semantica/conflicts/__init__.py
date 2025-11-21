@@ -76,7 +76,7 @@ Example Usage:
     >>> detector = ConflictDetector()
     >>> conflicts = detector.detect_value_conflicts(entities, "name")
     >>> resolver = ConflictResolver()
-    >>> results = resolver.resolve_conflicts(conflicts, strategy=ResolutionStrategy.VOTING)
+    >>> results = resolver.resolve_conflicts(conflicts, strategy="voting")
 
 Author: Semantica Contributors
 License: MIT

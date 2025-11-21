@@ -244,14 +244,14 @@ class ConflictDetector:
                 # Resolve conflict
                 resolution = self.resolver.resolve_conflict(
                     conflict_obj,
-                    strategy="highest_confidence"
+                    strategy=strategy
                 )
                 
-                if resolution.success:
+                if resolution.resolved:
                     resolved.append({
                         "conflict": conflict,
                         "resolution": resolution.resolved_value,
-                        "strategy": resolution.strategy
+                        "strategy": resolution.resolution_strategy
                     })
                 else:
                     unresolved.append(conflict)
