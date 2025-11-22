@@ -1,112 +1,249 @@
-# Welcome to Semantica
-
 <div align="center">
-  <img src="assets/img/semantica_logo.png" alt="Semantica Logo" style="max-width: 300px; height: auto; margin: 2rem auto; display: block;" />
+  <img src="assets/img/semantica_logo.png" alt="Semantica Logo" width="450" height="auto">
 </div>
 
-**Transform chaotic data into intelligent knowledge.**
+# Semantica
 
-Semantica is an open-source framework for building semantic layers and knowledge graphs that power the next generation of AI applications.
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI version](https://badge.fury.io/py/semantica.svg)](https://badge.fury.io/py/semantica)
+[![Downloads](https://pepy.tech/badge/semantica)](https://pepy.tech/project/semantica)
+[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://semantica.readthedocs.io/)
+[![Discord](https://img.shields.io/discord/semantica?color=7289da&label=discord)](https://discord.gg/semantica)
 
-!!! tip "New to Semantica?"
-    Start with the [Quickstart Guide](quickstart.md) to build your first knowledge graph in minutes, or explore our [interactive Cookbook](cookbook.md) for hands-on tutorials.
+**Open Source Framework for Semantic Intelligence & Knowledge Engineering**
 
-## 🚀 Get Started in 60 Seconds
+> **Transform chaotic data into intelligent knowledge.**
 
-```python
-from semantica import Semantica
+*The missing fabric between raw data and AI engineering. A comprehensive open-source framework for building semantic layers and knowledge engineering systems that transform unstructured data into AI-ready knowledge — powering Knowledge Graph-Powered RAG (GraphRAG), AI Agents, Multi-Agent Systems, and AI applications with structured semantic knowledge.*
 
-semantica = Semantica()
-result = semantica.build_knowledge_base(["document.pdf"])
-print(f"Extracted {len(result['knowledge_graph']['entities'])} entities")
+**🆓 100% Open Source** • **📜 MIT Licensed** • **🚀 Production Ready** • **🌍 Community Driven**
+
+---
+
+## 🌟 What is Semantica?
+
+Semantica is the **first comprehensive open-source framework** that bridges the critical gap between raw data chaos and AI-ready knowledge. It's not just another data processing library—it's a complete **semantic intelligence platform** that transforms unstructured information into structured, queryable knowledge graphs that power the next generation of AI applications.
+
+### The Vision
+
+In the era of AI agents and autonomous systems, data alone isn't enough. **Context is king**. Semantica provides the semantic infrastructure that enables AI systems to truly understand, reason about, and act upon information with human-like comprehension.
+
+### What Makes Semantica Different?
+
+| Traditional Approaches | Semantica's Approach |
+|------------------------|---------------------|
+| Process data as isolated documents | Understands semantic relationships across all content |
+| Extract text and store vectors | Builds knowledge graphs with meaningful connections |
+| Generic entity recognition | General-purpose ontology generation and validation |
+| Manual schema definition | Automatic semantic modeling from content patterns |
+| Disconnected data silos | Unified semantic layer across all data sources |
+| Basic quality checks | Production-grade QA with conflict detection & resolution |
+
+---
+
+## 🎯 The Problem We Solve
+
+### The Data-to-AI Gap
+
+Modern organizations face a fundamental challenge: **the semantic gap between raw data and AI systems**.
+
+```mermaid
+graph TD
+    subgraph RawData [Raw Data Chaos]
+        direction TB
+        A[📄 PDFs & Docs]
+        B[📧 Emails & Chat]
+        C[💾 Databases]
+        D[🌐 Web Content]
+    end
+
+    subgraph Gap [THE SEMANTIC GAP]
+        direction TB
+        X{❌ MISSING LAYER}
+        X1[No Context]
+        X2[No Relationships]
+        X3[No Validation]
+        X --> X1
+        X --> X2
+        X --> X3
+    end
+
+    subgraph AI [AI Systems Needs]
+        direction TB
+        F[🤖 AI Agents]
+        G[🔍 GraphRAG]
+        H[🧠 Reasoning]
+        I[🤝 Multi-Agent]
+    end
+
+    RawData == "Unstructured Noise" ==> Gap
+    Gap == "Hallucinations & Errors" ==> AI
+    
+    style Gap fill:#ffebee,stroke:#ff5252,stroke-width:2px,stroke-dasharray: 5 5
+    style RawData fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px
+    style AI fill:#e3f2fd,stroke:#2196f3,stroke-width:1px
 ```
 
-**Install:** `pip install semantica`
+### Real-World Consequences
 
-!!! note "Installation Requirements"
-    Semantica requires Python 3.8+. For complete installation instructions including optional dependencies, see the [Installation Guide](installation.md).
+**Without a semantic layer:**
 
-## Choose Your Learning Path
+!!! failure "RAG Systems Fail"
+    - Vector search alone misses crucial relationships
+    - No graph traversal for context expansion
+    - 30% lower accuracy than hybrid approaches
 
-### ⚡ Quick Start (5 min)
+!!! failure "AI Agents Hallucinate"
+    - No ontological constraints to validate actions
+    - Missing semantic routing for intent understanding
+    - No persistent memory across conversations
 
-**Perfect for:** Trying Semantica quickly
+!!! failure "Multi-Agent Systems Can't Coordinate"
+    - No shared semantic models for collaboration
+    - Unable to validate actions against domain rules
+    - Conflicting knowledge representations
 
-```bash
-pip install semantica
+!!! failure "Knowledge Is Untrusted"
+    - Duplicate entities pollute graphs
+    - Conflicting facts from different sources
+    - No provenance tracking or validation
+
+### The Semantica Solution
+
+Semantica fills this gap with a **complete semantic intelligence framework**:
+
+```mermaid
+graph LR
+    subgraph Input [📥 Input Layer]
+        direction TB
+        I1[Files & Docs]
+        I2[API Streams]
+        I3[Databases]
+    end
+
+    subgraph Core [🧠 Semantica Engine]
+        direction TB
+        S1[Entity Extraction]
+        S2[Relation Mapping]
+        S3[Ontology Gen]
+        S4[Conflict Resolution]
+        S1 --> S2
+        S2 --> S3
+        S3 --> S4
+    end
+
+    subgraph Output [📤 Knowledge Output]
+        direction TB
+        O1[Knowledge Graph]
+        O2[Vector Store]
+        O3[Reasoning API]
+    end
+
+    Input == "Ingest" ==> Core
+    Core == "Synthesize" ==> Output
+
+    style Core fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    style Input fill:#fff3e0,stroke:#ff9800,stroke-width:1px
+    style Output fill:#f3e5f5,stroke:#9c27b0,stroke-width:1px
 ```
 
-→ **[Quickstart Guide](quickstart.md)** - Build your first knowledge graph
+---
 
-→ **[Examples](examples.md)** - See what's possible
+## 📦 Installation
 
-### 📚 Complete Guide (30 min)
+=== "From Source"
 
-**Perfect for:** Learning properly
+    Since Semantica is currently in development, install from the local source:
 
-1. **[Installation](installation.md)** - Complete setup
-2. **[Quickstart](quickstart.md)** - Step-by-step tutorial  
-3. **[Examples](examples.md)** - Real-world use cases
-4. **[API References](api.md)** - Full documentation
+    ```bash
+    # Navigate to the semantica directory
+    cd path/to/semantica
 
-### 🎓 Interactive Learning
+    # Install in editable mode with core dependencies
+    pip install -e .
 
-**Perfect for:** Hands-on learners
+    # Or install with all optional dependencies
+    pip install -e ".[all]"
+    ```
 
-→ **[Cookbook Recipes](cookbook.md)** - Interactive Jupyter notebooks
+=== "Development"
 
-- Introduction tutorials
-- Advanced techniques
-- Domain-specific use cases
+    ```bash
+    # Clone the repository
+    git clone https://github.com/semantica-dev/semantica.git
+    cd semantica
 
-## What Can You Build?
+    # Install in editable mode with dev dependencies
+    pip install -e ".[dev]"
+    ```
 
-### Knowledge Graphs
-Transform documents, websites, and databases into structured knowledge graphs with meaningful relationships.
+=== "Custom"
 
-### Semantic Layers
-Build semantic layers that enable AI systems to understand context and relationships in your data.
+    ```bash
+    # Install specific extras as needed
+    pip install -e ".[llm-openai]"        # LLM providers
+    pip install -e ".[graph-neo4j]"       # Graph databases
+    pip install -e ".[vector-pinecone]"   # Vector stores
+    pip install -e ".[dev]"               # Development tools
+    pip install -e ".[gpu]"               # GPU support
+    ```
 
-### GraphRAG Systems
-Power enhanced RAG systems with knowledge graphs for better context understanding and multi-hop reasoning.
+!!! note
+    Once published to PyPI, you'll be able to install with `pip install semantica`
 
-### AI Agent Memory
-Provide AI agents with persistent, structured memory using knowledge graphs.
+---
 
-## Features
+## ✨ Core Capabilities
 
-### 🎯 Entity & Relationship Extraction
-Extract entities and relationships from unstructured text using advanced NLP.
+### 1. 📊 Universal Data Ingestion
 
-### 🔗 Knowledge Graph Construction
-Build comprehensive knowledge graphs from multiple data sources.
+Process **50+ file formats** with intelligent semantic extraction:
 
-### ⚖️ Conflict Resolution
-Automatically resolve conflicts when the same entity appears in multiple sources.
+<div class="grid cards" markdown>
 
-### 📤 Multiple Export Formats
-Export to RDF, OWL, JSON, CSV, YAML, and more.
+-   __📄 Documents__
+    ---
+    - PDF (with OCR)
+    - DOCX, XLSX, PPTX
+    - TXT, RTF, ODT
+    - EPUB, LaTeX
+    - Markdown, RST
 
-### 🧠 Embedding Generation
-Generate embeddings for text, images, and audio.
+-   __🌐 Web & Feeds__
+    ---
+    - HTML, XHTML, XML
+    - RSS, Atom feeds
+    - JSON-LD, RDFa
+    - Sitemap XML
+    - Web scraping
 
-### 🔍 Vector Store Integration
-Store and query embeddings efficiently with support for multiple vector stores.
+-   __💾 Structured Data__
+    ---
+    - JSON, YAML, TOML
+    - CSV, TSV, Excel
+    - Parquet, Avro, ORC
+    - SQL databases
+    - NoSQL databases
 
-!!! tip "Production Ready"
-    Semantica is designed for production use with enterprise-grade features including conflict resolution, quality assurance, and scalable processing pipelines.
+-   __📧 Communication__
+    ---
+    - EML, MSG, MBOX
+    - PST archives
+    - Email threads
+    - Attachment extraction
 
-## Resources
+-   __🗜️ Archives__
+    ---
+    - ZIP, TAR, RAR, 7Z
+    - Recursive processing
+    - Multi-level extraction
 
-- **GitHub**: [github.com/Hawksight-AI/semantica](https://github.com/Hawksight-AI/semantica)
-- **PyPI**: [pypi.org/project/semantica](https://pypi.org/project/semantica)
-- **Documentation**: This site
+-   __🔬 Scientific__
+    ---
+    - BibTeX, EndNote, RIS
+    - JATS XML
+    - PubMed formats
+    - Citation networks
 
-## Need Help?
-
-- **First time?** → [Getting Started](getting-started)
-- **Installation issues?** → [Installation Guide](installation)
-- **Questions?** → [GitHub Discussions](https://github.com/Hawksight-AI/semantica/discussions)
-- **Found a bug?** → [GitHub Issues](https://github.com/Hawksight-AI/semantica/issues)
-
-**Ready to transform your data?** Start with the [Getting Started Guide](getting-started) or explore the [Cookbook Recipes](cookbook) for interactive tutorials.
+</div>
