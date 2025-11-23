@@ -13,6 +13,13 @@ Understand the fundamental concepts behind Semantica. This guide covers the theo
 - **Properties**: Attributes of entities and relationships
 - **Metadata**: Additional information (sources, timestamps, confidence)
 
+??? info "Deep Dive: Graph Theory Basics"
+    At its core, a knowledge graph is a directed multigraph $G = (V, E)$ where:
+    - $V$ is a set of vertices (entities)
+    - $E$ is a set of edges (relationships)
+    - Edges are directed: $(u, v) \in E$ implies a relationship from $u$ to $v$.
+    - Multigraph property allows multiple edges between the same pair of vertices (e.g., "Friend" and "Colleague").
+
 **Benefits**:
 - Structured representation of unstructured data
 - Enables complex queries and reasoning
@@ -44,6 +51,9 @@ graph LR
 | **Money** | Monetary values | $100 million |
 | **Event** | Events and occurrences | WWDC 2024 |
 
+!!! tip "Custom Entities"
+    Semantica allows you to define custom entity types via the `Ontology` module. You aren't limited to the standard set!
+
 **Methods**:
 - **Rule-based**: Pattern matching (Regex)
 - **Machine Learning**: Trained models (spaCy, transformers)
@@ -53,19 +63,30 @@ graph LR
 
 **Definition**: Identifying and extracting relationships between entities in text.
 
-- **Semantic**: `works_for`, `located_in`, `causes`
-- **Temporal**: `before`, `after`, `during`
-- **Causal**: `causes`, `results_in`, `prevents`
-- **Hierarchical**: `part_of`, `subclass_of`, `instance_of`
+=== "Semantic"
+    Relationships that define meaning and connection.
+    - `works_for`
+    - `located_in`
+    - `founded_by`
+
+=== "Temporal"
+    Relationships defined by time.
+    - `happened_before`
+    - `happened_after`
+    - `during`
+
+=== "Causal"
+    Cause and effect relationships.
+    - `causes`
+    - `results_in`
+    - `prevents`
 
 ### 4. Embeddings
 
 **Definition**: Dense vector representations of text, images, or other data that capture semantic meaning in a continuous vector space.
 
-- **Properties**:
-    - Similar entities have similar embeddings (close in vector space).
-    - Enable semantic search and similarity calculations.
-    - Fixed dimensions (typically 128-4096).
+> [!NOTE]
+> Embeddings are the bridge between human language and machine understanding.
 
 **Example**:
 ```python
@@ -78,11 +99,16 @@ Embedding: [0.123, -0.456, 0.789, ..., 0.234]
 
 **Definition**: Knowledge graphs that track changes over time, allowing queries about the state of the graph at specific time points.
 
-- **Features**:
-    - Timestamps on entities and relationships
-    - Version history
-    - Time-point queries
-    - Temporal pattern detection
+```mermaid
+timeline
+    title Temporal Graph Evolution
+    2020 : Entity A created
+         : Relationship A->B
+    2021 : Entity B updated
+         : Relationship B->C
+    2022 : Entity A deleted
+         : New Relationship D->C
+```
 
 ### 6. GraphRAG
 
@@ -96,12 +122,24 @@ Embedding: [0.123, -0.456, 0.789, ..., 0.234]
 
 ```mermaid
 flowchart TD
-    Q[User Query] --> VS[Vector Search]
-    Q --> KG[Graph Traversal]
-    VS --> C[Context]
-    KG --> C
-    C --> LLM[LLM Generation]
-    LLM --> A[Answer]
+    subgraph Query [Query Processing]
+        Q[User Query] --> VS[Vector Search]
+        Q --> KE[Keyword Extraction]
+    end
+
+    subgraph Retrieval [Hybrid Retrieval]
+        VS --> Docs[Relevant Docs]
+        KE --> Nodes[Start Nodes]
+        Nodes --> Trav[Graph Traversal]
+        Trav --> Context[Graph Context]
+    end
+
+    subgraph Synthesis [Answer Generation]
+        Docs --> Prompt
+        Context --> Prompt
+        Prompt --> LLM[LLM Generation]
+        LLM --> A[Answer]
+    end
     
     style Q fill:#e1f5fe
     style LLM fill:#e8f5e9
@@ -133,9 +171,8 @@ flowchart TD
 Following these practices will help you build high-quality knowledge graphs and avoid common pitfalls.
 
 ### 1. Start Small
-- Begin with simple documents.
-- Validate each step before moving forward.
-- Build incrementally.
+!!! tip "Iterative Approach"
+    Don't try to model the entire world at once. Start with a small, well-defined domain and expand incrementally.
 
 ### 2. Configure Properly
 - Use environment variables for sensitive data.
@@ -143,9 +180,8 @@ Following these practices will help you build high-quality knowledge graphs and 
 - Configure appropriate model sizes.
 
 ### 3. Validate Data
-- Always validate extracted entities.
-- Check relationship quality.
-- Use quality assurance tools.
+!!! warning "Garbage In, Garbage Out"
+    Always validate extracted entities. A knowledge graph with incorrect facts is worse than no graph at all.
 
 ### 4. Handle Errors
 - Implement error handling.

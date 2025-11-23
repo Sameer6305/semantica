@@ -56,6 +56,38 @@ Semantica is designed to solve complex data challenges across various domains. T
 
 </div>
 
+### 📊 Financial Data Pipeline Architecture
+
+```mermaid
+graph LR
+    subgraph Sources
+        N[News Feeds]
+        M[Market Data]
+        R[Reports]
+    end
+    
+    subgraph Processing
+        NER[Entity Extraction]
+        SA[Sentiment Analysis]
+        TC[Trend Correlation]
+    end
+    
+    subgraph Knowledge
+        KG[Financial KG]
+        Signals[Alpha Signals]
+    end
+    
+    Sources --> NER
+    Sources --> SA
+    NER --> KG
+    SA --> KG
+    KG --> TC
+    TC --> Signals
+    
+    style KG fill:#e8f5e9,stroke:#2e7d32
+    style Signals fill:#fff3e0,stroke:#ef6c00
+```
+
 ---
 
 ## 🏥 Healthcare & Life Sciences
@@ -107,6 +139,34 @@ Semantica is designed to solve complex data challenges across various domains. T
     **Goal**: Build a graph of Users, Devices, IP Addresses, and Transactions to find cycles and dense subgraphs.
 
 </div>
+
+### 🛡️ Threat Intelligence Architecture
+
+```mermaid
+graph TD
+    subgraph Ingest
+        F[Threat Feeds]
+        L[System Logs]
+    end
+    
+    subgraph Analysis
+        P[Pattern Match]
+        A[Anomaly Detect]
+    end
+    
+    subgraph Response
+        G[Threat Graph]
+        Alert[Alert System]
+    end
+    
+    F --> P
+    L --> A
+    P --> G
+    A --> G
+    G --> Alert
+    
+    style G fill:#ffebee,stroke:#c62828
+```
 
 ---
 

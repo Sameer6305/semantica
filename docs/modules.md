@@ -56,17 +56,40 @@ The `ingest` module is the entry point for data. It handles the complexity of co
     - `EmailIngestor`: Process email messages
     - `RepoIngestor`: Git repository analysis
 
+    - `RepoIngestor`: Git repository analysis
+
+```mermaid
+classDiagram
+    class BaseIngestor {
+        +ingest(source)
+        +validate(source)
+    }
+    class FileIngestor {
+        +supported_formats: List
+        +ingest_file(path)
+    }
+    class WebIngestor {
+        +scrape(url)
+        +extract_metadata(html)
+    }
+    BaseIngestor <|-- FileIngestor
+    BaseIngestor <|-- WebIngestor
+```
+
 ```python
 from semantica.ingest import FileIngestor, WebIngestor
 
 # Ingest local files
 file_ingestor = FileIngestor()
-documents = file_ingestor.ingest("data/")
+documents = file_ingestor.ingest("data/") # (1)
 
 # Ingest web content
 web_ingestor = WebIngestor()
-web_docs = web_ingestor.ingest("https://example.com")
+web_docs = web_ingestor.ingest("https://example.com") # (2)
 ```
+
+1.  Recursively scans the directory for supported file types (PDF, DOCX, etc.) and converts them to standard Document objects.
+2.  Fetches the URL, renders JavaScript if necessary, and extracts the main content while stripping boilerplate.
 
 ### 2. Parse Module
 **Purpose**: Parse and extract content from various raw formats.
@@ -83,12 +106,34 @@ Once data is ingested, the `parse` module extracts the raw text and metadata. It
     - `ImageParser`: OCR and image analysis
     - `CodeParser`: Parse source code files
 
+    - `CodeParser`: Parse source code files
+
+```mermaid
+classDiagram
+    class DocumentParser {
+        +parse(documents)
+        +register_parser(format, parser)
+    }
+    class PDFParser {
+        +extract_text()
+        +extract_tables()
+    }
+    class JSONParser {
+        +flatten()
+        +extract_schema()
+    }
+    DocumentParser *-- PDFParser
+    DocumentParser *-- JSONParser
+```
+
 ```python
 from semantica.parse import DocumentParser
 
 parser = DocumentParser()
-parsed_docs = parser.parse(documents)
+parsed_docs = parser.parse(documents) # (1)
 ```
+
+1.  Automatically detects the file type of each document and routes it to the appropriate specialized parser (e.g., PDFParser for .pdf).
 
 ### 3. Normalize Module
 **Purpose**: Clean and normalize text for processing.
@@ -152,17 +197,41 @@ The `kg` module constructs the graph from extracted entities and relationships, 
     - `TemporalQuery`: Query temporal knowledge graphs
     - `Deduplicator`: Remove duplicate entities/relationships
 
+    - `Deduplicator`: Remove duplicate entities/relationships
+
+```mermaid
+classDiagram
+    class GraphBuilder {
+        +build(entities, relations)
+        +merge_nodes()
+    }
+    class GraphAnalyzer {
+        +compute_centrality()
+        +detect_communities()
+    }
+    class KnowledgeGraph {
+        +nodes: List
+        +edges: List
+        +query(cypher)
+    }
+    GraphBuilder ..> KnowledgeGraph : Creates
+    GraphAnalyzer ..> KnowledgeGraph : Analyzes
+```
+
 ```python
 from semantica.kg import GraphBuilder, GraphAnalyzer
 
 # Build graph
 builder = GraphBuilder()
-kg = builder.build(entities, relationships)
+kg = builder.build(entities, relationships) # (1)
 
 # Analyze graph
 analyzer = GraphAnalyzer()
-metrics = analyzer.analyze(kg)
+metrics = analyzer.analyze(kg) # (2)
 ```
+
+1.  Constructs a NetworkX or Neo4j graph from the extracted entities and relationships, handling node merging and edge attributes.
+2.  Computes graph-theoretic metrics like density, diameter, and centrality to assess the quality and structure of the knowledge graph.
 
 ### 6. Embeddings Module
 **Purpose**: Generate vector embeddings for various data types.
