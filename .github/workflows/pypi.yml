@@ -1,7 +1,7 @@
 name: Publish to PyPI
 
-# Publishes package to PyPI when a GitHub release is published
-# Requires: PyPI API token configured in repository secrets
+# This workflow publishes the package to PyPI (Python Package Index)
+# It runs automatically after a GitHub Release is published
 
 on:
   release:
@@ -16,6 +16,7 @@ jobs:
       name: pypi
       url: https://pypi.org/project/semantica/${{ github.event.release.tag_name }}/
 
+    # Permissions needed to authenticate with PyPI
     permissions:
       id-token: write
       contents: read
@@ -35,9 +36,11 @@ jobs:
           pip install build twine
 
       - name: Build package
+        # Builds the package again to ensure it's fresh
         run: python -m build
 
       - name: Publish to PyPI
+        # Uses Trusted Publishing (OIDC) to upload to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/

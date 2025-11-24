@@ -46,12 +46,13 @@ else
     exit 1
 fi
 
-# Type check with mypy (non-blocking)
+# Type check with mypy
 echo "🔬 Type checking with mypy..."
-if mypy semantica/ 2>/dev/null; then
+if mypy semantica/; then
     echo "✅ mypy check passed"
 else
-    echo "⚠️  Type checking issues found (non-blocking)"
+    echo "❌ Type checking issues found"
+    exit 1
 fi
 
 echo ""

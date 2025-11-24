@@ -1,7 +1,7 @@
 name: Build and Deploy Documentation
 
-# Builds and deploys documentation to GitHub Pages
-# Runs on: docs changes to main branch or manual trigger
+# This workflow builds the documentation site and deploys it to GitHub Pages
+# It runs when changes are pushed to the 'docs' folder on the main branch
 
 on:
   push:
@@ -11,11 +11,13 @@ on:
       - 'mkdocs.yml'
   workflow_dispatch:
 
+# Permissions needed to deploy to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# Prevent concurrent deployments
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -39,9 +41,11 @@ jobs:
           pip install -r requirements-docs.txt
 
       - name: Build documentation
+        # Builds the static site using MkDocs
         run: mkdocs build --strict
 
       - name: Check for broken links
+        # Optional: checks if any links in the docs are broken
         run: |
           pip install linkchecker || echo "Skipping link check"
           if [ -d "site" ]; then

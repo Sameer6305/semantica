@@ -1,13 +1,14 @@
 name: Create Release
 
-# Creates a GitHub release when a version tag is pushed
-# Tag format: v1.2.3
+# This workflow creates a GitHub Release when you push a version tag
+# Example tag: v1.0.0
 
 on:
   push:
     tags:
       - 'v*'
 
+# Permissions needed to create a release
 permissions:
   contents: write
   id-token: write
@@ -40,12 +41,15 @@ jobs:
           echo "Version: $VERSION"
 
       - name: Build package
+        # Builds the Python package (wheel and source distribution)
         run: python -m build
 
       - name: Validate package
+        # Checks if the package description is valid
         run: twine check dist/*
 
       - name: Create GitHub Release
+        # Creates the release on GitHub and attaches the built files
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}

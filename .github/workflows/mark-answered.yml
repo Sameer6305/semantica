@@ -1,12 +1,13 @@
 name: Mark Discussion as Answered
 
-# Marks a discussion as answered when a maintainer comments /answered
-# Only works for members, owners, and collaborators
+# This workflow allows maintainers to mark a discussion comment as the answer
+# Usage: Comment "/answered" on the correct reply
 
 on:
   discussion_comment:
     types: [created]
 
+# Permissions needed to modify discussions
 permissions:
   contents: read
   discussions: write
@@ -15,6 +16,7 @@ jobs:
   mark-answered:
     name: Mark Discussion as Answered
     runs-on: ubuntu-latest
+    # Only runs if the comment contains "/answered" and is from a maintainer
     if: |
       github.event.action == 'created' && 
       contains(github.event.comment.body, '/answered') && 

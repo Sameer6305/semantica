@@ -48,13 +48,14 @@ try {
     exit 1
 }
 
-# Type check with mypy (non-blocking)
+# Type check with mypy
 Write-Host "🔬 Type checking with mypy..." -ForegroundColor Yellow
 try {
-    mypy semantica/ 2>&1 | Out-Null
+    mypy semantica/
     Write-Host "✅ mypy check passed" -ForegroundColor Green
 } catch {
-    Write-Host "⚠️  Type checking issues found (non-blocking)" -ForegroundColor Yellow
+    Write-Host "❌ Type checking issues found" -ForegroundColor Red
+    exit 1
 }
 
 Write-Host ""
