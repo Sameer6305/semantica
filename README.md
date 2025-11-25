@@ -465,7 +465,7 @@ print(f"Answer: {result.answer} | Nodes: {kg.node_count}, Edges: {kg.edge_count}
 
 ## 🗺️ Roadmap
 
-### Q1 2025
+### Q1 2026
 - [x] Core framework (v1.0)
 - [x] GraphRAG engine
 - [x] 6-stage ontology pipeline
@@ -473,26 +473,9 @@ print(f"Answer: {result.answer} | Nodes: {kg.node_count}, Edges: {kg.edge_count}
 - [ ] Enhanced multi-language support
 - [ ] Real-time streaming improvements
 
-### Q2 2025
+### Q2 2026
 - [ ] Multi-modal processing
 - [ ] Advanced reasoning v2
-- [ ] AutoML for NER models
-- [ ] Federated knowledge graphs
-- [ ] Enterprise SSO
-
-### Q3 2025
-- [ ] Temporal knowledge graphs
-- [ ] Probabilistic reasoning
-- [ ] Automated ontology alignment
-- [ ] Graph neural networks
-- [ ] Mobile SDK
-
-### Q4 2025
-- [ ] Quantum-ready algorithms
-- [ ] Neuromorphic computing
-- [ ] Blockchain provenance
-- [ ] Privacy-preserving techniques
-- [ ] Version 2.0 release
 
 ---
 
