@@ -92,6 +92,9 @@ Real-world examples and applications across various industries.
 
 ### Intelligence
 - **[Network Analysis Intelligence Reports](cookbook/use_cases/intelligence/Network_Analysis_Intelligence_Reports.ipynb)**: Analyzing intelligence reports for network insights.
+- **[Criminal Network Analysis](cookbook/use_cases/intelligence/Criminal_Network_Analysis.ipynb)**: Analyze criminal networks with graph analytics, key player detection, and intelligence reporting using agent-based workflows and MCP integration.
+- **[Law Enforcement and Forensics](cookbook/use_cases/intelligence/Law_Enforcement_Forensics.ipynb)**: Process forensic evidence, analyze case files, build temporal case timelines, and generate forensic analysis reports with agent-based workflows.
+- **[Intelligence Analysis](cookbook/use_cases/intelligence/Intelligence_Analysis.ipynb)**: Comprehensive intelligence analysis using Orchestrator-Worker pattern with complete graph analytics, hybrid RAG, ontology building, threat assessment, and geospatial intelligence.
 
 ### Renewable Energy
 - **[Energy Market Analysis](cookbook/use_cases/renewable_energy/Energy_Market_Analysis.ipynb)**: Analyzing trends in the energy market.

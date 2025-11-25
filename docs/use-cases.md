@@ -132,6 +132,22 @@ graph LR
     
     [:material-arrow-right: View Cookbook](cookbook/use_cases/intelligence/index.ipynb)
 
+-   :material-account-network: **Criminal Network Analysis**
+    ---
+    Analyze criminal networks to identify key players, communities, and suspicious patterns.
+    
+    **Goal**: Build knowledge graphs from police reports, court records, and surveillance data to detect criminal structures and relationships.
+    
+    [:material-arrow-right: View Cookbook](cookbook/use_cases/intelligence/Criminal_Network_Analysis.ipynb)
+
+-   :material-shield-search: **Law Enforcement and Forensics**
+    ---
+    Process forensic evidence and correlate cases using temporal knowledge graphs.
+    
+    **Goal**: Extract entities from case files, evidence logs, and witness statements to build temporal case timelines and identify cross-case connections.
+    
+    [:material-arrow-right: View Cookbook](cookbook/use_cases/intelligence/Law_Enforcement_Forensics.ipynb)
+
 -   :material-incognito: **Fraud Detection**
     ---
     Detect complex fraud rings.
