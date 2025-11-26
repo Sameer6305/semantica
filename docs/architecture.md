@@ -189,6 +189,25 @@ RDF triple storage.
 - `JenaAdapter`: Apache Jena
 - `BlazegraphAdapter`: Blazegraph
 
+#### `semantica.graph_store`
+
+Property graph database storage with multiple backend support.
+
+**Key Components**:
+- `GraphStore`: Main graph store interface
+- `Neo4jAdapter`: Neo4j integration
+- `KuzuAdapter`: KuzuDB embedded database
+- `FalkorDBAdapter`: FalkorDB (Redis-based) integration
+- `NodeManager`: Node CRUD operations
+- `RelationshipManager`: Relationship operations
+- `QueryEngine`: Cypher query execution
+- `GraphAnalytics`: Graph algorithms
+
+**Supported Backends**:
+- Neo4j (production-grade, server/cloud)
+- KuzuDB (embedded, analytics-optimized)
+- FalkorDB (ultra-fast, Redis-based, LLM apps)
+
 ### Quality Assurance Modules
 
 #### `semantica.deduplication`
@@ -250,7 +269,8 @@ Knowledge graph quality assessment.
 7. Storage
    ├─> Knowledge graph storage
    ├─> Vector embeddings
-   └─> Triple store
+   ├─> Triple store (RDF)
+   └─> Graph store (Property Graphs)
 
 8. Application
    ├─> GraphRAG queries

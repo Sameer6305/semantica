@@ -104,6 +104,7 @@ class _SemanticaModules:
         self._export = None
         self._vector_store = None
         self._triple_store = None
+        self._graph_store = None
         self._ontology = None
         self._evals = None
 
@@ -190,6 +191,13 @@ class _SemanticaModules:
         if self._triple_store is None:
             self._triple_store = _ModuleProxy("triple_store")
         return self._triple_store
+
+    @property
+    def graph_store(self):
+        """Access graph store module."""
+        if self._graph_store is None:
+            self._graph_store = _ModuleProxy("graph_store")
+        return self._graph_store
 
     @property
     def ontology(self):
@@ -328,6 +336,7 @@ def __getattr__(name: str):
         "export",
         "vector_store",
         "triple_store",
+        "graph_store",
         "ontology",
         "evals",
     ]:

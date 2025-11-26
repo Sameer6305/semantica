@@ -12,6 +12,12 @@ pip install semantica
 # Specific format support
 pip install "semantica[pdf,web,feeds,office]"
 
+# Graph store backends
+pip install "semantica[graph-neo4j]"    # Neo4j support
+pip install "semantica[graph-kuzu]"     # KuzuDB (embedded)
+pip install "semantica[graph-falkordb]" # FalkorDB (Redis-based)
+pip install "semantica[graph-all]"      # All graph backends
+
 # Development installation
 git clone https://github.com/semantica/semantica.git
 cd semantica
@@ -276,6 +282,62 @@ turtle_ontology = ontology.to_turtle()
 
 # Save to triple store
 ontology.save_to_triple_store("http://localhost:9999/blazegraph/sparql")
+```
+
+### 📊 Graph Store - Persistent Property Graph Storage
+
+Store and query knowledge graphs in Neo4j, KuzuDB, or FalkorDB:
+
+```python
+from semantica.graph_store import GraphStore
+
+# Option 1: Neo4j for enterprise deployments
+store = GraphStore(
+    backend="neo4j",
+    uri="bolt://localhost:7687",
+    user="neo4j",
+    password="password"
+)
+
+# Option 2: KuzuDB for embedded (no server required)
+store = GraphStore(backend="kuzu", database_path="./my_graph_db")
+
+# Option 3: FalkorDB for ultra-fast LLM applications
+store = GraphStore(backend="falkordb", host="localhost", port=6379, graph_name="kg")
+
+store.connect()
+
+# Create nodes
+company = store.create_node(
+    labels=["Company"],
+    properties={"name": "Apple Inc.", "founded": 1976, "industry": "Technology"}
+)
+
+person = store.create_node(
+    labels=["Person"],
+    properties={"name": "Tim Cook", "title": "CEO"}
+)
+
+# Create relationship
+store.create_relationship(
+    start_node_id=person["id"],
+    end_node_id=company["id"],
+    rel_type="CEO_OF",
+    properties={"since": 2011}
+)
+
+# Query with Cypher
+results = store.execute_query("""
+    MATCH (p:Person)-[:CEO_OF]->(c:Company)
+    RETURN p.name as ceo, c.name as company
+""")
+
+# Graph analytics
+neighbors = store.get_neighbors(company["id"], depth=2)
+path = store.shortest_path(person["id"], company["id"])
+stats = store.get_stats()
+
+store.close()
 ```
 
 ### 📊 Semantic Vector Generation

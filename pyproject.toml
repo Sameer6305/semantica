@@ -36,7 +36,8 @@ classifiers = [
 keywords = [
     "semantic-layer", "knowledge-engineering", "nlp", "knowledge-graph",
     "embeddings", "entity-extraction", "relationship-extraction", "rdf",
-    "ontology", "semantic-analysis", "ai", "machine-learning"
+    "ontology", "semantic-analysis", "ai", "machine-learning",
+    "graph-database", "property-graph", "neo4j", "falkordb", "kuzu"
 ]
 dependencies = [
     "numpy>=1.21.0",
@@ -183,7 +184,18 @@ split-topic = [
 split-all = [
     "semantica[split-tiktoken,split-community,split-topic]"
 ]
-
+graph-neo4j = [
+    "neo4j>=5.0.0"
+]
+graph-kuzu = [
+    "kuzu>=0.4.0"
+]
+graph-falkordb = [
+    "falkordb>=1.0.0"
+]
+graph-all = [
+    "semantica[graph-neo4j,graph-kuzu,graph-falkordb]"
+]
 
 [project.scripts]
 semantica = "semantica.cli:main"

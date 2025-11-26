@@ -20,6 +20,7 @@ Start here if you are new to the framework. These notebooks cover the essentials
 - **[Relation Extraction](cookbook/introduction/Relation_Extraction.ipynb)**: Finding connections between entities.
 - **[Embedding Generation](cookbook/introduction/Embedding_Generation.ipynb)**: Creating vector representations.
 - **[Vector Store](cookbook/introduction/Vector_Store.ipynb)**: Storing and searching vectors.
+- **[Graph Store](cookbook/introduction/Graph_Store.ipynb)**: Storing graphs in Neo4j, KuzuDB, or FalkorDB.
 - **[Ontology](cookbook/introduction/Ontology.ipynb)**: Defining the structure of your knowledge.
 - **[Conflict Detection](cookbook/introduction/Conflict_Detection.ipynb)**: Handling contradictory information.
 - **[Deduplication](cookbook/introduction/Deduplication.ipynb)**: Merging duplicate entities.

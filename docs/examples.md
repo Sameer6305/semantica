@@ -188,6 +188,97 @@ print(f"Graph density: {analysis['density']}")
 print(f"Connected components: {analysis['components']}")
 ```
 
+### Example 9: Graph Store (Persistent Storage)
+
+Store and query knowledge graphs in a persistent graph database:
+
+```python
+from semantica.graph_store import GraphStore
+
+# Initialize with Neo4j
+store = GraphStore(
+    backend="neo4j",
+    uri="bolt://localhost:7687",
+    user="neo4j",
+    password="password"
+)
+store.connect()
+
+# Create nodes
+apple = store.create_node(
+    labels=["Company"],
+    properties={"name": "Apple Inc.", "founded": 1976}
+)
+
+tim_cook = store.create_node(
+    labels=["Person"],
+    properties={"name": "Tim Cook", "title": "CEO"}
+)
+
+# Create relationship
+store.create_relationship(
+    start_node_id=tim_cook["id"],
+    end_node_id=apple["id"],
+    rel_type="CEO_OF",
+    properties={"since": 2011}
+)
+
+# Query with Cypher
+results = store.execute_query("""
+    MATCH (p:Person)-[:CEO_OF]->(c:Company)
+    RETURN p.name, c.name
+""")
+
+print(f"Query results: {results}")
+store.close()
+```
+
+### Example 10: Using KuzuDB (Embedded)
+
+For embedded graph storage without external dependencies:
+
+```python
+from semantica.graph_store import GraphStore
+
+# KuzuDB - no server required
+store = GraphStore(backend="kuzu", database_path="./my_graph_db")
+store.connect()
+
+# Store your knowledge graph
+node = store.create_node(["Entity"], {"name": "Test"})
+neighbors = store.get_neighbors(node["id"], depth=2)
+stats = store.get_stats()
+
+print(f"Graph stats: {stats}")
+store.close()
+```
+
+### Example 11: FalkorDB for Real-Time Applications
+
+Ultra-fast graph queries for LLM applications:
+
+```python
+from semantica.graph_store import GraphStore
+
+# FalkorDB - Redis-based, ultra-fast
+store = GraphStore(
+    backend="falkordb",
+    host="localhost",
+    port=6379,
+    graph_name="knowledge_graph"
+)
+store.connect()
+
+# Fast queries for RAG applications
+results = store.execute_query("""
+    MATCH (n)-[r]->(m)
+    WHERE n.name CONTAINS $query
+    RETURN n, r, m LIMIT 10
+""", parameters={"query": "AI"})
+
+store.close()
+```
+
 ## Use Case Examples
 
 ### Research Paper Analysis

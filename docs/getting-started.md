@@ -104,6 +104,12 @@ embedding:
 knowledge_graph:
   backend: networkx # or neo4j, arangodb
   temporal: true
+
+graph_store:
+  backend: neo4j # or kuzu, falkordb
+  neo4j_uri: bolt://localhost:7687
+  neo4j_user: neo4j
+  neo4j_password: password
 ```
 
 ---

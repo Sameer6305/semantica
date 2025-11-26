@@ -22,6 +22,7 @@ graph TD
     subgraph Storage [Storage Layer]
         KG --> VS[Vector Store]
         KG --> TS[Triple Store]
+        KG --> GS[Graph Store]
     end
 
     subgraph Output [Output & Analysis]
@@ -40,7 +41,7 @@ graph TD
 
 ## 📦 Core Modules
 
-Semantica is organized into 12 core modules. Below is a detailed breakdown of each.
+Semantica is organized into 13 core modules. Below is a detailed breakdown of each.
 
 ### 1. Ingest Module
 **Purpose**: Ingest data from various sources into a unified format.
@@ -270,7 +271,64 @@ hybrid_search = HybridSearch(vector_store)
 results = hybrid_search.search(query, top_k=10)
 ```
 
-### 8. Reasoning Module
+### 8. Graph Store Module
+**Purpose**: Store and query property graphs with multiple backend support.
+
+The `graph_store` module provides integration with property graph databases like Neo4j, KuzuDB, and FalkorDB for storing and querying knowledge graphs.
+
+- **Components**:
+    - `GraphStore`: Main graph store interface
+    - `Neo4jAdapter`: Neo4j database integration
+    - `KuzuAdapter`: KuzuDB embedded database integration
+    - `FalkorDBAdapter`: FalkorDB (Redis-based) integration
+    - `NodeManager`: Node CRUD operations
+    - `RelationshipManager`: Relationship CRUD operations
+    - `QueryEngine`: Cypher query execution
+    - `GraphAnalytics`: Graph algorithms and analytics
+
+```mermaid
+classDiagram
+    class GraphStore {
+        +create_node(labels, properties)
+        +create_relationship(start, end, type)
+        +execute_query(cypher)
+        +shortest_path(start, end)
+    }
+    class Neo4jAdapter {
+        +connect()
+        +execute_query()
+        +create_index()
+    }
+    class FalkorDBAdapter {
+        +select_graph()
+        +query()
+    }
+    GraphStore *-- Neo4jAdapter
+    GraphStore *-- FalkorDBAdapter
+```
+
+```python
+from semantica.graph_store import GraphStore, create_node, create_relationship
+
+# Using GraphStore class
+store = GraphStore(backend="neo4j", uri="bolt://localhost:7687")
+store.connect()
+
+# Create nodes
+alice = store.create_node(["Person"], {"name": "Alice", "age": 30})
+bob = store.create_node(["Person"], {"name": "Bob", "age": 25})
+
+# Create relationship
+store.create_relationship(alice["id"], bob["id"], "KNOWS", {"since": 2020})
+
+# Query
+results = store.execute_query("MATCH (p:Person) RETURN p.name")
+
+# Or use convenience functions
+node = create_node(labels=["Entity"], properties={"name": "Test"})
+```
+
+### 9. Reasoning Module
 **Purpose**: Perform logical inference and reasoning.
 
 Goes beyond simple retrieval to infer new facts and validate existing knowledge using logical rules.
@@ -291,7 +349,7 @@ rule_manager = RuleManager()
 new_facts = inference_engine.forward_chain(kg, rule_manager)
 ```
 
-### 9. Ontology Module
+### 10. Ontology Module
 **Purpose**: Generate and manage ontologies.
 
 Defines the schema and structure of your knowledge domain, ensuring consistency and enabling interoperability.
@@ -310,7 +368,7 @@ generator = OntologyGenerator()
 ontology = generator.generate_from_graph(kg)
 ```
 
-### 10. Export Module
+### 11. Export Module
 **Purpose**: Export data in various formats.
 
 Allows you to take your knowledge graph and data out of Semantica for use in other tools.
@@ -330,7 +388,7 @@ json_exporter = JSONExporter()
 json_exporter.export(kg, "output.json")
 ```
 
-### 11. Visualization Module
+### 12. Visualization Module
 **Purpose**: Visualize knowledge graphs and analytics.
 
 Provides tools to visually explore your data, making it easier to understand complex relationships.
@@ -349,7 +407,7 @@ visualizer = KGVisualizer()
 visualizer.visualize(kg)
 ```
 
-### 12. Pipeline Module
+### 13. Pipeline Module
 **Purpose**: Build and execute processing pipelines.
 
 Orchestrates the entire flow, connecting modules together into robust, executable workflows.

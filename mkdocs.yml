@@ -108,6 +108,7 @@ nav:
     - Embeddings: reference/embeddings.md
     - Evals: reference/evals.md
     - Export: reference/export.md
+    - Graph Store: reference/graph_store.md
     - Ingest: reference/ingest.md
     - Knowledge Graph: reference/kg.md
     - Normalize: reference/normalize.md
