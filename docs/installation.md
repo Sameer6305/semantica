@@ -2,6 +2,9 @@
 
 Get Semantica up and running in minutes.
 
+!!! success "Now Available on PyPI!"
+    Semantica is officially published on PyPI! Install it with a single command: `pip install semantica`
+
 !!! note "System Requirements"
     Semantica requires Python 3.8 or higher. For best performance, we recommend Python 3.10+.
 

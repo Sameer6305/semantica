@@ -187,26 +187,6 @@ flowchart TD
 
 ---
 
-## 💻 See It In Action
-
-<div class="termy">
-
-```console
-$ pip install semantica
----> 100%
-$ semantica ingest --source ./documents --output ./knowledge_graph
-[INFO] Ingesting 15 documents...
-[INFO] Extracting entities using NER...
-[INFO] Building Knowledge Graph...
-[SUCCESS] Knowledge Graph built with 1,240 nodes and 3,500 edges!
-$ semantica query "Who founded Apple?"
-[RESULT] Steve Jobs, Steve Wozniak, Ronald Wayne
-```
-
-</div>
-
----
-
 ## 🚀 Choose Your Path
 
 <div class="grid cards" markdown>
@@ -241,13 +221,29 @@ $ semantica query "Who founded Apple?"
 
 ## 📦 Installation
 
-=== "From Source"
+!!! success "Now Available on PyPI!"
+    Semantica is officially published on PyPI! Install it with a single command.
 
-    Since Semantica is currently in development, install from the local source:
+=== "From PyPI (Recommended)"
+
+    Install Semantica directly from PyPI:
 
     ```bash
-    # Navigate to the semantica directory
-    cd path/to/semantica
+    # Install the core package
+    pip install semantica
+
+    # Or install with all optional dependencies
+    pip install semantica[all]
+    ```
+
+=== "From Source"
+
+    Install from the local source for the latest development version:
+
+    ```bash
+    # Clone the repository
+    git clone https://github.com/Hawksight-AI/semantica.git
+    cd semantica
 
     # Install in editable mode with core dependencies
     pip install -e .
@@ -277,9 +273,6 @@ $ semantica query "Who founded Apple?"
     docker pull semantica/semantica:latest
     docker run -it semantica/semantica
     ```
-
-!!! note "PyPI Release Coming Soon"
-    Once published to PyPI, you'll be able to install with `pip install semantica`
 
 ---
 
