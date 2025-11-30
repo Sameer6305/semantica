@@ -1,4 +1,4 @@
-# Export Module
+# Export
 
 > **Export knowledge graphs and data to multiple formats with W3C-compliant serialization.**
 

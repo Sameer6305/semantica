@@ -1,8 +1,6 @@
-# Evals Module
+# Evals
 
-**Coming Soon**
+> **Evaluation framework for measuring Knowledge Graph quality, extraction accuracy, and pipeline performance.**
 
----
-
-This module is under development and will be available in a future release.
-
+!!! warning "Coming Soon"
+    This module is currently in active development. Documentation will be available soon.

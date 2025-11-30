@@ -1,6 +1,6 @@
-# Ontology Module
+# Ontology
 
-> **Generate W3C-compliant OWL ontologies from unstructured content using a 6-stage LLM pipeline.**
+> **Automated ontology generation, validation, and management system.**
 
 ---
 
@@ -8,98 +8,71 @@
 
 <div class="grid cards" markdown>
 
--   :material-auto-fix:{ .lg .middle } **Automatic Generation**
+-   :material-factory:{ .lg .middle } **Automated Generation**
 
     ---
 
-    LLM-based ontology creation from text and knowledge graphs
+    6-stage pipeline to generate OWL ontologies from raw data
 
--   :material-file-tree:{ .lg .middle } **OWL/RDF Support**
-
-    ---
-
-    W3C-compliant ontology formats with Turtle, RDF/XML, JSON-LD
-
--   :material-check-circle:{ .lg .middle } **Validation**
+-   :material-sitemap:{ .lg .middle } **Inference Engine**
 
     ---
 
-    HermiT and Pellet reasoner integration for consistency checking
+    Infer classes, properties, and hierarchies from entity patterns
 
--   :material-family-tree:{ .lg .middle } **Class Hierarchy**
-
-    ---
-
-    Automatic taxonomy generation with multiple inheritance
-
--   :material-link:{ .lg .middle } **Property Definition**
+-   :material-check-decagram:{ .lg .middle } **Validation**
 
     ---
 
-    Object and data properties with domain/range inference
+    Symbolic reasoning (HermiT/Pellet) for consistency checking
 
--   :material-brain:{ .lg .middle } **6-Stage Pipeline**
+-   :material-recycle:{ .lg .middle } **Reuse Management**
 
     ---
 
-    Semantic parsing → Definitions → Types → Hierarchy → TTL → Validation
+    Import and align with standard ontologies (FOAF, Schema.org)
+
+-   :material-chart-bar:{ .lg .middle } **Evaluation**
+
+    ---
+
+    Assess ontology quality using coverage, completeness, and granularity metrics
+
+-   :material-file-code:{ .lg .middle } **OWL/RDF Export**
+
+    ---
+
+    Export to Turtle, RDF/XML, and JSON-LD formats
 
 </div>
 
-!!! info "6-Stage Ontology Generation Pipeline"
-    ```mermaid
-    graph LR
-        A[1. Semantic Network<br/>Parsing] --> B[2. YAML to<br/>Definition]
-        B --> C[3. Definition<br/>to Types]
-        C --> D[4. Hierarchy<br/>Generation]
-        D --> E[5. TTL<br/>Generation]
-        E --> F[6. Symbolic<br/>Validation]
-        
-        style A fill:#e3f2fd
-        style F fill:#c8e6c9
-    ```
+!!! tip "When to Use"
+    - **Schema Design**: When defining the structure of your Knowledge Graph
+    - **Data Modeling**: To formalize domain concepts and relationships
+    - **Interoperability**: To ensure your data follows standard semantic web practices
+    - **Validation**: To enforce constraints on your data
 
 ---
 
 ## ⚙️ Algorithms Used
 
-### 6-Stage Ontology Generation Pipeline
+### 6-Stage Generation Pipeline
+1.  **Semantic Network Parsing**: Extract concepts and patterns from raw entity/relationship data.
+2.  **YAML-to-Definition**: Transform patterns into intermediate class definitions.
+3.  **Definition-to-Types**: Map definitions to OWL types (`owl:Class`, `owl:ObjectProperty`).
+4.  **Hierarchy Generation**: Build taxonomy trees using transitive closure and cycle detection.
+5.  **TTL Generation**: Serialize to Turtle format using `rdflib`.
+6.  **Symbolic Validation**: Run reasoner to check for logical inconsistencies.
 
-**Stage 1: Semantic Network Parsing**
-- Extract domain concepts from text
-- Identify key entities and relationships
-- Build initial concept graph
+### Inference Algorithms
+- **Class Inference**: Clustering entities by type and attribute similarity.
+- **Property Inference**: Determining domain/range based on connected entity types.
+- **Hierarchy Inference**: `A is_a B` detection based on subset relationships.
 
-**Stage 2: YAML-to-Definition**
-- Transform semantic network to class definitions
-- Define class hierarchies and properties
-- Generate human-readable descriptions
-
-**Stage 3: Definition-to-Types**
-- Map to OWL types (Class, ObjectProperty, DataProperty)
-- Define domains and ranges
-- Specify cardinality constraints
-
-**Stage 4: Hierarchy Generation**
-- Build taxonomic structures (is-a relationships)
-- Identify parent-child relationships
-- Create multiple inheritance where appropriate
-
-**Stage 5: TTL Generation**
-- Generate OWL/Turtle syntax
-- Add namespace declarations
-- Format according to W3C standards
-
-**Stage 6: Symbolic Validation**
-- HermiT/Pellet reasoning for consistency
-- Detect logical contradictions
-- Validate class satisfiability
-
-### Reasoning Algorithms
-- **HermiT**: Hypertableau reasoning algorithm
-- **Pellet**: Tableau-based DL reasoner
-- **Consistency Checking**: Detect unsatisfiable classes
-- **Classification**: Compute inferred class hierarchy
+### Validation
+- **Symbolic Reasoning**: Uses HermiT or Pellet to check satisfiability.
+- **Constraint Checking**: Validates cardinality, domain, and range constraints.
+- **Hallucination Detection**: LLM-based verification of generated concepts.
 
 ---
 
@@ -107,243 +80,135 @@
 
 ### OntologyGenerator
 
+Main entry point for the generation pipeline.
 
 **Methods:**
 
-| Method | Description | Algorithm |
-|--------|-------------|-----------|
-| `generate(source)` | Generate ontology | 6-stage pipeline |
-| `generate_from_graph(kg)` | Generate from knowledge graph | Graph analysis + LLM generation |
-| `generate_from_text(text)` | Generate from text | Text analysis + concept extraction |
-| `validate(ontology)` | Validate ontology | Reasoner-based validation |
-| `infer_hierarchy(classes)` | Infer class hierarchy | Hierarchical clustering + LLM |
+| Method | Description |
+|--------|-------------|
+| `generate_ontology(data)` | Run full pipeline |
+| `generate_from_schema(schema)` | Generate from explicit schema |
 
 **Example:**
 
 ```python
 from semantica.ontology import OntologyGenerator
 
-generator = OntologyGenerator(
-    llm_provider="openai",
-    llm_model="gpt-4",
-    validation_reasoner="hermit"  # hermit, pellet
-)
-
-# Generate from knowledge graph
-ontology = generator.generate_from_graph(kg)
-
-# Validate
-is_valid, errors = generator.validate(ontology)
-print(f"Valid: {is_valid}, Errors: {len(errors)}")
-
-# Save
-ontology.save("ontology.owl", format="owl")
+generator = OntologyGenerator(base_uri="http://example.org/onto/")
+ontology = generator.generate_ontology({
+    "entities": entities,
+    "relationships": relationships
+})
+print(ontology.serialize(format="turtle"))
 ```
-
----
 
 ### OntologyValidator
 
+Validates ontology consistency.
 
 **Methods:**
 
-| Method | Description | Algorithm |
-|--------|-------------|-----------|
-| `validate(ontology)` | Full validation | Consistency + satisfiability checks |
-| `check_consistency()` | Check logical consistency | Tableau reasoning |
-| `check_satisfiability(class_name)` | Check class satisfiability | Subsumption testing |
-| `find_inconsistencies()` | Find logical errors | Reasoner-based detection |
-| `explain_inconsistency(class_name)` | Explain why class is unsatisfiable | Axiom tracing |
+| Method | Description |
+|--------|-------------|
+| `validate(ontology)` | Run symbolic reasoner |
+| `check_constraints(ontology)` | Check structural rules |
 
-**Validation Checks:**
-- **Consistency**: No logical contradictions
-- **Satisfiability**: All classes can have instances
-- **Coherence**: No unsatisfiable classes
-- **Completeness**: All required axioms present
+### OntologyEvaluator
 
-**Example:**
+Scores ontology quality.
 
-```python
-from semantica.ontology import OntologyValidator
+**Methods:**
 
-validator = OntologyValidator(reasoner="hermit")
+| Method | Description |
+|--------|-------------|
+| `evaluate(ontology)` | Calculate all metrics |
+| `check_competency(questions)` | Verify coverage |
 
-# Validate ontology
-result = validator.validate(ontology)
+### ReuseManager
 
-if not result.is_valid:
-    print("Inconsistencies found:")
-    for error in result.errors:
-        print(f"  - {error.class_name}: {error.message}")
-        explanation = validator.explain_inconsistency(error.class_name)
-        print(f"    Reason: {explanation}")
-```
+Manages external dependencies.
+
+**Methods:**
+
+| Method | Description |
+|--------|-------------|
+| `import_ontology(uri)` | Load external ontology |
+| `align_concepts(source, target)` | Map equivalent classes |
 
 ---
 
-### OWLGenerator
-
-
-**Methods:**
-
-| Method | Description | Algorithm |
-|--------|-------------|-----------|
-| `generate_owl(ontology)` | Generate OWL file | OWL/XML or Turtle serialization |
-| `generate_classes(classes)` | Generate class definitions | OWL Class axioms |
-| `generate_properties(properties)` | Generate properties | ObjectProperty/DataProperty axioms |
-| `generate_individuals(individuals)` | Generate instances | Individual assertions |
-| `add_axiom(axiom)` | Add OWL axiom | Axiom insertion |
-
-**OWL Constructs:**
-- **Classes**: `owl:Class`
-- **Object Properties**: `owl:ObjectProperty`
-- **Data Properties**: `owl:DatatypeProperty`
-- **Individuals**: `owl:NamedIndividual`
-- **Restrictions**: `owl:Restriction`, `owl:someValuesFrom`, `owl:allValuesFrom`
-
-**Example:**
+## Convenience Functions
 
 ```python
-from semantica.ontology import OWLGenerator
+from semantica.ontology import generate_ontology, validate_ontology
 
-generator = OWLGenerator(
-    base_uri="http://example.org/ontology#",
-    format="turtle"  # turtle, owl-xml, rdf-xml
-)
+# Quick generation
+onto = generate_ontology(data, method="default")
 
-# Generate OWL
-owl_content = generator.generate_owl(ontology)
-
-# Save
-with open("ontology.ttl", "w") as f:
-    f.write(owl_content)
+# Quick validation
+is_valid, report = validate_ontology(onto)
 ```
-
----
-
-### PropertyGenerator
-
-
-**Methods:**
-
-| Method | Description | Algorithm |
-|--------|-------------|-----------|
-| `generate_properties(relationships)` | Generate all properties | Relationship analysis |
-| `infer_domain_range(property)` | Infer domain and range | Type inference from usage |
-| `generate_object_property(name, domain, range)` | Create object property | OWL ObjectProperty axiom |
-| `generate_data_property(name, domain, datatype)` | Create data property | OWL DatatypeProperty axiom |
-
-**Property Types:**
-- **Object Properties**: Relate individuals to individuals
-- **Data Properties**: Relate individuals to data values
-- **Annotation Properties**: Metadata properties
-
-**Example:**
-
-```python
-from semantica.ontology import PropertyGenerator
-
-generator = PropertyGenerator()
-
-# Generate properties from relationships
-properties = generator.generate_properties(relationships)
-
-# Create specific property
-founder_property = generator.generate_object_property(
-    name="foundedBy",
-    domain="Organization",
-    range="Person"
-)
-```
-
----
-
-### ClassInferrer
-
-
-**Methods:**
-
-| Method | Description | Algorithm |
-|--------|-------------|-----------|
-| `infer_classes(entities)` | Infer class definitions | Entity type clustering |
-| `build_hierarchy(classes)` | Build class hierarchy | Hierarchical clustering + LLM |
-| `identify_disjoint_classes(classes)` | Find disjoint classes | Logical analysis |
-| `generate_restrictions(class_name)` | Generate class restrictions | Property analysis |
-
-**Hierarchy Building:**
-- **Bottom-up**: Start with specific classes, generalize
-- **Top-down**: Start with general classes, specialize
-- **Hybrid**: Combine both approaches
 
 ---
 
 ## Configuration
 
-```yaml
-# config.yaml - Ontology Configuration
+### Environment Variables
 
+```bash
+export ONTOLOGY_BASE_URI="http://my-org.com/ontology/"
+export ONTOLOGY_REASONER="hermit"
+export ONTOLOGY_STRICT_MODE=true
+```
+
+### YAML Configuration
+
+```yaml
 ontology:
+  base_uri: "http://example.org/"
   generation:
-    llm_provider: openai
-    llm_model: gpt-4
-    temperature: 0.1
-    stages:
-      - semantic_network_parsing
-      - yaml_to_definition
-      - definition_to_types
-      - hierarchy_generation
-      - ttl_generation
-      - symbolic_validation
-      
-  validation:
-    reasoner: hermit  # hermit, pellet
-    check_consistency: true
-    check_satisfiability: true
-    explain_errors: true
+    min_class_size: 5
+    infer_hierarchy: true
     
-  owl:
-    base_uri: "http://example.org/ontology#"
-    format: turtle  # turtle, owl-xml, rdf-xml
-    include_annotations: true
-    include_individuals: true
+  validation:
+    reasoner: hermit
+    timeout: 60
 ```
 
 ---
 
-## OWL Example
+## Integration Examples
 
-```turtle
-@prefix : <http://example.org/ontology#> .
-@prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+### Schema-First Knowledge Graph
 
-# Classes
-:Person rdf:type owl:Class .
-:Organization rdf:type owl:Class .
-:Company rdf:type owl:Class ;
-    rdfs:subClassOf :Organization .
+```python
+from semantica.ontology import OntologyGenerator
+from semantica.kg import KnowledgeGraph
 
-# Object Properties
-:foundedBy rdf:type owl:ObjectProperty ;
-    rdfs:domain :Organization ;
-    rdfs:range :Person .
+# 1. Generate Ontology from Sample Data
+generator = OntologyGenerator()
+ontology = generator.generate_ontology(sample_data)
 
-# Data Properties
-:foundedYear rdf:type owl:DatatypeProperty ;
-    rdfs:domain :Organization ;
-    rdfs:range xsd:gYear .
+# 2. Initialize KG with Ontology
+kg = KnowledgeGraph(schema=ontology)
 
-# Individuals
-:AppleInc rdf:type :Company ;
-    :foundedBy :SteveJobs ;
-    :foundedYear "1976"^^xsd:gYear .
+# 3. Add Data (Validated against Ontology)
+kg.add_entities(full_dataset)  # Will raise error if violates schema
 ```
+
+---
+
+## Best Practices
+
+1.  **Reuse Standard Ontologies**: Don't reinvent `Person` or `Organization`; import FOAF or Schema.org using `ReuseManager`.
+2.  **Validate Early**: Run validation during generation to catch logical errors before populating the graph.
+3.  **Use Competency Questions**: Define what questions your ontology should answer and use `OntologyEvaluator` to verify.
+4.  **Version Control**: Treat ontologies like code. Use `VersionManager` to track changes.
 
 ---
 
 ## See Also
 
-- [Knowledge Graph Module](kg.md) - Build knowledge graphs
-- [Triple Store Module](triple_store.md) - Store RDF triples
-- [Reasoning Module](reasoning.md) - Logical reasoning
+- [Knowledge Graph Module](kg.md) - The instance data following the ontology
+- [Reasoning Module](reasoning.md) - Uses the ontology for inference
+- [Visualization Module](visualization.md) - Visualizing the class hierarchy

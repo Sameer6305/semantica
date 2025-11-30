@@ -1,379 +1,228 @@
-# Parse Module
+# Parse
 
-The `parse` module provides comprehensive document parsing capabilities for extracting content, metadata, and structure from various file formats.
-
-## Overview
-
-- **Document Parsing**: PDF, DOCX, XLSX, PPTX, and more
-- **OCR Processing**: Extract text from images and scanned documents
-- **Table Extraction**: Extract tables with structure preservation
-- **Metadata Extraction**: Author, title, dates, and custom metadata
-- **Structure Analysis**: Headings, sections, lists, and document hierarchy
-- **Multi-Format Support**: 50+ file formats with specialized parsers
+> **Universal data parser supporting documents, web content, structured data, emails, code, and media.**
 
 ---
 
-## Algorithms Used
+## 🎯 Overview
 
-### PDF Parsing
-- **Text Extraction**: PDFMiner algorithm for text layout analysis
-- **OCR**: Tesseract with preprocessing (deskewing, noise reduction)
-- **Table Detection**: Hough transform for line detection + clustering
-- **Layout Analysis**: XY-cut algorithm for reading order determination
+<div class="grid cards" markdown>
 
-### OCR Algorithms
-- **Preprocessing**: Otsu's thresholding, morphological operations
-- **Text Detection**: EAST/CRAFT deep learning models
-- **Recognition**: Tesseract LSTM + language models
-- **Post-processing**: Spell correction, confidence filtering
+-   :material-file-document:{ .lg .middle } **Document Parsing**
 
-### Table Extraction
-- **Rule-based**: Line detection + cell clustering
-- **ML-based**: Deep learning table structure recognition
-- **Hybrid**: Combine rules + ML for robustness
+    ---
+
+    Extract text, tables, and metadata from PDF, DOCX, PPTX, Excel, and TXT
+
+-   :material-web:{ .lg .middle } **Web Content**
+
+    ---
+
+    Parse HTML, XML, and JavaScript-rendered pages with Selenium/Playwright
+
+-   :material-code-json:{ .lg .middle } **Structured Data**
+
+    ---
+
+    Handle JSON, CSV, XML, and YAML with nested structure preservation
+
+-   :material-email:{ .lg .middle } **Email Parsing**
+
+    ---
+
+    Extract headers, bodies, attachments, and thread structure from MIME messages
+
+-   :material-code-braces:{ .lg .middle } **Code Analysis**
+
+    ---
+
+    Parse source code (Python, JS, etc.) into ASTs, extracting functions and dependencies
+
+-   :material-image:{ .lg .middle } **Media Processing**
+
+    ---
+
+    OCR for images and metadata extraction for audio/video files
+
+</div>
+
+!!! tip "When to Use"
+    - **Ingestion**: The first step after loading raw files to convert them into usable text/data
+    - **Data Extraction**: Pulling specific fields from structured files (JSON/CSV)
+    - **Content Analysis**: Analyzing codebases or email archives
+    - **OCR**: Extracting text from scanned documents or images
 
 ---
 
-## Quick Start
+## ⚙️ Algorithms Used
+
+### Document Parsing
+- **PDF**: `pdfplumber` for precise layout preservation, table extraction, and image handling. Fallback to `PyPDF2`.
+- **Office (DOCX/PPTX/XLSX)**: XML-based parsing of OpenXML formats to extract text, styles, and properties.
+- **OCR**: Tesseract-based optical character recognition for image-based PDFs and image files.
+
+### Web Parsing
+- **DOM Traversal**: BeautifulSoup for static HTML parsing and element extraction.
+- **Headless Browser**: Selenium/Playwright for rendering dynamic JavaScript content before extraction.
+- **Content Cleaning**: Heuristic removal of boilerplates (navbars, footers, ads).
+
+### Code Parsing
+- **AST Traversal**: Abstract Syntax Tree parsing to identify classes, functions, and imports.
+- **Dependency Graphing**: Static analysis of import statements to build dependency networks.
+- **Comment Extraction**: Regex and parser-based extraction of docstrings and inline comments.
+
+---
+
+## Main Classes
+
+### DocumentParser
+
+Unified interface for document formats.
+
+**Methods:**
+
+| Method | Description | Supported Formats |
+|--------|-------------|-------------------|
+| `parse_document(path)` | Auto-detect and parse | PDF, DOCX, PPTX, TXT |
+| `parse_pdf(path)` | PDF specific parsing | PDF |
+| `parse_docx(path)` | Word specific parsing | DOCX |
+
+**Example:**
 
 ```python
 from semantica.parse import DocumentParser
 
-# Initialize parser
 parser = DocumentParser()
-
-# Parse with options
-docs = parser.parse(
-    sources=["documents/"],
-    formats=["pdf", "docx", "xlsx"],
-    metadata={"source": "company_docs"}
-)
-
-# Access parsed data
-for doc in docs:
-    print(f"Title: {doc.metadata.get('title')}")
-    print(f"Author: {doc.metadata.get('author')}")
-    print(f"Pages: {doc.metadata.get('pages')}")
-    print(f"Text length: {len(doc.text)} characters")
+doc = parser.parse_document("report.pdf")
+print(f"Title: {doc.metadata.title}")
+print(f"Text: {doc.text[:100]}...")
 ```
 
----
+### WebParser
 
-### PDFParser
+Parses web content.
 
+**Methods:**
 
-**Example Usage:**
+| Method | Description |
+|--------|-------------|
+| `parse_html(url)` | Static HTML parsing |
+| `parse_dynamic(url)` | JS-rendered parsing |
 
-```python
-from semantica.parse import PDFParser
+### StructuredDataParser
 
-# Basic PDF parsing
-parser = PDFParser()
-doc = parser.parse("document.pdf")
+Parses data files.
 
-# Advanced PDF parsing with OCR
-parser = PDFParser(
-    ocr_enabled=True,
-    ocr_language="eng",
-    extract_tables=True,
-    extract_images=True,
-    dpi=300
-)
+**Methods:**
 
-doc = parser.parse("scanned_document.pdf")
-
-# Access PDF-specific data
-print(f"Pages: {doc.metadata['pages']}")
-print(f"PDF version: {doc.metadata['pdf_version']}")
-print(f"Tables extracted: {len(doc.tables)}")
-
-# Access tables
-for i, table in enumerate(doc.tables):
-    print(f"Table {i+1}:")
-    print(table.to_dataframe())
-```
-
----
-
-### DOCXParser
-
-
-**Example Usage:**
-
-```python
-from semantica.parse import DOCXParser
-
-# Parse Word document
-parser = DOCXParser()
-doc = parser.parse("document.docx")
-
-# With structure preservation
-parser = DOCXParser(
-    preserve_structure=True,
-    extract_tables=True,
-    extract_images=True
-)
-
-doc = parser.parse("report.docx")
-
-# Access structure
-print(f"Headings: {doc.structure['headings']}")
-print(f"Sections: {len(doc.structure['sections'])}")
-print(f"Tables: {len(doc.tables)}")
-```
-
----
-
-### ExcelParser
-
-
-**Example Usage:**
-
-```python
-from semantica.parse import ExcelParser
-
-# Parse Excel file
-parser = ExcelParser()
-doc = parser.parse("data.xlsx")
-
-# Parse specific sheets
-parser = ExcelParser(
-    sheets=["Sheet1", "Data"],
-    header_row=0,
-    skip_empty_rows=True
-)
-
-doc = parser.parse("workbook.xlsx")
-
-# Access data
-for sheet_name, df in doc.dataframes.items():
-    print(f"Sheet: {sheet_name}")
-    print(f"Rows: {len(df)}, Columns: {len(df.columns)}")
-    print(df.head())
-```
-
----
-
-### HTMLParser
-
-
-**Example Usage:**
-
-```python
-from semantica.parse import HTMLParser
-
-# Parse HTML
-parser = HTMLParser()
-doc = parser.parse("page.html")
-
-# Advanced parsing
-parser = HTMLParser(
-    extract_metadata=True,
-    extract_links=True,
-    remove_scripts=True,
-    remove_styles=True
-)
-
-doc = parser.parse("article.html")
-
-# Access extracted data
-print(f"Title: {doc.metadata['title']}")
-print(f"Links: {len(doc.links)}")
-print(f"Main content: {doc.main_content}")
-```
-
----
-
-### JSONParser
-
-
-**Example Usage:**
-
-```python
-from semantica.parse import JSONParser
-
-# Parse JSON
-parser = JSONParser()
-doc = parser.parse("data.json")
-
-# Flatten nested JSON
-parser = JSONParser(
-    flatten=True,
-    separator=".",
-    extract_schema=True
-)
-
-doc = parser.parse("nested_data.json")
-
-# Access schema
-print(f"Schema: {doc.schema}")
-print(f"Flattened keys: {list(doc.flattened_data.keys())}")
-```
-
----
-
-### ImageParser
-
-
-**Example Usage:**
-
-```python
-from semantica.parse import ImageParser
-
-# Parse image with OCR
-parser = ImageParser(
-    ocr_enabled=True,
-    ocr_language="eng",
-    detect_orientation=True
-)
-
-doc = parser.parse("scanned_page.jpg")
-
-# Access OCR results
-print(f"Extracted text: {doc.text}")
-print(f"Confidence: {doc.metadata['ocr_confidence']}")
-print(f"Orientation: {doc.metadata['orientation']}")
-```
-
----
+| Method | Description |
+|--------|-------------|
+| `parse_json(path)` | JSON with nesting |
+| `parse_csv(path)` | CSV with type inference |
 
 ### CodeParser
 
+Parses source code.
 
-**Example Usage:**
+**Methods:**
 
-```python
-from semantica.parse import CodeParser
-
-# Parse source code
-parser = CodeParser(
-    language="python",
-    extract_functions=True,
-    extract_classes=True,
-    extract_docstrings=True
-)
-
-doc = parser.parse("module.py")
-
-# Access code structure
-print(f"Functions: {len(doc.functions)}")
-print(f"Classes: {len(doc.classes)}")
-
-for func in doc.functions:
-    print(f"Function: {func.name}")
-    print(f"  Parameters: {func.parameters}")
-    print(f"  Docstring: {func.docstring}")
-```
+| Method | Description |
+|--------|-------------|
+| `parse_code(path)` | Extract AST & symbols |
+| `get_dependencies(path)` | Find imports |
 
 ---
 
-## Common Patterns
-
-### Pattern 1: Batch Parsing
+## Convenience Functions
 
 ```python
-from semantica.parse import DocumentParser
-from pathlib import Path
+from semantica.parse import parse_document, parse_json, parse_web_content
 
-parser = DocumentParser()
+# Auto-detect format
+doc = parse_document("file.pdf")
 
-# Get all files
-files = list(Path("documents/").rglob("*.*"))
-
-# Parse in batches
-batch_size = 10
-for i in range(0, len(files), batch_size):
-    batch = files[i:i+batch_size]
-    docs = parser.parse(batch)
-    # Process docs
-```
-
-### Pattern 2: Format-Specific Parsing
-
-```python
-from semantica.parse import PDFParser, DOCXParser, ExcelParser
-
-# Route to appropriate parser
-def parse_document(file_path):
-    if file_path.endswith('.pdf'):
-        parser = PDFParser(ocr_enabled=True)
-    elif file_path.endswith('.docx'):
-        parser = DOCXParser(preserve_structure=True)
-    elif file_path.endswith('.xlsx'):
-        parser = ExcelParser()
-    else:
-        raise ValueError(f"Unsupported format: {file_path}")
-    
-    return parser.parse(file_path)
-```
-
-### Pattern 3: Error Handling
-
-```python
-from semantica.parse import DocumentParser, ParseError
-
-parser = DocumentParser()
-
-successful = []
-failed = []
-
-for file_path in file_paths:
-    try:
-        doc = parser.parse(file_path)
-        successful.append(doc)
-    except ParseError as e:
-        print(f"Failed to parse {file_path}: {e}")
-        failed.append((file_path, str(e)))
-
-print(f"Parsed: {len(successful)}, Failed: {len(failed)}")
+# Parse specific types
+data = parse_json("data.json")
+web = parse_web_content("https://google.com")
 ```
 
 ---
 
 ## Configuration
 
-```yaml
-# config.yaml - Parse Configuration
+### Environment Variables
 
-parse:
-  pdf:
-    ocr_enabled: true
-    ocr_language: eng
-    extract_tables: true
-    extract_images: true
-    dpi: 300
-    
-  docx:
-    preserve_structure: true
-    extract_tables: true
-    extract_images: true
-    
-  excel:
-    header_row: 0
-    skip_empty_rows: true
-    infer_types: true
-    
-  html:
-    extract_metadata: true
-    extract_links: true
-    remove_scripts: true
-    remove_styles: true
-    
-  image:
-    ocr_enabled: true
-    ocr_language: eng
-    detect_orientation: true
-    
-  code:
-    extract_functions: true
-    extract_classes: true
-    extract_docstrings: true
+```bash
+export PARSE_OCR_ENABLED=true
+export PARSE_OCR_LANG=eng
+export PARSE_USER_AGENT="SemanticaBot/1.0"
 ```
+
+### YAML Configuration
+
+```yaml
+parse:
+  ocr:
+    enabled: true
+    language: eng
+    
+  web:
+    user_agent: "MyBot/1.0"
+    timeout: 30
+    
+  pdf:
+    extract_tables: true
+    extract_images: false
+```
+
+---
+
+## Integration Examples
+
+### Ingest & Parse Pipeline
+
+```python
+from semantica.ingest import Ingestor
+from semantica.parse import DocumentParser, ImageParser
+
+# 1. Ingest Raw File
+ingestor = Ingestor()
+file_path = ingestor.ingest("scan.png")
+
+# 2. Parse (with OCR)
+if file_path.endswith(".png"):
+    parser = ImageParser(ocr_enabled=True)
+    content = parser.parse_image(file_path)
+else:
+    parser = DocumentParser()
+    content = parser.parse_document(file_path)
+
+print(content.text)
+```
+
+---
+
+## Best Practices
+
+1.  **Disable OCR if not needed**: OCR is slow. Only enable it (`ocr_enabled=True`) if you expect scanned documents.
+2.  **Use Specific Parsers**: If you know the format, use `parse_json` or `parse_pdf` directly for better type hinting.
+3.  **Handle Encodings**: The parser tries to auto-detect encoding, but for CSV/TXT, explicitly specifying it is safer.
+4.  **Clean Web Content**: Use `parse_web_content` which includes boilerplate removal, rather than raw HTML parsing.
+
+---
+
+## Troubleshooting
+
+**Issue**: `TesseractNotFoundError`
+**Solution**: Install Tesseract OCR on your system (`apt-get install tesseract-ocr` or brew).
+
+**Issue**: PDF tables are messy.
+**Solution**: Try `pdfplumber` settings in config or use specialized table extraction tools if layout is complex.
 
 ---
 
 ## See Also
 
-- [Ingest Module](ingest.md) - Data ingestion
-- [Normalize Module](normalize.md) - Data cleaning and normalization
-- [Semantic Extract Module](semantic_extract.md) - Entity and relationship extraction
+- [Ingest Module](ingest.md) - Handles file downloading/loading
+- [Split Module](split.md) - Chunks the parsed text
+- [Semantic Extract Module](semantic_extract.md) - Extracts entities from text

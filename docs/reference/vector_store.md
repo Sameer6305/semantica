@@ -1,6 +1,6 @@
-# Vector Store Module
+# Vector Store
 
-> **Store and search vector embeddings with lightning-fast approximate nearest neighbor search.**
+> **Unified vector database interface supporting FAISS, Pinecone, Weaviate, Qdrant, and Milvus with Hybrid Search.**
 
 ---
 
@@ -8,71 +8,69 @@
 
 <div class="grid cards" markdown>
 
--   :material-database:{ .lg .middle } **Vector Storage**
+-   :material-database:{ .lg .middle } **Multi-Backend Support**
 
     ---
 
-    Efficient storage of high-dimensional vectors with multiple backend support
+    Seamlessly switch between FAISS (Local), Pinecone, Weaviate, Qdrant, and Milvus
 
--   :material-magnify:{ .lg .middle } **Similarity Search**
-
-    ---
-
-    Fast ANN search with HNSW, IVF, and PQ algorithms
-
--   :material-merge:{ .lg .middle } **Hybrid Search**
+-   :material-magnify-plus:{ .lg .middle } **Hybrid Search**
 
     ---
 
-    Combine vector search with keyword/metadata filtering using RRF
+    Combine dense vector similarity with sparse keyword/metadata filtering
 
--   :material-cog:{ .lg .middle } **Index Management**
-
-    ---
-
-    Multiple index types optimized for different use cases
-
--   :material-flash:{ .lg .middle } **Batch Operations**
+-   :material-filter:{ .lg .middle } **Metadata Filtering**
 
     ---
 
-    Efficient bulk insert and search with parallel processing
+    Rich filtering capabilities (eq, ne, gt, lt, in, contains)
 
--   :material-cloud:{ .lg .middle } **Multiple Backends**
+-   :material-layers-triple:{ .lg .middle } **Namespace Isolation**
 
     ---
 
-    FAISS, Pinecone, Qdrant, Weaviate, Milvus support
+    Multi-tenant support via isolated namespaces
+
+-   :material-flash:{ .lg .middle } **Performance**
+
+    ---
+
+    Batch operations, index optimization, and caching
+
+-   :material-cloud-upload:{ .lg .middle } **Cloud & Local**
+
+    ---
+
+    Support for both embedded (local) and cloud-native deployments
 
 </div>
 
-!!! tip "Choosing the Right Index"
-    - **Small datasets (<10K)**: Use Flat for exact search
-    - **Medium (10K-1M)**: Use IVF or HNSW  
-    - **Large (>1M)**: Use HNSW with GPU
-    - **Memory constrained**: Use PQ for compression
+!!! tip "When to Use"
+    - **Semantic Search**: Finding documents similar to a query
+    - **RAG**: Retrieving context for LLM generation
+    - **Memory**: Storing agent memories as embeddings
+    - **Recommendation**: Finding similar items based on vector proximity
 
 ---
 
 ## ⚙️ Algorithms Used
 
-### Indexing Algorithms
-- **Flat (Exact Search)**: Brute-force linear scan, O(n*d) complexity
-- **IVF (Inverted File Index)**: Clustering-based search with k-means, O(√n*d) complexity
-- **HNSW (Hierarchical Navigable Small World)**: Graph-based ANN, O(log n) search complexity
-- **PQ (Product Quantization)**: Compression-based search, reduces memory footprint
-- **LSH (Locality Sensitive Hashing)**: Hash-based approximate search
-
 ### Similarity Metrics
-- **Cosine Similarity**: `cos(θ) = (A·B) / (||A|| * ||B||)`
-- **Euclidean Distance**: `d = √(Σ(ai - bi)²)`
-- **Dot Product**: `A·B = Σ(ai * bi)`
-- **Manhattan Distance**: `d = Σ|ai - bi|`
+- **Cosine Similarity**: `A · B / ||A|| ||B||` (Default for semantic search)
+- **Euclidean Distance (L2)**: `||A - B||`
+- **Dot Product**: `A · B` (Faster, requires normalized vectors)
 
-### Hybrid Search Algorithms
-- **RRF (Reciprocal Rank Fusion)**: `score = Σ(1/(k + rank_i))` where k=60
-- **Weighted Combination**: `score = α*vector_score + (1-α)*keyword_score`
-- **Cascade Filtering**: Vector search → metadata filtering → reranking
+### Indexing (FAISS)
+- **Flat**: Exact search (brute force). High accuracy, slow for large datasets.
+- **IVF (Inverted File)**: Partitions space into Voronoi cells. Faster search.
+- **HNSW**: Hierarchical Navigable Small World graphs. Best trade-off for speed/accuracy.
+- **PQ (Product Quantization)**: Compresses vectors for memory efficiency.
+
+### Hybrid Search
+- **Reciprocal Rank Fusion (RRF)**: Combines ranked lists from vector search and keyword search.
+  `Score = 1 / (k + rank_vector) + 1 / (k + rank_keyword)`
+- **Pre-filtering**: Apply metadata filters *before* vector search (supported by most backends).
 
 ---
 
@@ -80,201 +78,154 @@
 
 ### VectorStore
 
+The main facade for all vector operations.
 
 **Methods:**
 
-| Method | Description | Algorithm |
-|--------|-------------|-----------|
-| `store(embeddings, documents, metadata)` | Store vectors with metadata | Batch insertion with index building |
-| `search(query_vector, top_k, filters)` | Search similar vectors | ANN search with optional filtering |
-| `delete(ids)` | Delete vectors by ID | Index update with tombstoning |
-| `update(id, vector, metadata)` | Update vector/metadata | In-place update or delete+insert |
-| `create_index(index_type, params)` | Create search index | Index-specific construction algorithm |
-| `rebuild_index()` | Rebuild index from scratch | Full index reconstruction |
-
-**Supported Backends:**
-
-| Backend | Index Types | Best For |
-|---------|-------------|----------|
-| **FAISS** | Flat, IVF, HNSW, PQ | High performance, local deployment |
-| **Pinecone** | Proprietary | Managed cloud service |
-| **Qdrant** | HNSW | Production-ready, filtering support |
-| **Weaviate** | HNSW | GraphQL API, hybrid search |
-| **Milvus** | IVF, HNSW | Distributed, large-scale |
+| Method | Description |
+|--------|-------------|
+| `store_vectors(vectors, metadata)` | Store embeddings |
+| `search(query, k)` | Semantic search |
+| `delete(ids)` | Remove vectors |
 
 **Example:**
 
 ```python
 from semantica.vector_store import VectorStore
 
-# Initialize with FAISS backend
-store = VectorStore(
-    backend="faiss",
-    index_type="HNSW",  # Flat, IVF, HNSW, PQ
-    metric="cosine",  # cosine, euclidean, dot_product
-    dimension=1536
-)
+# Initialize (defaults to FAISS)
+store = VectorStore(backend="faiss", dimension=1536)
 
-# Store embeddings
-store.store(
-    embeddings=embeddings,
-    documents=documents,
-    metadata=[{"source": "doc1.pdf", "page": 1}, ...]
+# Store
+ids = store.store_vectors(
+    vectors=[[0.1, 0.2, ...], ...],
+    metadata=[{"text": "Hello"}, ...]
 )
 
 # Search
-results = store.search(
-    query_vector=query_embedding,
-    top_k=10,
-    filters={"source": "doc1.pdf"}
-)
-
-for result in results:
-    print(f"Score: {result.score:.3f}, Doc: {result.document}")
+results = store.search(query_vector=[0.1, 0.2, ...], k=5)
 ```
-
----
 
 ### HybridSearch
 
+Combines vector and metadata search.
 
 **Methods:**
 
-| Method | Description | Algorithm |
-|--------|-------------|-----------|
-| `search(query, top_k)` | Hybrid search | Vector + keyword search with RRF fusion |
-| `vector_search(query_vector, top_k)` | Vector-only search | ANN search |
-| `keyword_search(query_text, top_k)` | Keyword-only search | BM25 or TF-IDF |
-| `combine_results(vector_results, keyword_results)` | Merge results | RRF or weighted combination |
-| `rerank(results, query)` | Rerank results | Cross-encoder reranking |
-
-**Reciprocal Rank Fusion (RRF):**
-```
-RRF_score(d) = Σ(1/(k + rank_i(d)))
-where k = 60 (constant), rank_i(d) = rank of document d in result set i
-```
+| Method | Description |
+|--------|-------------|
+| `search(query_vec, filter)` | Execute hybrid query |
 
 **Example:**
 
 ```python
-from semantica.vector_store import HybridSearch
+from semantica.vector_store import HybridSearch, MetadataFilter
 
-hybrid = HybridSearch(
-    vector_store=store,
-    keyword_index=keyword_index,
-    fusion_method="rrf",  # rrf, weighted, cascade
-    vector_weight=0.7  # for weighted fusion
-)
+searcher = HybridSearch(store)
+filters = MetadataFilter().eq("category", "news").gt("date", "2023-01-01")
 
-results = hybrid.search(
-    query="machine learning applications",
-    top_k=10
+results = searcher.search(
+    query_vector=emb,
+    filter=filters,
+    k=10
 )
 ```
 
----
+### Adapters
 
-### VectorRetriever
-
-
-**Methods:**
-
-| Method | Description | Algorithm |
-|--------|-------------|-----------|
-| `retrieve(query, top_k)` | Retrieve relevant documents | Vector search + document fetching |
-| `retrieve_batch(queries, top_k)` | Batch retrieval | Parallel vector search |
-| `retrieve_with_context(query, context_size)` | Retrieve with context | Sliding window context expansion |
-| `filter_by_metadata(results, filters)` | Filter by metadata | Post-search filtering |
+Backend-specific implementations:
+- `FAISSAdapter`: Local, in-memory/disk.
+- `PineconeAdapter`: Managed cloud service.
+- `WeaviateAdapter`: Schema-aware vector DB.
+- `QdrantAdapter`: Rust-based high-performance DB.
+- `MilvusAdapter`: Scalable cloud-native DB.
 
 ---
 
-## Index Types Comparison
+## Convenience Functions
 
-### FAISS Index Types
+```python
+from semantica.vector_store import store_vectors, search_vectors
 
-| Index Type | Build Time | Search Time | Memory | Recall | Use Case |
-|------------|------------|-------------|--------|--------|----------|
-| **Flat** | O(1) | O(n*d) | High | 1.00 | Small datasets, exact search |
-| **IVF** | O(n*d) | O(√n*d) | Medium | 0.95 | Medium datasets, good balance |
-| **HNSW** | O(n*log n*d) | O(log n*d) | High | 0.98 | Large datasets, fast search |
-| **PQ** | O(n*d) | O(n) | Low | 0.85 | Memory-constrained, compression |
-
-### Index Parameters
-
-**IVF Parameters:**
-- `nlist`: Number of clusters (√n to 4√n recommended)
-- `nprobe`: Number of clusters to search (1-nlist)
-
-**HNSW Parameters:**
-- `M`: Number of connections per layer (4-64, default: 16)
-- `efConstruction`: Construction time accuracy (100-500)
-- `efSearch`: Search time accuracy (efConstruction to 2*efConstruction)
-
-**PQ Parameters:**
-- `m`: Number of subquantizers (dimension/m should be divisible)
-- `nbits`: Bits per subquantizer (8 is standard)
+# Quick usage (uses default configured backend)
+store_vectors(embeddings, metadata)
+results = search_vectors(query_embedding)
+```
 
 ---
 
 ## Configuration
 
-```yaml
-# config.yaml - Vector Store Configuration
+### Environment Variables
 
+```bash
+export VECTOR_STORE_BACKEND=pinecone
+export PINECONE_API_KEY=sk-...
+export PINECONE_ENV=us-west1-gcp
+```
+
+### YAML Configuration
+
+```yaml
 vector_store:
-  backend: faiss  # faiss, pinecone, qdrant, weaviate, milvus
+  backend: faiss # or pinecone, weaviate, etc.
+  dimension: 1536
+  metric: cosine
   
   faiss:
-    index_type: HNSW  # Flat, IVF, HNSW, PQ
-    metric: cosine  # cosine, euclidean, dot_product
-    dimension: 1536
+    index_type: HNSW
     
-    # HNSW parameters
-    hnsw_m: 16
-    hnsw_ef_construction: 200
-    hnsw_ef_search: 100
-    
-    # IVF parameters
-    ivf_nlist: 100
-    ivf_nprobe: 10
-    
-  hybrid_search:
-    fusion_method: rrf  # rrf, weighted, cascade
-    vector_weight: 0.7
-    keyword_weight: 0.3
-    enable_reranking: true
-    
-  batch_operations:
-    batch_size: 1000
-    parallel_workers: 4
+  pinecone:
+    environment: us-west1-gcp
+    index_name: my-index
 ```
 
 ---
 
-## Performance Characteristics
+## Integration Examples
 
-### Search Complexity
+### RAG Retrieval
 
-| Index Type | Build | Search | Memory |
-|------------|-------|--------|--------|
-| Flat | O(1) | O(n*d) | O(n*d) |
-| IVF | O(n*d*k) | O(√n*d) | O(n*d) |
-| HNSW | O(n*log n*d) | O(log n*d) | O(n*d*M) |
-| PQ | O(n*d) | O(n*m) | O(n*m) |
+```python
+from semantica.embeddings import EmbeddingGenerator
+from semantica.vector_store import VectorStore
 
-where n = vectors, d = dimensions, k = clusters, M = HNSW connections, m = subquantizers
+# 1. Embed Query
+embedder = EmbeddingGenerator()
+query_vec = embedder.generate("What is the capital of France?")
 
-### Scalability
+# 2. Search
+store = VectorStore()
+results = store.search(query_vec, k=3)
 
-- **Small (<10K vectors)**: Use Flat for exact search
-- **Medium (10K-1M vectors)**: Use IVF or HNSW
-- **Large (>1M vectors)**: Use HNSW with GPU or distributed systems
-- **Very Large (>10M vectors)**: Use distributed backends (Milvus, Weaviate)
+# 3. Use Context
+context = "\n".join([r.metadata['text'] for r in results])
+print(f"Context: {context}")
+```
+
+---
+
+## Best Practices
+
+1.  **Normalize Vectors**: Always normalize vectors if using Cosine Similarity or Dot Product.
+2.  **Use HNSW**: For FAISS, `HNSW` is usually the best default index type for performance/recall balance.
+3.  **Batch Operations**: Use `store_vectors` with batches (e.g., 100 items) rather than one by one.
+4.  **Filter First**: In hybrid search, restrictive filters significantly improve performance.
+
+---
+
+## Troubleshooting
+
+**Issue**: `DimensionMismatchError`
+**Solution**: Ensure your embedding model dimension (e.g., 1536 for OpenAI) matches the VectorStore dimension.
+
+**Issue**: FAISS index not saved.
+**Solution**: Call `store.save("index.faiss")` explicitly for local FAISS indices, or use a persistent backend like Pinecone/Qdrant.
 
 ---
 
 ## See Also
 
-- [Embeddings Module](embeddings.md) - Generate vector embeddings
-- [Knowledge Graph Module](kg.md) - Graph-based retrieval
-- [Core Module](core.md) - Framework orchestration
+- [Embeddings Module](embeddings.md) - Generates the vectors
+- [Context Module](context.md) - Uses vector store for memory
+- [Ingest Module](ingest.md) - Source of data
