@@ -105,47 +105,48 @@ Author: Semantica Contributors
 License: MIT
 """
 
-from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
 import numpy as np
 
-from .embedding_generator import EmbeddingGenerator
-from .text_embedder import TextEmbedder
-from .image_embedder import ImageEmbedder
 from .audio_embedder import AudioEmbedder
-from .multimodal_embedder import MultimodalEmbedder
-from .embedding_optimizer import EmbeddingOptimizer
+from .config import EmbeddingsConfig, embeddings_config
 from .context_manager import ContextManager, ContextWindow
-from .provider_adapters import (
-    ProviderAdapter,
-    OpenAIAdapter,
-    BGEAdapter,
-    LlamaAdapter,
-    ProviderAdapterFactory,
-)
-from .pooling_strategies import (
-    PoolingStrategy,
-    MeanPooling,
-    MaxPooling,
-    CLSPooling,
-    AttentionPooling,
-    HierarchicalPooling,
-    PoolingStrategyFactory,
-)
-from .registry import MethodRegistry, method_registry
+from .embedding_generator import EmbeddingGenerator
+from .embedding_optimizer import EmbeddingOptimizer
+from .image_embedder import ImageEmbedder
 from .methods import (
-    generate_embeddings,
-    embed_text,
-    embed_image,
-    embed_audio,
-    embed_multimodal,
-    optimize_embeddings,
     calculate_similarity,
-    pool_embeddings,
+    embed_audio,
+    embed_image,
+    embed_multimodal,
+    embed_text,
+    generate_embeddings,
     get_embedding_method,
     list_available_methods,
+    optimize_embeddings,
+    pool_embeddings,
 )
-from .config import EmbeddingsConfig, embeddings_config
+from .multimodal_embedder import MultimodalEmbedder
+from .pooling_strategies import (
+    AttentionPooling,
+    CLSPooling,
+    HierarchicalPooling,
+    MaxPooling,
+    MeanPooling,
+    PoolingStrategy,
+    PoolingStrategyFactory,
+)
+from .provider_adapters import (
+    BGEAdapter,
+    LlamaAdapter,
+    OpenAIAdapter,
+    ProviderAdapter,
+    ProviderAdapterFactory,
+)
+from .registry import MethodRegistry, method_registry
+from .text_embedder import TextEmbedder
 
 __all__ = [
     # Core Classes
@@ -187,92 +188,4 @@ __all__ = [
     # Configuration
     "EmbeddingsConfig",
     "embeddings_config",
-    # Convenience Functions
-    "build",
 ]
-
-
-def build(
-    data: Union[str, Path, List[Union[str, Path]]],
-    data_type: Optional[str] = None,
-    model: Optional[str] = None,
-    batch_size: int = 32,
-    **options
-) -> Dict[str, Any]:
-    """
-    Generate embeddings from data (module-level convenience function).
-    
-    This is a user-friendly wrapper around EmbeddingGenerator.generate_embeddings()
-    that creates an EmbeddingGenerator instance and generates embeddings.
-    
-    Args:
-        data: Input data - can be text string, file path, or list of texts/paths
-        data_type: Data type - "text", "image", "audio" (auto-detected if None)
-        model: Embedding model to use (default: None, uses default model)
-        batch_size: Batch size for processing multiple items (default: 32)
-        **options: Additional generation options
-        
-    Returns:
-        Dictionary containing:
-            - embeddings: Generated embeddings (numpy array or list of arrays)
-            - metadata: Embedding metadata
-            - statistics: Generation statistics
-            
-    Examples:
-        >>> import semantica
-        >>> result = semantica.embeddings.build(
-        ...     data=["text1", "text2", "text3"],
-        ...     data_type="text",
-        ...     model="sentence-transformers"
-        ... )
-        >>> print(f"Generated {len(result['embeddings'])} embeddings")
-    """
-    # Create EmbeddingGenerator instance
-    config = {}
-    if model:
-        config["model"] = model
-    config.update(options)
-    
-    generator = EmbeddingGenerator(config=config, **options)
-    
-    # Normalize data to list if single item
-    is_single = not isinstance(data, list)
-    if is_single:
-        data = [data]
-    
-    # Generate embeddings
-    if len(data) == 1:
-        # Single item
-        embeddings = generator.generate_embeddings(data[0], data_type=data_type, **options)
-        if is_single:
-            # Return single embedding array
-            return {
-                "embeddings": embeddings,
-                "metadata": {
-                    "data_type": data_type or generator._detect_data_type(data[0]),
-                    "model": model or "default",
-                    "shape": embeddings.shape if isinstance(embeddings, np.ndarray) else None
-                },
-                "statistics": {
-                    "total_items": 1,
-                    "successful": 1,
-                    "failed": 0
-                }
-            }
-    else:
-        # Batch processing
-        results = generator.process_batch(data, **options)
-        return {
-            "embeddings": results["embeddings"],
-            "metadata": {
-                "data_type": data_type or "auto-detected",
-                "model": model or "default",
-                "batch_size": batch_size
-            },
-            "statistics": {
-                "total_items": results["total"],
-                "successful": results["success_count"],
-                "failed": results["failure_count"]
-            },
-            "failed_items": results.get("failed", [])
-        }
