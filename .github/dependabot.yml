@@ -7,19 +7,11 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 10
-    reviewers:
-      - "Hawksight-AI"
-    labels:
-      - "dependencies"
-      - "python"
-    commit-message:
-      prefix: "deps"
-      include: "scope"
+    open-pull-requests-limit: 0
     ignore:
-      # Ignore major version updates (handle manually)
+      # Ignore all updates (no PRs will be created)
       - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
 
   # GitHub Actions dependencies
   - package-ecosystem: "github-actions"
@@ -28,8 +20,9 @@ updates:
       interval: "monthly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "github-actions"
+    open-pull-requests-limit: 0
+    ignore:
+      # Ignore all updates (no PRs will be created)
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
 
