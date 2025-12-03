@@ -1,9 +1,12 @@
 version: 2
 updates:
+  # Python dependencies (pip/pyproject.toml)
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
     open-pull-requests-limit: 10
     reviewers:
       - "Hawksight-AI"
@@ -13,11 +16,18 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
+    ignore:
+      # Ignore major version updates (handle manually)
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
+  # GitHub Actions dependencies
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "monthly"
+      day: "monday"
+      time: "09:00"
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
