@@ -15,6 +15,17 @@ This collection of Jupyter notebooks is designed to take you from a beginner to 
     - A basic understanding of Python and Jupyter
     - An OpenAI API key (for most examples)
 
+!!! success "Installation"
+    Install Semantica from PyPI (recommended):
+    
+    ```bash
+    pip install semantica
+    # Or with all optional dependencies:
+    pip install semantica[all]
+    ```
+    
+    For more installation options, see the [Installation Guide](installation.md).
+
 ---
 
 ## � Featured Recipes
@@ -65,9 +76,9 @@ Essential guides to master the Semantica framework.
 
 -   :material-hand-wave: **Welcome to Semantica**
     ---
-    An interactive introduction to the framework's core philosophy.
+    An interactive introduction to the framework's core philosophy and all modules including ingestion, parsing, extraction, knowledge graphs, embeddings, and more.
     
-    **Topics**: Framework Overview, Architecture
+    **Topics**: Framework Overview, Architecture, All Modules
     
     **Difficulty**: Beginner
     
@@ -85,9 +96,9 @@ Essential guides to master the Semantica framework.
 
 -   :material-database-import: **Data Ingestion**
     ---
-    Techniques for loading data from local files, URLs, and APIs.
+    Techniques for loading data from multiple sources using FileIngestor, WebIngestor, FeedIngestor, StreamIngestor, RepoIngestor, EmailIngestor, DBIngestor, and MCPIngestor.
     
-    **Topics**: Loaders, Connectors, Async IO
+    **Topics**: File Ingestion, Web Scraping, Database Integration, Streams, Feeds, Repositories, Email, MCP
     
     **Difficulty**: Beginner
     
@@ -729,14 +740,16 @@ Real-world examples and end-to-end applications across various industries.
 
 To run these notebooks locally:
 
-1.  **Clone the repository**:
+1.  **Install Semantica from PyPI** (recommended):
+    ```bash
+    pip install semantica[all]
+    pip install jupyter
+    ```
+
+2.  **Or install from source** (for development):
     ```bash
     git clone https://github.com/Hawksight-AI/semantica.git
     cd semantica
-    ```
-
-2.  **Install dependencies**:
-    ```bash
     pip install -e .[all]
     pip install jupyter
     ```
