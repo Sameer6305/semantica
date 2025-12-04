@@ -432,6 +432,437 @@ class ConflictDetector:
 
         return report
 
+    def detect_type_conflicts(
+        self, entities: List[Dict[str, Any]]
+    ) -> List[Conflict]:
+        """
+        Detect entity type conflicts.
+
+        Args:
+            entities: List of entity dictionaries
+
+        Returns:
+            List of detected conflicts
+        """
+        tracking_id = self.progress_tracker.start_tracking(
+            file=None,
+            module="conflicts",
+            submodule="ConflictDetector",
+            message="Detecting type conflicts",
+        )
+
+        try:
+            conflicts = []
+
+            # Group entities by ID
+            entity_groups: Dict[str, List[Dict[str, Any]]] = {}
+
+            for entity in entities:
+                entity_id = entity.get("id") or entity.get("entity_id")
+                if not entity_id:
+                    continue
+
+                if entity_id not in entity_groups:
+                    entity_groups[entity_id] = []
+                entity_groups[entity_id].append(entity)
+
+            # Check each entity group for type conflicts
+            for entity_id, entity_list in entity_groups.items():
+                if len(entity_list) < 2:
+                    continue  # Need at least 2 sources to have conflict
+
+                types = []
+                sources = []
+
+                for entity in entity_list:
+                    entity_type = entity.get("type") or entity.get("entity_type")
+                    if entity_type:
+                        types.append(entity_type)
+
+                        if self.track_provenance:
+                            source_ref = SourceReference(
+                                document=entity.get("source", "unknown"),
+                                page=entity.get("page"),
+                                section=entity.get("section"),
+                                confidence=entity.get("confidence", 1.0),
+                                metadata=entity.get("metadata", {}),
+                            )
+                            self.source_tracker.track_entity_source(
+                                entity_id, source_ref
+                            )
+                            sources.append(
+                                {
+                                    "document": source_ref.document,
+                                    "page": source_ref.page,
+                                    "confidence": source_ref.confidence,
+                                }
+                            )
+
+                # Check for type conflicts
+                unique_types = list(set(str(t) for t in types if t is not None))
+
+                if len(unique_types) > 1:
+                    conflict = Conflict(
+                        conflict_id=f"{entity_id}_type_conflict",
+                        conflict_type=ConflictType.TYPE_CONFLICT,
+                        entity_id=entity_id,
+                        property_name="type",
+                        conflicting_values=types,
+                        sources=sources,
+                        confidence=self._calculate_conflict_confidence(types, sources),
+                        severity=self._calculate_severity("type", types),
+                        recommended_action="Review entity type definitions and classification",
+                    )
+                    conflicts.append(conflict)
+                    self.detected_conflicts[conflict.conflict_id] = conflict
+
+                    self.logger.warning(
+                        f"Type conflict detected: {entity_id} has conflicting types: {unique_types}"
+                    )
+
+            self.progress_tracker.stop_tracking(
+                tracking_id,
+                status="completed",
+                message=f"Detected {len(conflicts)} type conflicts",
+            )
+            return conflicts
+
+        except Exception as e:
+            self.progress_tracker.stop_tracking(
+                tracking_id, status="failed", message=str(e)
+            )
+            raise
+
+    def detect_temporal_conflicts(
+        self, entities: List[Dict[str, Any]]
+    ) -> List[Conflict]:
+        """
+        Detect temporal conflicts (e.g., founded year conflicts).
+
+        Args:
+            entities: List of entity dictionaries
+
+        Returns:
+            List of detected conflicts
+        """
+        tracking_id = self.progress_tracker.start_tracking(
+            file=None,
+            module="conflicts",
+            submodule="ConflictDetector",
+            message="Detecting temporal conflicts",
+        )
+
+        try:
+            conflicts = []
+
+            # Temporal property patterns
+            temporal_properties = [
+                "founded",
+                "founded_year",
+                "established",
+                "created",
+                "timestamp",
+                "date",
+                "start_date",
+                "end_date",
+            ]
+
+            # Group entities by ID
+            entity_groups: Dict[str, List[Dict[str, Any]]] = {}
+
+            for entity in entities:
+                entity_id = entity.get("id") or entity.get("entity_id")
+                if not entity_id:
+                    continue
+
+                if entity_id not in entity_groups:
+                    entity_groups[entity_id] = []
+                entity_groups[entity_id].append(entity)
+
+            # Check each entity group for temporal conflicts
+            for entity_id, entity_list in entity_groups.items():
+                if len(entity_list) < 2:
+                    continue
+
+                # Check each temporal property
+                for prop_name in temporal_properties:
+                    values = []
+                    sources = []
+
+                    for entity in entity_list:
+                        if prop_name in entity:
+                            value = entity[prop_name]
+                            values.append(value)
+
+                            if self.track_provenance:
+                                source_ref = SourceReference(
+                                    document=entity.get("source", "unknown"),
+                                    page=entity.get("page"),
+                                    section=entity.get("section"),
+                                    confidence=entity.get("confidence", 1.0),
+                                    metadata=entity.get("metadata", {}),
+                                )
+                                self.source_tracker.track_property_source(
+                                    entity_id, prop_name, value, source_ref
+                                )
+                                sources.append(
+                                    {
+                                        "document": source_ref.document,
+                                        "page": source_ref.page,
+                                        "confidence": source_ref.confidence,
+                                    }
+                                )
+
+                    # Check for temporal conflicts
+                    if len(values) > 1:
+                        # Normalize values for comparison
+                        normalized_values = []
+                        for v in values:
+                            try:
+                                # Try to convert to comparable format
+                                if isinstance(v, str):
+                                    # Try to extract year from string
+                                    import re
+
+                                    year_match = re.search(r"\b(19|20)\d{2}\b", v)
+                                    if year_match:
+                                        normalized_values.append(int(year_match.group()))
+                                    else:
+                                        normalized_values.append(v)
+                                else:
+                                    normalized_values.append(v)
+                            except (ValueError, TypeError):
+                                normalized_values.append(v)
+
+                        unique_values = list(
+                            set(str(v) for v in normalized_values if v is not None)
+                        )
+
+                        if len(unique_values) > 1:
+                            conflict = Conflict(
+                                conflict_id=f"{entity_id}_{prop_name}_temporal_conflict",
+                                conflict_type=ConflictType.TEMPORAL_CONFLICT,
+                                entity_id=entity_id,
+                                property_name=prop_name,
+                                conflicting_values=values,
+                                sources=sources,
+                                confidence=self._calculate_conflict_confidence(
+                                    values, sources
+                                ),
+                                severity=self._calculate_severity(prop_name, values),
+                                recommended_action="Check temporal context and determine correct time period",
+                            )
+                            conflicts.append(conflict)
+                            self.detected_conflicts[conflict.conflict_id] = conflict
+
+                            self.logger.warning(
+                                f"Temporal conflict detected: {entity_id}.{prop_name} "
+                                f"has conflicting values: {unique_values}"
+                            )
+
+            self.progress_tracker.stop_tracking(
+                tracking_id,
+                status="completed",
+                message=f"Detected {len(conflicts)} temporal conflicts",
+            )
+            return conflicts
+
+        except Exception as e:
+            self.progress_tracker.stop_tracking(
+                tracking_id, status="failed", message=str(e)
+            )
+            raise
+
+    def detect_logical_conflicts(
+        self, entities: List[Dict[str, Any]]
+    ) -> List[Conflict]:
+        """
+        Detect logical conflicts (e.g., Person cannot be Organization).
+
+        Args:
+            entities: List of entity dictionaries
+
+        Returns:
+            List of detected conflicts
+        """
+        tracking_id = self.progress_tracker.start_tracking(
+            file=None,
+            module="conflicts",
+            submodule="ConflictDetector",
+            message="Detecting logical conflicts",
+        )
+
+        try:
+            conflicts = []
+
+            # Logical rules: incompatible type combinations
+            incompatible_types = {
+                "Person": ["Organization", "Company", "Institution"],
+                "Organization": ["Person"],
+                "Company": ["Person"],
+                "Location": ["Person", "Organization"],
+            }
+
+            # Group entities by ID
+            entity_groups: Dict[str, List[Dict[str, Any]]] = {}
+
+            for entity in entities:
+                entity_id = entity.get("id") or entity.get("entity_id")
+                if not entity_id:
+                    continue
+
+                if entity_id not in entity_groups:
+                    entity_groups[entity_id] = []
+                entity_groups[entity_id].append(entity)
+
+            # Check each entity group for logical conflicts
+            for entity_id, entity_list in entity_groups.items():
+                if len(entity_list) < 2:
+                    continue
+
+                types = []
+                sources = []
+
+                for entity in entity_list:
+                    entity_type = entity.get("type") or entity.get("entity_type")
+                    if entity_type:
+                        types.append(entity_type)
+
+                        if self.track_provenance:
+                            source_ref = SourceReference(
+                                document=entity.get("source", "unknown"),
+                                page=entity.get("page"),
+                                section=entity.get("section"),
+                                confidence=entity.get("confidence", 1.0),
+                                metadata=entity.get("metadata", {}),
+                            )
+                            sources.append(
+                                {
+                                    "document": source_ref.document,
+                                    "page": source_ref.page,
+                                    "confidence": source_ref.confidence,
+                                }
+                            )
+
+                # Check for logical conflicts
+                if len(types) > 1:
+                    for i, type1 in enumerate(types):
+                        for type2 in types[i + 1 :]:
+                            type1_str = str(type1)
+                            type2_str = str(type2)
+
+                            # Check if types are incompatible
+                            if type1_str in incompatible_types:
+                                if type2_str in incompatible_types[type1_str]:
+                                    conflict = Conflict(
+                                        conflict_id=f"{entity_id}_logical_conflict",
+                                        conflict_type=ConflictType.LOGICAL_CONFLICT,
+                                        entity_id=entity_id,
+                                        property_name="type",
+                                        conflicting_values=[type1, type2],
+                                        sources=sources,
+                                        confidence=1.0,  # High confidence for logical conflicts
+                                        severity="critical",
+                                        recommended_action=f"Entity cannot be both {type1_str} and {type2_str}. Review classification.",
+                                    )
+                                    conflicts.append(conflict)
+                                    self.detected_conflicts[
+                                        conflict.conflict_id
+                                    ] = conflict
+
+                                    self.logger.warning(
+                                        f"Logical conflict detected: {entity_id} cannot be both "
+                                        f"{type1_str} and {type2_str}"
+                                    )
+                                    break
+
+            self.progress_tracker.stop_tracking(
+                tracking_id,
+                status="completed",
+                message=f"Detected {len(conflicts)} logical conflicts",
+            )
+            return conflicts
+
+        except Exception as e:
+            self.progress_tracker.stop_tracking(
+                tracking_id, status="failed", message=str(e)
+            )
+            raise
+
+    def detect_conflicts(
+        self, entities: List[Dict[str, Any]], entity_type: Optional[str] = None
+    ) -> List[Conflict]:
+        """
+        Detect all conflicts for entities (general method).
+
+        This method detects all types of conflicts: value, type, relationship,
+        temporal, and logical conflicts.
+
+        Args:
+            entities: List of entity dictionaries
+            entity_type: Optional entity type filter
+
+        Returns:
+            List of all detected conflicts
+        """
+        tracking_id = self.progress_tracker.start_tracking(
+            file=None,
+            module="conflicts",
+            submodule="ConflictDetector",
+            message="Detecting all conflicts",
+        )
+
+        try:
+            all_conflicts = []
+
+            # Filter by entity type if specified
+            filtered_entities = entities
+            if entity_type:
+                filtered_entities = [
+                    e
+                    for e in entities
+                    if (e.get("type") or e.get("entity_type")) == entity_type
+                ]
+
+            # Detect value conflicts (for common properties)
+            if self.conflict_fields:
+                for entity_type_key, fields in self.conflict_fields.items():
+                    if not entity_type or entity_type_key == entity_type:
+                        for field in fields:
+                            conflicts = self.detect_value_conflicts(
+                                filtered_entities, field, entity_type
+                            )
+                            all_conflicts.extend(conflicts)
+            else:
+                # Detect entity-wide conflicts
+                conflicts = self.detect_entity_conflicts(filtered_entities, entity_type)
+                all_conflicts.extend(conflicts)
+
+            # Detect type conflicts
+            type_conflicts = self.detect_type_conflicts(filtered_entities)
+            all_conflicts.extend(type_conflicts)
+
+            # Detect temporal conflicts
+            temporal_conflicts = self.detect_temporal_conflicts(filtered_entities)
+            all_conflicts.extend(temporal_conflicts)
+
+            # Detect logical conflicts
+            logical_conflicts = self.detect_logical_conflicts(filtered_entities)
+            all_conflicts.extend(logical_conflicts)
+
+            self.progress_tracker.stop_tracking(
+                tracking_id,
+                status="completed",
+                message=f"Detected {len(all_conflicts)} total conflicts",
+            )
+            return all_conflicts
+
+        except Exception as e:
+            self.progress_tracker.stop_tracking(
+                tracking_id, status="failed", message=str(e)
+            )
+            raise
+
     def clear_conflicts(self) -> None:
         """Clear all detected conflicts."""
         self.detected_conflicts.clear()

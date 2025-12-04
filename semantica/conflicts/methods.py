@@ -31,7 +31,6 @@ Conflict Analysis:
     - "severity": Severity-based analysis
     - "source": Source-based conflict analysis
     - "trend": Temporal trend identification
-    - "statistics": Statistical analysis
 
 Source Tracking:
     - "property": Track sources for property values
@@ -65,10 +64,9 @@ Conflict Resolution:
 Conflict Analysis:
     - Pattern Identification: Frequency-based pattern detection using Counter and defaultdict
     - Type Classification: Conflict type categorization and grouping
-    - Severity Analysis: Severity-based grouping and statistical analysis
+    - Severity Analysis: Severity-based grouping and analysis
     - Source Analysis: Source-based conflict aggregation and analysis
     - Trend Analysis: Temporal trend identification using time-series analysis
-    - Statistical Analysis: Conflict statistics calculation (mean, median, distribution)
 
 Source Tracking:
     - Property Source Tracking: Dictionary-based property-to-source mapping
@@ -275,7 +273,6 @@ def analyze_conflicts(
             - "severity": Severity-based analysis
             - "source": Source-based conflict analysis
             - "trend": Temporal trend identification
-            - "statistics": Statistical analysis
         **kwargs: Additional options passed to ConflictAnalyzer
 
     Returns:
@@ -308,10 +305,7 @@ def analyze_conflicts(
         analysis = analyzer.analyze_conflicts(conflicts)
         return {"by_source": analysis.get("by_source", {})}
     elif method == "trend":
-        return analyzer.analyze_trends(conflicts)
-    elif method == "statistics":
-        analysis = analyzer.analyze_conflicts(conflicts)
-        return {"statistics": analysis.get("statistics", {})}
+        return {"trends": analyzer.analyze_trends(conflicts)}
     else:
         # Default to full analysis
         return analyzer.analyze_conflicts(conflicts)
@@ -612,7 +606,7 @@ def list_available_methods(task: Optional[str] = None) -> Dict[str, List[str]]:
             "manual_review",
             "expert_review",
         ],
-        "analysis": ["pattern", "type", "severity", "source", "trend", "statistics"],
+        "analysis": ["pattern", "type", "severity", "source", "trend"],
         "tracking": ["property", "entity", "relationship"],
         "investigation": ["guide", "checklist", "context"],
     }

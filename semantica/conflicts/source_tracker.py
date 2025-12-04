@@ -496,3 +496,27 @@ class SourceTracker:
                 )
 
         return chain
+
+    def get_all_source_credibilities(self) -> Dict[str, float]:
+        """
+        Get all source credibility scores.
+
+        Returns:
+            Dictionary mapping source document IDs to credibility scores
+        """
+        return self.source_credibility.copy()
+
+    def generate_traceability_chain(
+        self, entity_id: str, property_name: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate traceability chain for an entity or property (alias for get_traceability_chain).
+
+        Args:
+            entity_id: Entity identifier
+            property_name: Optional property name
+
+        Returns:
+            List of traceability records
+        """
+        return self.get_traceability_chain(entity_id, property_name)

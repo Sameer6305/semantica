@@ -491,26 +491,3 @@ class ConflictResolver:
             List of resolution results
         """
         return self.resolution_history.copy()
-
-    def get_resolution_statistics(self) -> Dict[str, Any]:
-        """
-        Get resolution statistics.
-
-        Returns:
-            Statistics dictionary
-        """
-        total = len(self.resolution_history)
-        resolved = sum(1 for r in self.resolution_history if r.resolved)
-
-        by_strategy = {}
-        for result in self.resolution_history:
-            strategy = result.resolution_strategy or "unknown"
-            by_strategy[strategy] = by_strategy.get(strategy, 0) + 1
-
-        return {
-            "total_resolutions": total,
-            "resolved_count": resolved,
-            "unresolved_count": total - resolved,
-            "resolution_rate": resolved / total if total > 0 else 0.0,
-            "by_strategy": by_strategy,
-        }

@@ -89,10 +89,14 @@ Detects conflicts across entities and properties.
 
 | Method | Description | Algorithm |
 |--------|-------------|-----------|
-| `detect_conflicts(entities)` | Detect all conflicts | Multi-pass detection |
-| `detect_value_conflicts(entities, prop)` | Check specific property | Value comparison |
+| `detect_conflicts(entities, entity_type)` | Detect all conflicts | Multi-pass detection |
+| `detect_value_conflicts(entities, property_name, entity_type)` | Check specific property | Value comparison |
 | `detect_type_conflicts(entities)` | Check entity types | Hierarchy validation |
 | `detect_temporal_conflicts(entities)` | Check timestamps | Time-series analysis |
+| `detect_logical_conflicts(entities)` | Check logical inconsistencies | Rule validation |
+| `detect_relationship_conflicts(relationships)` | Check relationship conflicts | Relationship comparison |
+| `detect_entity_conflicts(entities, entity_type)` | Detect all conflicts for entity | Multi-property detection |
+| `get_conflict_report()` | Generate conflict report | Report generation |
 
 **Example:**
 
@@ -106,7 +110,7 @@ conflicts = detector.detect_conflicts([
 ])
 
 for conflict in conflicts:
-    print(f"Conflict on {conflict.property_name}: {conflict.values}")
+    print(f"Conflict on {conflict.property_name}: {conflict.conflicting_values}")
 ```
 
 ### ConflictResolver
@@ -117,10 +121,8 @@ Resolves detected conflicts using configured strategies.
 
 | Method | Description | Algorithm |
 |--------|-------------|-----------|
-| `resolve_conflicts(conflicts)` | Resolve list of conflicts | Strategy pattern |
-| `resolve_by_voting(conflict)` | Majority vote | Frequency counting |
-| `resolve_by_credibility(conflict)` | Source credibility | Weighted average |
-| `resolve_by_recency(conflict)` | Newest value | Timestamp comparison |
+| `resolve_conflicts(conflicts, strategy)` | Resolve list of conflicts | Strategy pattern |
+| Strategies: `voting`, `credibility_weighted`, `most_recent`, `first_seen`, `highest_confidence`, `manual_review` | Various resolution strategies | See algorithm descriptions |
 
 **Example:**
 
@@ -131,8 +133,9 @@ resolver = ConflictResolver(default_strategy="credibility_weighted")
 results = resolver.resolve_conflicts(conflicts)
 
 for result in results:
-    print(f"Resolved {result.property}: {result.resolved_value}")
-    print(f"Strategy used: {result.strategy}")
+    if result.resolved:
+        print(f"Resolved conflict {result.conflict_id}: {result.resolved_value}")
+        print(f"Strategy used: {result.resolution_strategy}")
 ```
 
 ### SourceTracker
@@ -143,18 +146,28 @@ Tracks source information and credibility scores.
 
 | Method | Description |
 |--------|-------------|
-| `track_source(entity, source)` | Register source for entity |
-| `get_source_credibility(source_id)` | Get current credibility score |
-| `update_credibility(source_id, score)` | Update source score |
+| `track_property_source(entity_id, property_name, value, source)` | Track source for property value |
+| `track_entity_source(entity_id, source)` | Track source for entity |
+| `track_relationship_source(relationship_id, source)` | Track source for relationship |
+| `get_source_credibility(document)` | Get current credibility score |
+| `set_source_credibility(document, score)` | Set source credibility score |
+| `get_property_sources(entity_id, property_name)` | Get sources for a property |
+| `get_entity_sources(entity_id)` | Get all sources for an entity |
+| `generate_traceability_chain(entity_id, property_name)` | Generate traceability chain |
+| `generate_source_report(entity_id)` | Generate source analysis report |
 
 **Example:**
 
 ```python
-from semantica.conflicts import SourceTracker
+from semantica.conflicts import SourceTracker, SourceReference
 
 tracker = SourceTracker()
-tracker.update_credibility("reliable_source", 0.9)
-tracker.update_credibility("noisy_source", 0.4)
+tracker.set_source_credibility("reliable_source", 0.9)
+tracker.set_source_credibility("noisy_source", 0.4)
+
+# Track property sources
+source = SourceReference(document="doc1", confidence=0.9)
+tracker.track_property_source("entity_1", "name", "Apple Inc.", source)
 ```
 
 ### InvestigationGuideGenerator
@@ -165,22 +178,42 @@ Generates human-readable guides for manual resolution.
 
 | Method | Description |
 |--------|-------------|
-| `generate_guide(conflict)` | Create investigation steps |
-| `generate_checklist(conflicts)` | Create bulk checklist |
+| `generate_guide(conflict, additional_context)` | Create investigation guide for a conflict |
+| `generate_guides(conflicts, additional_context)` | Create investigation guides for multiple conflicts |
+| `export_investigation_checklist(guide, format)` | Export guide as checklist (text/markdown) |
+| `generate_conflict_report(conflicts, format)` | Generate comprehensive conflict report |
 
----
-
-## Convenience Functions
+**Example:**
 
 ```python
-from semantica.conflicts import detect_and_resolve
+from semantica.conflicts import InvestigationGuideGenerator
 
-# One-line detection and resolution
-conflicts, results = detect_and_resolve(
-    entities,
-    property_name="revenue",
-    resolution_strategy="credibility_weighted"
-)
+generator = InvestigationGuideGenerator()
+guide = generator.generate_guide(conflict)
+checklist = generator.export_investigation_checklist(guide, format="markdown")
+```
+
+### ConflictAnalyzer
+
+Analyzes conflict patterns, trends, and provides recommendations.
+
+**Methods:**
+
+| Method | Description |
+|--------|-------------|
+| `analyze_conflicts(conflicts)` | Comprehensive conflict analysis |
+| `analyze_trends(conflicts)` | Temporal trend analysis |
+| `generate_insights_report(conflicts)` | Generate insights report |
+
+**Example:**
+
+```python
+from semantica.conflicts import ConflictAnalyzer
+
+analyzer = ConflictAnalyzer()
+analysis = analyzer.analyze_conflicts(conflicts)
+trends = analyzer.analyze_trends(conflicts)
+insights = analyzer.generate_insights_report(conflicts)
 ```
 
 ---
@@ -221,7 +254,7 @@ conflicts:
 ### Pipeline Integration
 
 ```python
-from semantica.conflicts import detect_and_resolve
+from semantica.conflicts import ConflictDetector, ConflictResolver
 from semantica.ingest import Ingestor
 
 # 1. Ingest from multiple sources
@@ -232,19 +265,21 @@ data2 = ingestor.ingest("source2.html")
 # 2. Combine entities (assuming same IDs)
 combined_entities = data1.entities + data2.entities
 
-# 3. Resolve conflicts
-conflicts, resolutions = detect_and_resolve(
-    combined_entities,
-    resolution_strategy="credibility_weighted",
-    source_credibility={
-        "source1.pdf": 0.9,
-        "source2.html": 0.6
-    }
+# 3. Detect conflicts
+detector = ConflictDetector()
+conflicts = detector.detect_value_conflicts(combined_entities, "revenue")
+
+# 4. Resolve conflicts
+resolver = ConflictResolver()
+resolutions = resolver.resolve_conflicts(
+    conflicts,
+    strategy="credibility_weighted"
 )
 
-# 4. Apply resolutions
+# 5. Apply resolutions
 for resolution in resolutions:
-    print(f"Final value for {resolution.entity_id}: {resolution.resolved_value}")
+    if resolution.resolved:
+        print(f"Final value for {resolution.conflict_id}: {resolution.resolved_value}")
 ```
 
 ---
@@ -274,7 +309,7 @@ detector = ConflictDetector(
 **Solution**: Check and adjust source credibility scores.
 
 ```python
-tracker.update_credibility("bad_source", 0.1)
+tracker.set_source_credibility("bad_source", 0.1)
 ```
 
 ---

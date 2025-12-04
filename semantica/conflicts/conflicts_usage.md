@@ -17,30 +17,6 @@ This guide demonstrates how to use the conflicts module for detecting, resolving
 
 ## Basic Usage
 
-### Using the Convenience Function
-
-```python
-from semantica.conflicts import detect_and_resolve
-
-# Sample entities with potential conflicts from multiple sources
-entities = [
-    {"id": "1", "name": "Apple Inc.", "founded": 1976, "source": "doc1"},
-    {"id": "1", "name": "Apple", "founded": 1976, "source": "doc2"},
-    {"id": "1", "name": "Apple Inc.", "founded": 1977, "source": "doc3"},
-]
-
-# Detect and resolve conflicts in one call
-conflicts, results = detect_and_resolve(
-    entities,
-    property_name="name",
-    detection_method="value",
-    resolution_strategy="voting"
-)
-
-print(f"Found {len(conflicts)} conflicts")
-print(f"Resolved {sum(1 for r in results if r.resolved)} conflicts")
-```
-
 ### Using Main Classes
 
 ```python
@@ -429,9 +405,6 @@ analysis = analyze_conflicts(conflicts, method="source")
 
 # Trend analysis
 analysis = analyze_conflicts(conflicts, method="trend")
-
-# Statistical analysis
-analysis = analyze_conflicts(conflicts, method="statistics")
 ```
 
 ## Source Tracking
@@ -831,7 +804,7 @@ print(f"Detected {len(conflicts)} conflicts")
 
 # Analyze conflicts
 analysis = analyzer.analyze_conflicts(conflicts)
-print(f"Analysis: {analysis['statistics']}")
+print(f"Analysis: {analysis['total_conflicts']} conflicts found")
 
 # Resolve conflicts - using string strategy
 results = resolver.resolve_conflicts(
@@ -890,19 +863,18 @@ results = resolver.resolve_conflicts(conflicts)
 ### Batch Conflict Processing
 
 ```python
-from semantica.conflicts import detect_and_resolve
+from semantica.conflicts import ConflictDetector, ConflictResolver
 
 # Process multiple properties
 properties_to_check = ["name", "founded", "revenue", "headquarters"]
 
+detector = ConflictDetector()
+resolver = ConflictResolver()
+
 all_results = {}
 for property_name in properties_to_check:
-    conflicts, results = detect_and_resolve(
-        entities,
-        property_name=property_name,
-        detection_method="value",
-        resolution_strategy="voting"
-    )
+    conflicts = detector.detect_value_conflicts(entities, property_name)
+    results = resolver.resolve_conflicts(conflicts, strategy="voting")
     all_results[property_name] = {
         "conflicts": conflicts,
         "results": results

@@ -136,11 +136,11 @@ class ConflictAnalyzer:
                 "total_conflicts": len(conflicts),
                 "by_type": self._analyze_by_type(conflicts),
                 "by_severity": self._analyze_by_severity(conflicts),
+                "by_source": self._analyze_by_source(conflicts),
                 "by_entity": self._analyze_by_entity(conflicts),
                 "by_property": self._analyze_by_property(conflicts),
                 "patterns": self._identify_patterns(conflicts),
                 "recommendations": self._generate_recommendations(conflicts),
-                "statistics": self._calculate_statistics(conflicts),
             }
 
             self.progress_tracker.stop_tracking(
@@ -220,6 +220,38 @@ class ConflictAnalyzer:
                 for eid, count in top_entities
             ],
             "details": dict(entity_conflicts),
+        }
+
+    def _analyze_by_source(self, conflicts: List[Conflict]) -> Dict[str, Any]:
+        """Analyze conflicts by source."""
+        by_source = defaultdict(int)
+        source_conflicts = defaultdict(list)
+
+        for conflict in conflicts:
+            for source in conflict.sources:
+                if isinstance(source, dict):
+                    document = source.get("document", "unknown")
+                    by_source[document] += 1
+                    source_conflicts[document].append(
+                        {
+                            "conflict_id": conflict.conflict_id,
+                            "entity_id": conflict.entity_id,
+                            "property_name": conflict.property_name,
+                            "type": conflict.conflict_type.value,
+                            "severity": conflict.severity,
+                        }
+                    )
+
+        # Get top sources with most conflicts
+        top_sources = sorted(by_source.items(), key=lambda x: x[1], reverse=True)[:10]
+
+        return {
+            "counts": dict(by_source),
+            "top_sources": [
+                {"source": source, "conflict_count": count}
+                for source, count in top_sources
+            ],
+            "details": dict(source_conflicts),
         }
 
     def _analyze_by_property(self, conflicts: List[Conflict]) -> Dict[str, Any]:
@@ -369,40 +401,6 @@ class ConflictAnalyzer:
 
         return recommendations
 
-    def _calculate_statistics(self, conflicts: List[Conflict]) -> Dict[str, Any]:
-        """Calculate conflict statistics."""
-        if not conflicts:
-            return {
-                "total_conflicts": 0,
-                "average_confidence": 0.0,
-                "conflict_rate": 0.0,
-            }
-
-        total_conflicts = len(conflicts)
-        avg_confidence = sum(c.confidence for c in conflicts) / total_conflicts
-
-        # Count unique entities and properties
-        unique_entities = len(set(c.entity_id for c in conflicts if c.entity_id))
-        unique_properties = len(
-            set(c.property_name for c in conflicts if c.property_name)
-        )
-
-        # Count by source
-        source_counts = Counter()
-        for conflict in conflicts:
-            for source in conflict.sources:
-                source_counts[source.get("document", "unknown")] += 1
-
-        return {
-            "total_conflicts": total_conflicts,
-            "average_confidence": avg_confidence,
-            "unique_entities_affected": unique_entities,
-            "unique_properties_affected": unique_properties,
-            "top_sources": dict(source_counts.most_common(5)),
-            "conflict_rate": total_conflicts
-            / max(unique_entities, 1),  # Conflicts per entity
-        }
-
     def generate_insights_report(self, conflicts: List[Conflict]) -> Dict[str, Any]:
         """
         Generate comprehensive insights report.
@@ -439,3 +437,95 @@ class ConflictAnalyzer:
         }
 
         return report
+
+    def analyze_trends(self, conflicts: List[Conflict]) -> List[Dict[str, Any]]:
+        """
+        Analyze temporal trends in conflicts.
+
+        Args:
+            conflicts: List of conflicts to analyze
+
+        Returns:
+            List of trend analysis dictionaries
+        """
+        if not conflicts:
+            return []
+
+        # Group conflicts by time period
+        from collections import defaultdict
+        from datetime import datetime, timedelta
+
+        trends = []
+        conflict_by_period = defaultdict(list)
+
+        # Extract timestamps from conflicts
+        for conflict in conflicts:
+            # Try to get timestamp from sources or metadata
+            timestamp = None
+            for source in conflict.sources:
+                if isinstance(source, dict):
+                    metadata = source.get("metadata", {})
+                    if "timestamp" in metadata:
+                        timestamp = metadata["timestamp"]
+                        break
+
+            if not timestamp and conflict.metadata:
+                timestamp = conflict.metadata.get("timestamp")
+
+            if timestamp:
+                if isinstance(timestamp, str):
+                    try:
+                        timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+                    except (ValueError, AttributeError):
+                        try:
+                            timestamp = datetime.strptime(timestamp, "%Y-%m-%d")
+                        except ValueError:
+                            timestamp = None
+
+            if timestamp:
+                # Group by month
+                period_key = timestamp.strftime("%Y-%m")
+                conflict_by_period[period_key].append(conflict)
+            else:
+                # If no timestamp, use current period
+                period_key = datetime.now().strftime("%Y-%m")
+                conflict_by_period[period_key].append(conflict)
+
+        # Analyze trends
+        sorted_periods = sorted(conflict_by_period.keys())
+        if len(sorted_periods) < 2:
+            # Not enough data for trend analysis
+            return [
+                {
+                    "period": sorted_periods[0] if sorted_periods else "unknown",
+                    "conflict_count": len(conflicts),
+                    "trend": "insufficient_data",
+                    "trend_direction": "stable",
+                }
+            ]
+
+        for i, period in enumerate(sorted_periods):
+            conflict_count = len(conflict_by_period[period])
+            trend = "stable"
+
+            if i > 0:
+                prev_count = len(conflict_by_period[sorted_periods[i - 1]])
+                if conflict_count > prev_count * 1.1:  # 10% increase
+                    trend = "increasing"
+                elif conflict_count < prev_count * 0.9:  # 10% decrease
+                    trend = "decreasing"
+                else:
+                    trend = "stable"
+
+            trends.append(
+                {
+                    "period": period,
+                    "conflict_count": conflict_count,
+                    "trend": trend,
+                    "trend_direction": "up"
+                    if trend == "increasing"
+                    else "down" if trend == "decreasing" else "stable",
+                }
+            )
+
+        return trends
