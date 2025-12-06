@@ -820,42 +820,7 @@ result = execution_engine.execute_pipeline(custom_pipeline)
 
 ### 6. Quality Assurance Examples
 
-#### Knowledge Graph Quality Assessment
-```python
-from semantica.kg_qa import KGQualityAssessor, ValidationEngine
-
-# Initialize quality assessor
-quality_assessor = KGQualityAssessor(
-    config={
-        "consistency": {"enable": True},
-        "completeness": {"enable": True},
-        "validation": {"strict": True}
-    }
-)
-
-# Assess knowledge graph quality
-quality_report = quality_assessor.assess_quality(graph)
-
-print(f"Overall Quality Score: {quality_report.overall_score:.2f}")
-print(f"Consistency Score: {quality_report.consistency_score:.2f}")
-print(f"Completeness Score: {quality_report.completeness_score:.2f}")
-
-# Get issues
-for issue in quality_report.issues:
-    print(f"Issue: {issue.type}")
-    print(f"Severity: {issue.severity}")
-    print(f"Description: {issue.description}")
-    print()
-
-# Validate graph
-validation_engine = ValidationEngine()
-validation_result = validation_engine.validate(graph)
-
-if validation_result.valid:
-    print("Graph is valid!")
-else:
-    print(f"Validation errors: {validation_result.errors}")
-```
+Note: The `semantica.kg_qa` module is temporarily unavailable and will be reintroduced in a future release.
 
 ### 7. Export Examples
 
@@ -902,7 +867,6 @@ from semantica.ingest import FileIngestor
 from semantica.semantic_extract import NERExtractor, RelationExtractor
 from semantica.embeddings import EmbeddingGenerator
 from semantica.kg import GraphBuilder
-from semantica.kg_qa import KGQualityAssessor
 from semantica.export import JSONExporter
 
 # No explicit initialization needed - framework auto-initializes on first use
@@ -948,10 +912,8 @@ graph = graph_builder.build({
     "relationships": all_relationships
 })
 
-# Step 5: Assess quality
-quality_assessor = KGQualityAssessor()
-quality_report = quality_assessor.assess_quality(graph)
-print(f"Knowledge Graph Quality: {quality_report.overall_score:.2f}")
+# Step 5: (Optional) Quality assessment is temporarily unavailable
+# The `semantica.kg_qa` module will be reintroduced in a future release.
 
 # Step 6: Export results
 json_exporter = JSONExporter()
@@ -1142,10 +1104,7 @@ from semantica.visualization import QualityVisualizer
 quality_viz = QualityVisualizer()
 
 # Quality dashboard
-from semantica.kg_qa import KGQualityAssessor
-quality_assessor = KGQualityAssessor()
-quality_report = quality_assessor.generate_quality_report(graph)
-
+quality_report = {"overall_score": 0.85, "issues": [], "consistency": {}, "completeness": {}}
 quality_viz.visualize_dashboard(quality_report, output="html", file_path="quality_dashboard.html")
 
 # Quality score distribution
@@ -1156,17 +1115,13 @@ quality_viz.visualize_score_distribution(quality_scores,
 # Quality issues
 quality_viz.visualize_issues(quality_report, output="html", file_path="quality_issues.html")
 
-# Completeness metrics
-from semantica.kg_qa import CompletenessMetrics
-completeness_metrics = CompletenessMetrics()
-completeness_data = completeness_metrics.calculate_entity_completeness(entities, schema)
+# Completeness metrics (provide your precomputed data)
+completeness_data = {"score": 0.82, "by_type": {"Person": 0.9, "Company": 0.75}}
 quality_viz.visualize_completeness_metrics(completeness_data, 
                                            output="html", file_path="completeness.html")
 
-# Consistency heatmap
-from semantica.kg_qa import ConsistencyMetrics
-consistency_metrics = ConsistencyMetrics()
-consistency_data = consistency_metrics.calculate_logical_consistency(graph)
+# Consistency heatmap (provide your precomputed data)
+consistency_data = {"score": 0.88, "violations": []}
 quality_viz.visualize_consistency_heatmap(consistency_data, 
                                          output="html", file_path="consistency_heatmap.html")
 ```

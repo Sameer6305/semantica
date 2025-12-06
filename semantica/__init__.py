@@ -22,24 +22,6 @@ from typing import Any, Dict, List, Optional, Union
 # Core imports
 from .core import Config, ConfigManager, LifecycleManager, PluginRegistry, Semantica
 
-# KG Quality Assurance
-from .kg_qa import (
-    AutomatedFixer,
-    AutoMerger,
-    AutoResolver,
-    CompletenessMetrics,
-    CompletenessValidator,
-    ConsistencyChecker,
-    ConsistencyMetrics,
-    ConstraintValidator,
-    ImprovementSuggestions,
-    IssueTracker,
-    KGQualityAssessor,
-    QualityMetrics,
-    QualityReporter,
-    RuleValidator,
-    ValidationEngine,
-)
 
 # Pipeline imports
 from .pipeline import (
@@ -141,13 +123,6 @@ class _SemanticaModules:
         if self._visualization is None:
             self._visualization = _ModuleProxy("visualization")
         return self._visualization
-
-    @property
-    def kg_qa(self):
-        """Access KG quality assurance module."""
-        if self._kg_qa is None:
-            self._kg_qa = _ModuleProxy("kg_qa")
-        return self._kg_qa
 
     @property
     def pipeline(self):
@@ -289,22 +264,6 @@ __all__ = [
     "ParallelismManager",
     "ResourceScheduler",
     "PipelineValidator",
-    # KG Quality Assurance
-    "KGQualityAssessor",
-    "ConsistencyChecker",
-    "CompletenessValidator",
-    "QualityMetrics",
-    "CompletenessMetrics",
-    "ConsistencyMetrics",
-    "ValidationEngine",
-    "RuleValidator",
-    "ConstraintValidator",
-    "QualityReporter",
-    "IssueTracker",
-    "ImprovementSuggestions",
-    "AutomatedFixer",
-    "AutoMerger",
-    "AutoResolver",
     # Visualization
     "KGVisualizer",
     "OntologyVisualizer",
@@ -325,7 +284,6 @@ def __getattr__(name: str):
         "embeddings",
         "semantic_extract",
         "visualization",
-        "kg_qa",
         "pipeline",
         "parse",
         "normalize",

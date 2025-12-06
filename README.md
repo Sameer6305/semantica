@@ -387,23 +387,19 @@ result = ExecutionEngine().execute_pipeline(pipeline, parallel=True)
 
 ### Production-Ready Quality Assurance
 
-> **Enterprise-Grade QA** • Conflict Detection • Deduplication • Quality Scoring
+> **Enterprise-Grade QA** • Conflict Detection • Deduplication
 
 ```python
-from semantica.kg_qa import QualityAssessor
 from semantica.deduplication import DuplicateDetector
 from semantica.conflicts import ConflictDetector
 
-assessor = QualityAssessor()
-report = assessor.assess(kg, check_completeness=True, check_consistency=True)
+conflicts = ConflictDetector().detect_conflicts(kg)
+duplicates = DuplicateDetector().find_duplicates(entities=kg.entities, similarity_threshold=0.85)
 
-detector = DuplicateDetector()
-duplicates = detector.find_duplicates(entities=kg.entities, similarity_threshold=0.85)
-
-print(f"Quality Score: {report.overall_score}/100, Duplicates: {len(duplicates)}")
+print(f"Conflicts: {len(conflicts)} | Duplicates: {len(duplicates)}")
 ```
 
-[**Cookbook: Conflict Detection**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/introduction/Conflict_Detection.ipynb) • [**Deduplication**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/introduction/Deduplication.ipynb) • [**Graph Quality**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/introduction/Graph_Quality.ipynb)
+[**Cookbook: Conflict Detection**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/introduction/Conflict_Detection.ipynb) • [**Deduplication**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/introduction/Deduplication.ipynb)
 
 ## 🚀 Quick Start
 
@@ -466,9 +462,10 @@ print(f"Answer: {result.answer} | Nodes: {kg.node_count}, Edges: {kg.edge_count}
 - [x] Core framework (v1.0)
 - [x] GraphRAG engine
 - [x] 6-stage ontology pipeline
-- [x] Quality assurance features
+- [] Quality assurance features
 - [ ] Enhanced multi-language support
 - [ ] Real-time streaming improvements
+- [ ] `semantica.kg_qa` (KG Quality Assurance) module
 
 ### Q2 2026
 - [ ] Multi-modal processing

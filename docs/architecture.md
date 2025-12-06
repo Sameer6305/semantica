@@ -73,7 +73,6 @@ graph TB
 ### Quality Assurance
 - **`semantica.deduplication`** - Entity deduplication
 - **`semantica.conflicts`** - Conflict detection and resolution
-- **`semantica.kg_qa`** - Quality assessment
 
 ---
 
@@ -118,14 +117,7 @@ class CustomExtractor(BaseExtractor):
 
 ### Custom Validators
 
-```python
-from semantica.kg_qa import BaseValidator
-
-class CustomValidator(BaseValidator):
-    def validate(self, graph):
-        # Custom validation logic
-        pass
-```
+Validators can be implemented within domain-specific modules (e.g., graph or ontology) as needed.
 
 ---
 

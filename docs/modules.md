@@ -16,7 +16,7 @@ Semantica's modules are organized into six logical layers:
 | **Input Layer** | [Ingest](#ingest-module), [Parse](#parse-module), [Split](#split-module), [Normalize](#normalize-module) | Data ingestion, parsing, chunking, and cleaning |
 | **Core Processing** | [Semantic Extract](#semantic-extract-module), [Knowledge Graph](#knowledge-graph-kg-module), [Ontology](#ontology-module), [Reasoning](#reasoning-module) | Entity extraction, graph construction, inference |
 | **Storage** | [Embeddings](#embeddings-module), [Vector Store](#vector-store-module), [Graph Store](#graph-store-module), [Triple Store](#triple-store-module) | Vector and graph persistence |
-| **Quality Assurance** | [Deduplication](#deduplication-module), [Conflicts](#conflicts-module), [KG QA](#kg-quality-assurance-module) | Data quality and consistency |
+| **Quality Assurance** | [Deduplication](#deduplication-module), [Conflicts](#conflicts-module) | Data quality and consistency |
 | **Context & Memory** | [Context](#context-module), [Seed](#seed-module) | Agent memory and foundation data |
 | **Output & Orchestration** | [Export](#export-module), [Visualization](#visualization-module), [Pipeline](#pipeline-module) | Export, visualization, and workflow management |
 
@@ -765,27 +765,7 @@ conflicts = detector.detect_value_conflicts(entities, "name")
 - `AutoMerger` — Automatic merging of duplicates
 - `AutoResolver` — Automatic conflict resolution
 
-**Quality Metrics:**
-
-| Metric | Calculation |
-| :--- | :--- |
-| **Overall Score** | `(0.6 × completeness) + (0.4 × consistency)` |
-| **Entity Quality** | Required field presence (ID, type) |
-| **Relationship Quality** | Required field presence (source, target, type) |
-
-**Quick Example:**
-
-```python
-from semantica.kg_qa import assess_quality, generate_quality_report, KGQualityAssessor
-
-# Using convenience functions
-score = assess_quality(knowledge_graph)
-report = generate_quality_report(knowledge_graph, schema)
-
-# Using classes directly
-assessor = KGQualityAssessor()
-score = assessor.assess_overall_quality(knowledge_graph)
-```
+Note: The KG quality assessment module has been temporarily removed and will be reintroduced in a future release.
 
 ---
 
@@ -1138,7 +1118,6 @@ new_facts = inference_engine.forward_chain(kg, rule_manager)
 | **Triple Store** | `semantica.triple_store` | `TripleManager` | RDF storage |
 | **Deduplication** | `semantica.deduplication` | `DuplicateDetector` | Duplicate removal |
 | **Conflicts** | `semantica.conflicts` | `ConflictDetector` | Conflict resolution |
-| **KG QA** | `semantica.kg_qa` | `KGQualityAssessor` | Quality assurance |
 | **Context** | `semantica.context` | `AgentMemory` | Agent context |
 | **Seed** | `semantica.seed` | `SeedDataManager` | Foundation data |
 | **Export** | `semantica.export` | `JSONExporter` | Data export |
