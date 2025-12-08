@@ -87,8 +87,6 @@ class Relation:
 
 class RelationExtractor:
     """Relation extractor for entity relationships."""
-
-<<<<<<< HEAD
     def __init__(
         self,
         method: Union[str, List[str]] = "pattern",
@@ -98,9 +96,6 @@ class RelationExtractor:
         max_distance: int = 50,
         **config
     ):
-=======
-    def __init__(self, method: Union[str, List[str]] = "pattern", **config):
->>>>>>> origin/main
         """
         Initialize relation extractor.
 
@@ -129,15 +124,12 @@ class RelationExtractor:
         self.config = config
         self.progress_tracker = get_progress_tracker()
 
-<<<<<<< HEAD
         # Store parameters
         self.relation_types = relation_types
         self.bidirectional = bidirectional
         self.confidence_threshold = confidence_threshold
         self.max_distance = max_distance
 
-=======
->>>>>>> origin/main
         # Method configuration
         self.method = method if isinstance(method, list) else [method]
         self.min_confidence = config.get("min_confidence", confidence_threshold)
@@ -162,6 +154,7 @@ class RelationExtractor:
                 r"(?P<subject>\w+)\s+born\s+in\s+(?P<object>\w+)",
             ],
         }
+
 
     def extract_relations(
         self, text: str, entities: List[Entity], **options

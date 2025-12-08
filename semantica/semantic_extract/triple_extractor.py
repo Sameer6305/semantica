@@ -90,16 +90,12 @@ class TripleExtractor:
     """RDF triple extraction handler."""
 
     def __init__(
-<<<<<<< HEAD
         self,
         method: Union[str, List[str]] = "pattern",
         include_temporal: bool = False,
         include_provenance: bool = False,
         config=None,
         **kwargs
-=======
-        self, method: Union[str, List[str]] = "pattern", config=None, **kwargs
->>>>>>> origin/main
     ):
         """
         Initialize triple extractor.
@@ -128,13 +124,10 @@ class TripleExtractor:
         self.config.update(kwargs)
         self.progress_tracker = get_progress_tracker()
 
-<<<<<<< HEAD
         # Store parameters
         self.include_temporal = include_temporal
         self.include_provenance = include_provenance
 
-=======
->>>>>>> origin/main
         # Method configuration
         self.method = method if isinstance(method, list) else [method]
         self.min_confidence = self.config.get("min_confidence", 0.5)

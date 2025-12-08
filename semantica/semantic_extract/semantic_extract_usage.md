@@ -19,32 +19,10 @@ This comprehensive guide demonstrates how to use the semantic extraction module 
 
 ## Basic Usage
 
-### Using the Convenience Function
-
-```python
-from semantica.semantic_extract import build
-
-text = "Apple Inc. was founded by Steve Jobs in 1976. The company is headquartered in Cupertino, California."
-
-# Extract all semantic information
-result = build(
-    text,
-    extract_entities=True,
-    extract_relations=True,
-    extract_events=False,
-    extract_triples=False,
-    resolve_coreferences=False
-)
-
-print(f"Extracted {len(result['entities'])} entities")
-print(f"Extracted {len(result['relations'])} relations")
-print(f"Statistics: {result['statistics']}")
-```
-
-### Using Main Classes
-
 ```python
 from semantica.semantic_extract import NamedEntityRecognizer, RelationExtractor
+
+text = "Apple Inc. was founded by Steve Jobs in 1976. The company is headquartered in Cupertino, California."
 
 # Extract entities
 ner = NamedEntityRecognizer()
@@ -55,7 +33,10 @@ print(f"Entities: {entities}")
 rel_extractor = RelationExtractor()
 relations = rel_extractor.extract_relations(text, entities=entities)
 print(f"Relations: {relations}")
+
+print(f"Extracted {len(entities)} entities and {len(relations)} relations")
 ```
+
 
 ## Entity Extraction
 
@@ -677,23 +658,25 @@ print(f"Issues: {validation.issues}")
 ### Building Knowledge Graph from Extraction
 
 ```python
-from semantica.semantic_extract import build
+from semantica.semantic_extract import NamedEntityRecognizer, RelationExtractor, TripleExtractor
 from semantica.kg import GraphBuilder
 
 # Extract all information
-result = build(
-    text,
-    extract_entities=True,
-    extract_relations=True,
-    extract_triples=True
-)
+ner = NamedEntityRecognizer()
+entities = ner.extract_entities(text)
+
+rel_extractor = RelationExtractor()
+relations = rel_extractor.extract_relations(text, entities=entities)
+
+triple_extractor = TripleExtractor()
+triples = triple_extractor.extract_triples(text, entities=entities, relationships=relations)
 
 # Build knowledge graph
 graph_builder = GraphBuilder()
 knowledge_graph = graph_builder.build({
-    "entities": result["entities"],
-    "relations": result["relations"],
-    "triples": result["triples"]
+    "entities": entities,
+    "relations": relations,
+    "triples": triples
 })
 
 print(f"Knowledge graph nodes: {len(knowledge_graph.nodes)}")
@@ -703,7 +686,7 @@ print(f"Knowledge graph edges: {len(knowledge_graph.edges)}")
 ### Batch Processing
 
 ```python
-from semantica.semantic_extract import build
+from semantica.semantic_extract import NamedEntityRecognizer, RelationExtractor
 
 texts = [
     "Apple Inc. was founded in 1976.",
@@ -712,15 +695,17 @@ texts = [
 ]
 
 # Process multiple texts
-results = build(
-    texts,
-    extract_entities=True,
-    extract_relations=True
-)
+ner = NamedEntityRecognizer()
+rel_extractor = RelationExtractor()
 
-# Aggregate results
-all_entities = results["entities"]
-all_relations = results["relations"]
+all_entities = []
+all_relations = []
+
+for text in texts:
+    entities = ner.extract_entities(text)
+    relations = rel_extractor.extract_relations(text, entities=entities)
+    all_entities.extend(entities)
+    all_relations.extend(relations)
 
 print(f"Total entities: {len(all_entities)}")
 print(f"Total relations: {len(all_relations)}")
