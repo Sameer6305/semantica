@@ -213,6 +213,30 @@ results = retriever.search_similar(query_vector, vectors, vector_ids, k=10)
 print(f"Found {len(results)} results")
 ```
 
+### Using VectorManager
+
+```python
+from semantica.vector_store import VectorManager
+
+# Create manager
+manager = VectorManager()
+
+# Create and register stores
+faiss_store = manager.create_store("faiss", {"dimension": 768})
+manager.register_store("main_store", "faiss", {"dimension": 768})
+
+# List all stores
+stores = manager.list_stores()
+print(f"Active stores: {stores}")
+
+# Get store by ID
+store = manager.get_store("main_store")
+
+# Get store statistics
+stats = manager.get_store_stats("main_store")
+print(f"Store stats: {stats}")
+```
+
 ### Cosine Similarity Search
 
 ```python
