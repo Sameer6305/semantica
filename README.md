@@ -12,14 +12,15 @@
 [![CI](https://github.com/Hawksight-AI/semantica/workflows/CI/badge.svg)](https://github.com/Hawksight-AI/semantica/actions)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-<br/>
-<a href="https://github.com/Hawksight-AI/semantica/stargazers">
-    <img src="https://img.shields.io/badge/Give%20a%20Star-%E2%AD%90-yellow?style=for-the-badge&labelColor=1a1b27" alt="Give a Star">
-</a>
-<a href="https://github.com/Hawksight-AI/semantica/fork">
-    <img src="https://img.shields.io/badge/Support%20Project-Fork%20Us-blue?style=for-the-badge&labelColor=1a1b27" alt="Support Project">
-</a>
-<br/>
+<p align="center">
+    <a href="https://github.com/Hawksight-AI/semantica/stargazers">
+        <img src="https://img.shields.io/badge/Give%20a%20Star-%E2%AD%90-yellow?style=for-the-badge&labelColor=1a1b27" alt="Give a Star">
+    </a>
+    &nbsp;&nbsp;
+    <a href="https://github.com/Hawksight-AI/semantica/fork">
+        <img src="https://img.shields.io/badge/Support%20Project-Fork%20Us-blue?style=for-the-badge&labelColor=1a1b27" alt="Support Project">
+    </a>
+</p>
 
 **Open Source Framework for Semantic Layer & Knowledge Engineering**
 
