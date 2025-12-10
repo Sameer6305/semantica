@@ -280,7 +280,7 @@ from semantica.export import YAMLSchemaExporter
 exporter = YAMLSchemaExporter()
 
 # Export schema
-exporter.export(schema, "schema.yaml")
+exporter.export_ontology_schema(schema, "schema.yaml")
 ```
 
 ### Using YAML Export Methods

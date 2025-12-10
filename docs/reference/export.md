@@ -394,7 +394,7 @@ Export ontology schemas to YAML format.
 
 | Method | Description | Algorithm |
 |--------|-------------|-----------|
-| `export(schema, filename)` | Export schema | YAML schema serialization |
+| `export_ontology_schema(ontology, filename)` | Export ontology schema | YAML schema serialization |
 
 **Example:**
 
@@ -402,7 +402,7 @@ Export ontology schemas to YAML format.
 from semantica.export import YAMLSchemaExporter
 
 exporter = YAMLSchemaExporter()
-exporter.export(schema, "schema.yaml")
+exporter.export_ontology_schema(schema, "schema.yaml")
 ```
 
 ---

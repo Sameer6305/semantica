@@ -201,7 +201,7 @@ def export_rdf(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("rdf", method)
-    if custom_method:
+    if custom_method and custom_method is not export_rdf:
         try:
             return custom_method(data, file_path, format=format, **kwargs)
         except Exception as e:
@@ -250,7 +250,7 @@ def export_json(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("json", method)
-    if custom_method:
+    if custom_method and custom_method is not export_json:
         try:
             return custom_method(data, file_path, format=format, **kwargs)
         except Exception as e:
@@ -296,7 +296,7 @@ def export_csv(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("csv", method)
-    if custom_method:
+    if custom_method and custom_method is not export_csv:
         try:
             return custom_method(data, file_path, **kwargs)
         except Exception as e:
@@ -347,7 +347,7 @@ def export_graph(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("graph", method)
-    if custom_method:
+    if custom_method and custom_method is not export_graph:
         try:
             return custom_method(graph_data, file_path, format=format, **kwargs)
         except Exception as e:
@@ -395,7 +395,7 @@ def export_yaml(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("yaml", method)
-    if custom_method:
+    if custom_method and custom_method is not export_yaml:
         try:
             return custom_method(data, file_path, **kwargs)
         except Exception as e:
@@ -413,7 +413,9 @@ def export_yaml(
             exporter.export(data, file_path, **kwargs)
         elif method == "schema":
             exporter = YAMLSchemaExporter(**config)
-            exporter.export(data, file_path, **kwargs)
+            yaml_content = exporter.export_ontology_schema(data, **kwargs)
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(yaml_content)
         else:
             raise ProcessingError(f"Unknown YAML export method: {method}")
 
@@ -450,7 +452,7 @@ def export_owl(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("owl", method)
-    if custom_method:
+    if custom_method and custom_method is not export_owl:
         try:
             return custom_method(ontology, file_path, format=format, **kwargs)
         except Exception as e:
@@ -502,7 +504,7 @@ def export_vector(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("vector", method)
-    if custom_method:
+    if custom_method and custom_method is not export_vector:
         try:
             return custom_method(vectors, file_path, format=format, **kwargs)
         except Exception as e:
@@ -550,7 +552,7 @@ def export_lpg(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("lpg", method)
-    if custom_method:
+    if custom_method and custom_method is not export_lpg:
         try:
             return custom_method(knowledge_graph, file_path, **kwargs)
         except Exception as e:
@@ -601,7 +603,7 @@ def generate_report(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("report", method)
-    if custom_method:
+    if custom_method and custom_method is not generate_report:
         try:
             return custom_method(data, file_path, format=format, **kwargs)
         except Exception as e:
