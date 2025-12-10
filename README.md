@@ -503,8 +503,6 @@ print(f"Answer: {result.answer} | Nodes: {kg.node_count}, Edges: {kg.edge_count}
 |:-----------:|:-----------|
 | [**Discord**](https://discord.gg/semantica) | Real-time help, showcases |
 | [**GitHub Discussions**](https://github.com/Hawksight-AI/semantica/discussions) | Q&A, feature requests |
-| [**Twitter**](https://twitter.com/semantica_ai) | Updates, tips |
-| [**YouTube**](https://youtube.com/@semantica) | Tutorials, webinars |
 
 ### Learning Resources
 
