@@ -184,7 +184,7 @@ def ingest_file(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("file", method)
-    if custom_method:
+    if custom_method and custom_method != ingest_file:
         try:
             return custom_method(source, **kwargs)
         except Exception as e:
@@ -249,7 +249,7 @@ def ingest_web(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("web", method)
-    if custom_method:
+    if custom_method and custom_method != ingest_web:
         try:
             return custom_method(source, **kwargs)
         except Exception as e:
@@ -308,7 +308,7 @@ def ingest_feed(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("feed", method)
-    if custom_method:
+    if custom_method and custom_method != ingest_feed:
         try:
             return custom_method(source, **kwargs)
         except Exception as e:
@@ -365,7 +365,7 @@ def ingest_stream(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("stream", method)
-    if custom_method:
+    if custom_method and custom_method != ingest_stream:
         try:
             return custom_method(source, **kwargs)
         except Exception as e:
@@ -437,7 +437,7 @@ def ingest_repository(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("repo", method)
-    if custom_method:
+    if custom_method and custom_method != ingest_repository:
         try:
             return custom_method(source, **kwargs)
         except Exception as e:
@@ -495,7 +495,7 @@ def ingest_email(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("email", method)
-    if custom_method:
+    if custom_method and custom_method != ingest_email:
         try:
             return custom_method(source, **kwargs)
         except Exception as e:
@@ -566,7 +566,7 @@ def ingest_database(
     # Check for custom method in registry
     if method:
         custom_method = method_registry.get("db", method)
-        if custom_method:
+        if custom_method and custom_method != ingest_database:
             try:
                 return custom_method(source, **kwargs)
             except Exception as e:
@@ -658,7 +658,7 @@ def ingest_mcp(
     """
     # Check for custom method in registry
     custom_method = method_registry.get("mcp", method)
-    if custom_method:
+    if custom_method and custom_method != ingest_mcp:
         try:
             return custom_method(source, **kwargs)
         except Exception as e:

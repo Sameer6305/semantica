@@ -42,6 +42,7 @@ import git
 
 from ..utils.exceptions import ProcessingError, ValidationError
 from ..utils.logging import get_logger
+from ..utils.progress_tracker import get_progress_tracker
 
 
 @dataclass
@@ -500,6 +501,9 @@ class RepoIngestor:
         # Initialize analyzer
         self.analyzer = GitAnalyzer(**self.config)
 
+        # Initialize progress tracker
+        self.progress_tracker = get_progress_tracker()
+
         # Temporary directory for cloning
         self.temp_dir = None
 
@@ -532,7 +536,7 @@ class RepoIngestor:
             try:
                 parsed = git.Repo.clone_from(repo_url, self._get_temp_dir(), **options)
             except Exception as e:
-                self.progress_tracker.stop_tracking(
+                self.progress_tracker.update_tracking(
                     tracking_id, status="failed", message=str(e)
                 )
                 raise ProcessingError(f"Failed to clone repository: {e}") from e
@@ -581,7 +585,7 @@ class RepoIngestor:
             structure = self.analyzer.analyze_structure(repo_path)
             metrics = self.analyzer.calculate_metrics(repo_path)
 
-            self.progress_tracker.stop_tracking(
+            self.progress_tracker.update_tracking(
                 tracking_id,
                 status="completed",
                 message=f"Processed {len(code_files)} files, {len(commits)} commits",
@@ -596,7 +600,7 @@ class RepoIngestor:
             }
 
         except Exception as e:
-            self.progress_tracker.stop_tracking(
+            self.progress_tracker.update_tracking(
                 tracking_id, status="failed", message=str(e)
             )
             raise

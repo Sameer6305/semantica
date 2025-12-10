@@ -289,9 +289,10 @@ class MCPIngestor:
 
         try:
             # Get tracking ID
-            tracking_id = self.progress_tracker.start_task(
-                task_type="mcp_ingest_resources",
-                description=f"Ingesting resources from {server_name}",
+            tracking_id = self.progress_tracker.start_tracking(
+                module="ingest",
+                submodule="MCPIngestor",
+                message=f"Ingesting resources from {server_name}",
             )
 
             # List available resources
@@ -307,7 +308,7 @@ class MCPIngestor:
 
             if not resources:
                 self.logger.warning(f"No resources found for server {server_name}")
-                self.progress_tracker.update_task(
+                self.progress_tracker.update_tracking(
                     tracking_id, status="completed", message="No resources found"
                 )
                 return []
@@ -318,11 +319,10 @@ class MCPIngestor:
 
             for idx, resource in enumerate(resources):
                 try:
-                    self.progress_tracker.update_task(
+                    self.progress_tracker.update_tracking(
                         tracking_id,
-                        status="in_progress",
-                        progress=(idx / total) * 100,
-                        message=f"Reading resource: {resource.uri}",
+                        status="running",
+                        message=f"Reading resource: {resource.uri} ({idx + 1}/{total})",
                     )
 
                     # Read resource
@@ -347,17 +347,16 @@ class MCPIngestor:
 
                 except Exception as e:
                     self.logger.error(f"Failed to ingest resource {resource.uri}: {e}")
-                    self.progress_tracker.update_task(
+                    self.progress_tracker.update_tracking(
                         tracking_id,
-                        status="warning",
+                        status="running",
                         message=f"Failed to ingest resource {resource.uri}: {e}",
                     )
                     continue
 
-            self.progress_tracker.update_task(
+            self.progress_tracker.update_tracking(
                 tracking_id,
                 status="completed",
-                progress=100,
                 message=f"Successfully ingested {len(ingested_data)} resources",
             )
 
@@ -393,13 +392,14 @@ class MCPIngestor:
 
         try:
             # Get tracking ID
-            tracking_id = self.progress_tracker.start_task(
-                task_type="mcp_ingest_tool",
-                description=f"Calling tool {tool_name} on {server_name}",
+            tracking_id = self.progress_tracker.start_tracking(
+                module="ingest",
+                submodule="MCPIngestor",
+                message=f"Calling tool {tool_name} on {server_name}",
             )
 
-            self.progress_tracker.update_task(
-                tracking_id, status="in_progress", message=f"Calling tool: {tool_name}"
+            self.progress_tracker.update_tracking(
+                tracking_id, status="running", message=f"Calling tool: {tool_name}"
             )
 
             # Call tool
@@ -415,10 +415,9 @@ class MCPIngestor:
                 tool_name=tool_name,
             )
 
-            self.progress_tracker.update_task(
+            self.progress_tracker.update_tracking(
                 tracking_id,
                 status="completed",
-                progress=100,
                 message=f"Successfully called tool {tool_name}",
             )
 
