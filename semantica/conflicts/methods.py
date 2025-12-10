@@ -625,19 +625,4 @@ def list_available_methods(task: Optional[str] = None) -> Dict[str, List[str]]:
     return result
 
 
-# Register default methods with registry
-def _value_detection(entities, **kw):
-    return detect_conflicts(entities, method="value", **kw)
 
-
-def _voting_resolution(conflicts, **kw):
-    return resolve_conflicts(conflicts, method="voting", **kw)
-
-
-def _pattern_analysis(conflicts, **kw):
-    return analyze_conflicts(conflicts, method="pattern", **kw)
-
-
-method_registry.register("detection", "value", _value_detection)
-method_registry.register("resolution", "voting", _voting_resolution)
-method_registry.register("analysis", "pattern", _pattern_analysis)
