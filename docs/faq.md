@@ -165,7 +165,7 @@ Yes, Semantica can be integrated with LangChain for RAG applications.
 
 ### Can I connect to databases?
 
-Yes, Semantica supports connections to Neo4j, KuzuDB, FalkorDB, and other graph databases.
+Yes, Semantica supports connections to Neo4j, FalkorDB, and other graph databases.
 
 ---
 

@@ -9,7 +9,7 @@ Key Features:
     - Generate embeddings for graph entities (nodes)
     - Generate embeddings for graph relationships (edges)
     - Format embeddings for graph DB storage
-    - Integration helpers for Neo4j, NetworkX, KuzuDB, FalkorDB
+    - Integration helpers for Neo4j, NetworkX, FalkorDB
 
 Example Usage:
     >>> from semantica.embeddings import GraphEmbeddingManager
@@ -37,7 +37,6 @@ class GraphEmbeddingManager:
     Supported Backends:
         - Neo4j: Graph database with Cypher query language
         - NetworkX: Python graph library
-        - KuzuDB: Embedded graph database
         - FalkorDB: Redis-based graph database
 
     Example Usage:
@@ -82,7 +81,7 @@ class GraphEmbeddingManager:
             entities: List of entity dictionaries with at least "id" and "text" or "content"
             relationships: Optional list of relationship dictionaries with
                          "source", "target", and optionally "text" or "type"
-            backend: Graph DB backend ("neo4j", "networkx", "kuzu", "falkordb")
+            backend: Graph DB backend ("neo4j", "networkx", "falkordb")
             **options: Additional backend-specific options
 
         Returns:
@@ -108,10 +107,10 @@ class GraphEmbeddingManager:
             ...     entities, relationships, backend="neo4j"
             ... )
         """
-        if backend.lower() not in ["neo4j", "networkx", "kuzu", "falkordb"]:
+        if backend.lower() not in ["neo4j", "networkx", "falkordb"]:
             raise ProcessingError(
                 f"Unsupported backend: {backend}. "
-                f"Supported: neo4j, networkx, kuzu, falkordb"
+                f"Supported: neo4j, networkx, falkordb"
             )
 
         # Generate node embeddings
@@ -396,8 +395,6 @@ class GraphEmbeddingManager:
             info["label"] = options.get("label", "Node")
         elif backend.lower() == "networkx":
             info["graph_type"] = options.get("graph_type", "DiGraph")
-        elif backend.lower() == "kuzu":
-            info["database_path"] = options.get("database_path", "default")
         elif backend.lower() == "falkordb":
             info["graph_name"] = options.get("graph_name", "default")
 

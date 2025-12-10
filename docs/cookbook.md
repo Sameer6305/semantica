@@ -154,7 +154,7 @@ Essential guides to master the Semantica framework.
 
 -   :material-database-settings: **Graph Store**
     ---
-    Persisting knowledge graphs in Neo4j, KuzuDB, or FalkorDB.
+    Persisting knowledge graphs in Neo4j or FalkorDB.
     
     **Topics**: Neo4j, Cypher, Persistence
     

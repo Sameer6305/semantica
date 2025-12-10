@@ -1,6 +1,6 @@
 # Graph Store
 
-> **Unified interface for Property Graph Databases (Neo4j, KuzuDB, FalkorDB).**
+> **Unified interface for Property Graph Databases (Neo4j, FalkorDB).**
 
 ---
 
@@ -12,7 +12,7 @@
 
     ---
 
-    Support for Neo4j (Enterprise), KuzuDB (Embedded), and FalkorDB (Redis-based)
+    Support for Neo4j (Enterprise) and FalkorDB (Redis-based)
 
 -   :material-code-braces:{ .lg .middle } **Cypher Support**
 
@@ -187,26 +187,6 @@ Enterprise-grade Neo4j backend adapter.
 - `Neo4jSession` - Session management wrapper
 - `Neo4jTransaction` - Transaction wrapper
 
-#### KuzuAdapter
-
-Embedded, in-process KuzuDB backend adapter.
-
-**Features:**
-- No external server required
-- Columnar storage for speed
-- Zero-copy integration with Arrow
-- Schema-based node and relationship tables
-- High-performance analytical queries
-
-**Related Classes:**
-- `KuzuDatabase` - Database wrapper
-- `KuzuConnection` - Connection wrapper
-- `KuzuQuery` - Query execution wrapper
-
-**Special Methods:**
-- `create_node_table(table_name, properties, primary_key, **options)` - Create node table with schema
-- `create_rel_table(table_name, from_table, to_table, properties, **options)` - Create relationship table
-- `bulk_load_nodes(table_name, file_path, **options)` - Bulk load nodes from CSV
 
 #### FalkorDBAdapter
 
@@ -243,7 +223,6 @@ Configuration manager for graph store module. Supports environment variables, co
 - `set_method_config(method_name, config)` - Set method-specific configuration
 - `get_all()` - Get all configuration
 - `get_neo4j_config()` - Get Neo4j-specific configuration
-- `get_kuzu_config()` - Get KuzuDB-specific configuration
 - `get_falkordb_config()` - Get FalkorDB-specific configuration
 - `reset()` - Reset configuration to defaults
 
@@ -394,9 +373,6 @@ graph_store:
     uri: bolt://localhost:7687
     pool_size: 50
     
-  kuzu:
-    path: ./data/kuzu_db
-    buffer_pool_size: 1024 # MB
 ```
 
 ---

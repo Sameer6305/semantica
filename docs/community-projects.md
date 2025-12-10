@@ -33,7 +33,6 @@ Projects and integrations from the Semantica community.
 
 ### Graph Databases
 - Neo4j
-- KuzuDB
 - FalkorDB
 
 ### LLM Providers

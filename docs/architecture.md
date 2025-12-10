@@ -68,7 +68,7 @@ graph TB
 - **`semantica.kg`** - Knowledge graph construction
 - **`semantica.vector_store`** - Vector storage (Pinecone, Weaviate, FAISS)
 - **`semantica.triple_store`** - RDF triple storage (Jena, Blazegraph)
-- **`semantica.graph_store`** - Property graphs (Neo4j, KuzuDB, FalkorDB)
+- **`semantica.graph_store`** - Property graphs (Neo4j, FalkorDB)
 
 ### Quality Assurance
 - **`semantica.deduplication`** - Entity deduplication

@@ -2830,7 +2830,6 @@ flowchart LR
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **NetworkX**| In-memory | Fast | Small-medium | Python API | Development, small graphs |
 | **Neo4j** | Database | Medium | Large | Cypher | Production, complex queries |
-| **KuzuDB** | Embedded | Fast | Medium | Cypher | Embedded applications |
 | **FalkorDB**| Redis-based| Very Fast | Large | Cypher | Real-time, high throughput |
 
 ---

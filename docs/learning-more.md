@@ -183,11 +183,11 @@ result = semantica.build_knowledge_base(
 
 ### 3. Backend Selection
 
-| Operation | NetworkX | Neo4j | KuzuDB |
-| :--- | :--- | :--- | :--- |
-| **Graph Construction** | ⚡⚡⚡ | ⚡⚡ | ⚡⚡⚡ |
-| **Query Performance** | ⚡⚡ | ⚡⚡⚡ | ⚡⚡⚡ |
-| **Scalability** | Low | High | Medium |
+| Operation | NetworkX | Neo4j |
+| :--- | :--- | :--- |
+| **Graph Construction** | ⚡⚡⚡ | ⚡⚡ |
+| **Query Performance** | ⚡⚡ | ⚡⚡⚡ |
+| **Scalability** | Low | High |
 
 ---
 

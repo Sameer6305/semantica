@@ -119,10 +119,6 @@ class GraphStoreConfig:
             "GRAPH_STORE_NEO4J_PASSWORD": "neo4j_password",
             "GRAPH_STORE_NEO4J_DATABASE": "neo4j_database",
             "GRAPH_STORE_NEO4J_ENCRYPTED": "neo4j_encrypted",
-            # KuzuDB settings
-            "GRAPH_STORE_KUZU_DATABASE_PATH": "kuzu_database_path",
-            "GRAPH_STORE_KUZU_BUFFER_POOL_SIZE": "kuzu_buffer_pool_size",
-            "GRAPH_STORE_KUZU_MAX_NUM_THREADS": "kuzu_max_num_threads",
             # FalkorDB settings
             "GRAPH_STORE_FALKORDB_HOST": "falkordb_host",
             "GRAPH_STORE_FALKORDB_PORT": "falkordb_port",
@@ -139,8 +135,6 @@ class GraphStoreConfig:
                     "timeout",
                     "max_retries",
                     "falkordb_port",
-                    "kuzu_buffer_pool_size",
-                    "kuzu_max_num_threads",
                 ]:
                     try:
                         self._config[config_key] = int(value)
@@ -172,10 +166,6 @@ class GraphStoreConfig:
             "neo4j_password": "password",
             "neo4j_database": "neo4j",
             "neo4j_encrypted": False,
-            # KuzuDB defaults
-            "kuzu_database_path": "./kuzu_db",
-            "kuzu_buffer_pool_size": 268435456,  # 256MB
-            "kuzu_max_num_threads": 0,  # 0 = auto
             # FalkorDB defaults
             "falkordb_host": "localhost",
             "falkordb_port": 6379,
@@ -263,19 +253,6 @@ class GraphStoreConfig:
             "password": self._config.get("neo4j_password"),
             "database": self._config.get("neo4j_database"),
             "encrypted": self._config.get("neo4j_encrypted"),
-        }
-
-    def get_kuzu_config(self) -> Dict[str, Any]:
-        """
-        Get KuzuDB-specific configuration.
-
-        Returns:
-            KuzuDB configuration dictionary
-        """
-        return {
-            "database_path": self._config.get("kuzu_database_path"),
-            "buffer_pool_size": self._config.get("kuzu_buffer_pool_size"),
-            "max_num_threads": self._config.get("kuzu_max_num_threads"),
         }
 
     def get_falkordb_config(self) -> Dict[str, Any]:

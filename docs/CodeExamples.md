@@ -14,7 +14,6 @@ pip install "semantica[pdf,web,feeds,office]"
 
 # Graph store backends
 pip install "semantica[graph-neo4j]"    # Neo4j support
-pip install "semantica[graph-kuzu]"     # KuzuDB (embedded)
 pip install "semantica[graph-falkordb]" # FalkorDB (Redis-based)
 pip install "semantica[graph-all]"      # All graph backends
 
@@ -286,7 +285,7 @@ ontology.save_to_triple_store("http://localhost:9999/blazegraph/sparql")
 
 ### 📊 Graph Store - Persistent Property Graph Storage
 
-Store and query knowledge graphs in Neo4j, KuzuDB, or FalkorDB:
+Store and query knowledge graphs in Neo4j or FalkorDB:
 
 ```python
 from semantica.graph_store import GraphStore
@@ -298,9 +297,6 @@ store = GraphStore(
     user="neo4j",
     password="password"
 )
-
-# Option 2: KuzuDB for embedded (no server required)
-store = GraphStore(backend="kuzu", database_path="./my_graph_db")
 
 # Option 3: FalkorDB for ultra-fast LLM applications
 store = GraphStore(backend="falkordb", host="localhost", port=6379, graph_name="kg")

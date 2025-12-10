@@ -1,6 +1,6 @@
 # Graph Store Module Usage Guide
 
-The Graph Store module provides comprehensive property graph database integration for the Semantica framework, supporting multiple backends including **Neo4j**, **KuzuDB**, and **FalkorDB**.
+The Graph Store module provides comprehensive property graph database integration for the Semantica framework, supporting multiple backends including **Neo4j** and **FalkorDB**.
 
 ## Table of Contents
 
@@ -27,9 +27,6 @@ pip install semantica
 ```bash
 # Neo4j
 pip install neo4j
-
-# KuzuDB
-pip install kuzu
 
 # FalkorDB
 pip install falkordb
@@ -136,47 +133,6 @@ store = GraphStore(
 )
 ```
 
-### KuzuDB Configuration
-
-```python
-from semantica.graph_store import GraphStore
-
-store = GraphStore(
-    backend="kuzu",
-    database_path="./my_kuzu_db",
-    buffer_pool_size=268435456,  # 256MB
-    max_num_threads=4
-)
-
-# Connect (creates database if not exists)
-store.connect()
-
-# For KuzuDB, you need to create node/relationship tables first
-from semantica.graph_store import KuzuAdapter
-
-adapter = KuzuAdapter(database_path="./my_kuzu_db")
-adapter.connect()
-
-# Create node table with schema
-adapter.create_node_table(
-    "Person",
-    properties={
-        "id": "SERIAL",
-        "name": "STRING",
-        "age": "INT64"
-    },
-    primary_key="id"
-)
-
-# Create relationship table
-adapter.create_rel_table(
-    "KNOWS",
-    from_table="Person",
-    to_table="Person",
-    properties={"since": "INT64"}
-)
-```
-
 ### FalkorDB Configuration
 
 ```python
@@ -208,9 +164,6 @@ export GRAPH_STORE_TIMEOUT=30
 export GRAPH_STORE_NEO4J_URI=bolt://localhost:7687
 export GRAPH_STORE_NEO4J_USER=neo4j
 export GRAPH_STORE_NEO4J_PASSWORD=password
-
-# KuzuDB
-export GRAPH_STORE_KUZU_DATABASE_PATH=./kuzu_db
 
 # FalkorDB
 export GRAPH_STORE_FALKORDB_HOST=localhost
@@ -478,7 +431,6 @@ graph_store_config.update({
 
 # Get backend-specific configuration
 neo4j_config = graph_store_config.get_neo4j_config()
-kuzu_config = graph_store_config.get_kuzu_config()
 falkordb_config = graph_store_config.get_falkordb_config()
 
 # Get all configuration
@@ -598,14 +550,14 @@ print(f"Labels: {stats.get('label_counts')}")
 
 ## Backend Comparison
 
-| Feature | Neo4j | KuzuDB | FalkorDB |
-|---------|-------|--------|----------|
-| Query Language | Cypher | Cypher | OpenCypher |
-| Deployment | Server/Cloud | Embedded | Server (Redis) |
-| Schema | Schema-optional | Schema-required | Schema-optional |
-| Transactions | ACID | ACID | ACID |
-| Performance | Good | Excellent (Analytics) | Ultra-fast |
-| Use Case | General purpose | Analytics | Real-time, LLM |
+| Feature | Neo4j | FalkorDB |
+|---------|-------|----------|
+| Query Language | Cypher | OpenCypher |
+| Deployment | Server/Cloud | Server (Redis) |
+| Schema | Schema-optional | Schema-optional |
+| Transactions | ACID | ACID |
+| Performance | Good | Ultra-fast |
+| Use Case | General purpose | Real-time, LLM |
 
 ## Best Practices
 

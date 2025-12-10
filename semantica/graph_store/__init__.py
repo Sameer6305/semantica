@@ -2,14 +2,14 @@
 Graph Store Module
 
 This module provides comprehensive property graph database integration for the
-Semantica framework, supporting multiple graph database backends including Neo4j,
-KuzuDB, and FalkorDB for storing and querying knowledge graphs.
+Semantica framework, supporting multiple graph database backends including Neo4j
+and FalkorDB for storing and querying knowledge graphs.
 
 Algorithms Used:
 
 Graph Store Management:
     - Store Registration: Store type detection, adapter factory pattern, configuration management, default store selection
-    - Adapter Pattern: Unified interface for multiple backends (Neo4j, KuzuDB, FalkorDB), adapter instantiation, backend-specific operation delegation
+    - Adapter Pattern: Unified interface for multiple backends (Neo4j, FalkorDB), adapter instantiation, backend-specific operation delegation
     - Store Selection: Default store resolution, store ID lookup, store validation
 
 Node and Relationship Operations:
@@ -37,7 +37,6 @@ Graph Analytics:
 
 Store Adapters:
     - Neo4j Adapter: Official Neo4j Python driver, Bolt protocol communication, transaction support, multi-database support, APOC procedures
-    - KuzuDB Adapter: Embedded graph database, in-memory and persistent storage, Cypher support, high-performance analytical queries
     - FalkorDB Adapter: Redis-based graph database, sparse matrix representation, linear algebra queries, OpenCypher support, ultra-fast performance
 
 Bulk Operations:
@@ -46,7 +45,7 @@ Bulk Operations:
     - Progress Tracking: Load progress calculation, elapsed time tracking, throughput calculation
 
 Key Features:
-    - Multi-backend property graph support (Neo4j, KuzuDB, FalkorDB)
+    - Multi-backend property graph support (Neo4j, FalkorDB)
     - Full Cypher/OpenCypher query language support
     - Node and relationship CRUD operations
     - Graph traversal and path finding
@@ -61,7 +60,6 @@ Main Classes:
     - GraphStore: Main graph store interface
     - GraphManager: Graph store management and operations
     - Neo4jAdapter: Neo4j integration adapter
-    - KuzuAdapter: KuzuDB integration adapter
     - FalkorDBAdapter: FalkorDB integration adapter
     - NodeManager: Node CRUD operations
     - RelationshipManager: Relationship CRUD operations
@@ -110,7 +108,6 @@ from .graph_store import (
     QueryEngine,
     RelationshipManager,
 )
-from .kuzu_adapter import KuzuAdapter, KuzuConnection, KuzuDatabase, KuzuQuery
 from .methods import (
     create_node,
     create_nodes,
@@ -145,11 +142,6 @@ __all__ = [
     "Neo4jDriver",
     "Neo4jSession",
     "Neo4jTransaction",
-    # KuzuDB
-    "KuzuAdapter",
-    "KuzuDatabase",
-    "KuzuConnection",
-    "KuzuQuery",
     # FalkorDB
     "FalkorDBAdapter",
     "FalkorDBClient",

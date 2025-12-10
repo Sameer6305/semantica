@@ -3,7 +3,7 @@ Graph Store Core Module
 
 This module provides the core graph store interface and management classes,
 providing a unified interface across multiple graph database backends
-(Neo4j, KuzuDB, FalkorDB).
+(Neo4j, FalkorDB).
 
 Key Features:
     - Unified graph store interface
@@ -507,7 +507,7 @@ class GraphStore:
     Main graph store interface.
 
     Provides a unified interface for working with property graph databases,
-    supporting Neo4j, KuzuDB, and FalkorDB backends.
+    supporting Neo4j and FalkorDB backends.
     """
 
     def __init__(
@@ -519,7 +519,7 @@ class GraphStore:
         Initialize graph store.
 
         Args:
-            backend: Backend type ("neo4j", "kuzu", "falkordb")
+            backend: Backend type ("neo4j", "falkordb")
             **config: Backend-specific configuration
         """
         self.logger = get_logger("graph_store")
@@ -541,12 +541,6 @@ class GraphStore:
             neo4j_config = graph_store_config.get_neo4j_config()
             neo4j_config.update(self.config)
             self._adapter = Neo4jAdapter(**neo4j_config)
-
-        elif self.backend == "kuzu":
-            from .kuzu_adapter import KuzuAdapter
-            kuzu_config = graph_store_config.get_kuzu_config()
-            kuzu_config.update(self.config)
-            self._adapter = KuzuAdapter(**kuzu_config)
 
         elif self.backend == "falkordb":
             from .falkordb_adapter import FalkorDBAdapter

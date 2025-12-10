@@ -277,7 +277,7 @@ for rel in relationships[:5]:
 **Key Features:**
 
 - Graph construction from entities/relationships
-- Multiple backend support (NetworkX, Neo4j, KuzuDB)
+- Multiple backend support (NetworkX, Neo4j)
 - Temporal graph support
 - Graph analytics and metrics
 - Entity resolution and deduplication
@@ -513,7 +513,7 @@ results = hybrid_search.search(
 
 **Key Features:**
 
-- Multiple backend support (Neo4j, KuzuDB, FalkorDB)
+- Multiple backend support (Neo4j, FalkorDB)
 - Cypher query language
 - Graph algorithms and analytics
 - Transaction support
@@ -525,7 +525,6 @@ results = hybrid_search.search(
 
 - `GraphStore` — Main graph store interface
 - `Neo4jAdapter` — Neo4j database integration
-- `KuzuAdapter` — KuzuDB embedded database integration
 - `FalkorDBAdapter` — FalkorDB (Redis-based) integration
 - `NodeManager` — Node CRUD operations
 - `RelationshipManager` — Relationship CRUD operations

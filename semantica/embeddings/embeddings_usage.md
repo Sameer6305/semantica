@@ -645,13 +645,6 @@ networkx_result = manager.prepare_for_graph_db(
     graph_type="DiGraph"
 )
 
-# Prepare for KuzuDB
-kuzu_result = manager.prepare_for_graph_db(
-    entities,
-    backend="kuzu",
-    database_path="./kuzu_db"
-)
-
 # Prepare for FalkorDB
 falkordb_result = manager.prepare_for_graph_db(
     entities,
