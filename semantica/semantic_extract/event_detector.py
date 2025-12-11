@@ -85,7 +85,6 @@ class Event:
 class EventDetector:
     """Event detection and extraction handler."""
 
-<<<<<<< HEAD
     def __init__(
         self,
         event_types: Optional[List[str]] = None,
@@ -96,9 +95,6 @@ class EventDetector:
         config=None,
         **kwargs
     ):
-=======
-    def __init__(self, method: Union[str, List[str]] = None, config=None, **kwargs):
->>>>>>> origin/main
         """
         Initialize event detector.
 
@@ -120,15 +116,12 @@ class EventDetector:
         self.config.update(kwargs)
         self.progress_tracker = get_progress_tracker()
 
-<<<<<<< HEAD
         # Store parameters
         self.event_types_filter = event_types
         self.extract_participants = extract_participants
         self.extract_location = extract_location
         self.extract_time = extract_time
 
-=======
->>>>>>> origin/main
         # Store method for passing to extractors if needed
         if method is not None:
             self.config["ner_method"] = method
@@ -171,7 +164,6 @@ class EventDetector:
         try:
             events = []
 
-<<<<<<< HEAD
             # Determine which event types to detect
             event_patterns_to_use = self.event_patterns
             if self.event_types_filter:
@@ -180,24 +172,17 @@ class EventDetector:
                     if k in self.event_types_filter
                 }
 
-=======
->>>>>>> origin/main
             # Detect events using patterns
             self.progress_tracker.update_tracking(
                 tracking_id, message="Scanning text for event patterns..."
             )
-<<<<<<< HEAD
             for event_type, pattern in event_patterns_to_use.items():
-=======
-            for event_type, pattern in self.event_patterns.items():
->>>>>>> origin/main
                 for match in re.finditer(pattern, text, re.IGNORECASE):
                     # Extract surrounding context
                     start = max(0, match.start() - 50)
                     end = min(len(text), match.end() + 50)
                     context = text[start:end]
 
-<<<<<<< HEAD
                     # Extract participants if enabled
                     participants = []
                     if self.extract_participants:
@@ -212,10 +197,6 @@ class EventDetector:
                     time_info = None
                     if self.extract_time:
                         time_info = self._extract_time(context)
-=======
-                    # Extract participants (simplified)
-                    participants = self._extract_participants(context)
->>>>>>> origin/main
 
                     event = Event(
                         text=match.group(0),

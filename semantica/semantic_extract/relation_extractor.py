@@ -69,7 +69,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from ..utils.exceptions import ProcessingError
 from ..utils.logging import get_logger
 from ..utils.progress_tracker import get_progress_tracker
-from .methods import get_relation_method
 from .ner_extractor import Entity
 
 
@@ -173,6 +172,8 @@ class RelationExtractor:
         Returns:
             list: List of extracted relations
         """
+        from .methods import get_relation_method
+
         tracking_id = self.progress_tracker.start_tracking(
             module="semantic_extract",
             submodule="RelationExtractor",

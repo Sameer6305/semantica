@@ -70,7 +70,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from ..utils.exceptions import ProcessingError
 from ..utils.logging import get_logger
 from ..utils.progress_tracker import get_progress_tracker
-from .methods import get_entity_method
 
 try:
     import spacy
@@ -164,6 +163,7 @@ class NERExtractor:
         )
 
         try:
+            from .methods import get_entity_method
             if not text:
                 self.progress_tracker.stop_tracking(
                     tracking_id, status="completed", message="No text provided"

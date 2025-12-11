@@ -91,6 +91,21 @@ class TestGraphBuilder(unittest.TestCase):
         graph2 = builder.build(source_list)
         self.assertEqual(len(graph2["entities"]), 2)
 
+    def test_build_with_conflict_resolution(self):
+        """Test building with conflict resolution enabled"""
+        builder = GraphBuilder(resolve_conflicts=True)
+        
+        # Mock conflict detector methods
+        self.mock_conflict_cls.return_value.detect_conflicts.return_value = ["conflict1"]
+        self.mock_conflict_cls.return_value.resolve_conflicts.return_value = {"resolved_count": 1}
+        
+        sources = [{"entities": [{"id": "1", "name": "A"}], "relationships": []}]
+        graph = builder.build(sources)
+        
+        # Verify conflict detector was called
+        self.mock_conflict_cls.return_value.detect_conflicts.assert_called_once()
+        self.mock_conflict_cls.return_value.resolve_conflicts.assert_called_once()
+
 class TestGraphAnalyzer(unittest.TestCase):
     def setUp(self):
         self.mock_tracker_patcher = patch("semantica.kg.graph_analyzer.get_progress_tracker")

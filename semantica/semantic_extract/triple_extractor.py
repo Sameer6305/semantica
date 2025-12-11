@@ -70,7 +70,6 @@ from urllib.parse import quote
 from ..utils.exceptions import ProcessingError, ValidationError
 from ..utils.logging import get_logger
 from ..utils.progress_tracker import get_progress_tracker
-from .methods import get_triple_method
 from .ner_extractor import Entity
 from .relation_extractor import Relation
 
@@ -158,6 +157,8 @@ class TripleExtractor:
         Returns:
             list: List of extracted triples
         """
+        from .methods import get_triple_method
+
         tracking_id = self.progress_tracker.start_tracking(
             module="semantic_extract",
             submodule="TripleExtractor",

@@ -92,6 +92,7 @@ class InferenceEngine:
         self.max_iterations = self.config.get("max_iterations", 100)
 
         self.facts: Set[Any] = set()
+        self.unhashable_facts: List[Any] = []
         self.inferred_facts: List[InferenceResult] = []
 
     def add_rule(self, rule_definition: str, **options) -> Rule:
@@ -115,15 +116,28 @@ class InferenceEngine:
 
         return rule
 
-    def add_fact(self, fact: Any) -> None:
+    def add_fact(self, fact: Any) -> bool:
         """
         Add fact to knowledge base.
 
         Args:
             fact: Fact to add
+
+        Returns:
+            True if fact was newly added, False if it already existed
         """
-        self.facts.add(fact)
-        self.logger.debug(f"Added fact: {fact}")
+        try:
+            if fact in self.facts:
+                return False
+            self.facts.add(fact)
+            self.logger.debug(f"Added fact: {fact}")
+            return True
+        except TypeError:
+            if fact not in self.unhashable_facts:
+                self.unhashable_facts.append(fact)
+                self.logger.debug(f"Added unhashable fact: {fact}")
+                return True
+            return False
 
     def add_facts(self, facts: List[Any]) -> None:
         """
@@ -185,10 +199,11 @@ class InferenceEngine:
                         # Apply rule
                         result = self._apply_rule(rule)
                         if result:
-                            results.append(result)
-                            self.inferred_facts.append(result)
-                            self.add_fact(result.conclusion)
-                            new_facts = True
+                            # Only consider it a new inference if the fact wasn't already known
+                            if self.add_fact(result.conclusion):
+                                results.append(result)
+                                self.inferred_facts.append(result)
+                                new_facts = True
 
             self.logger.info(
                 f"Forward chaining completed: {len(results)} inferences in {iterations} iterations"
@@ -228,7 +243,16 @@ class InferenceEngine:
             self.progress_tracker.update_tracking(
                 tracking_id, message="Checking if goal is already a fact..."
             )
-            if goal in self.facts:
+            
+            is_fact = False
+            try:
+                if goal in self.facts:
+                    is_fact = True
+            except TypeError:
+                if goal in self.unhashable_facts:
+                    is_fact = True
+                    
+            if is_fact:
                 self.progress_tracker.stop_tracking(
                     tracking_id, status="completed", message="Goal is already a fact"
                 )
@@ -283,8 +307,12 @@ class InferenceEngine:
     def _can_rule_fire(self, rule: Rule) -> bool:
         """Check if rule can fire (all conditions met)."""
         for condition in rule.conditions:
-            if condition not in self.facts:
-                return False
+            try:
+                if condition not in self.facts:
+                    return False
+            except TypeError:
+                if condition not in self.unhashable_facts:
+                    return False
         return True
 
     def _rule_concludes(self, rule: Rule, goal: Any) -> bool:
@@ -365,9 +393,9 @@ class InferenceEngine:
             )
             raise
 
-    def get_facts(self) -> Set[Any]:
+    def get_facts(self) -> List[Any]:
         """Get all facts."""
-        return set(self.facts)
+        return list(self.facts) + self.unhashable_facts
 
     def get_inferred_facts(self) -> List[InferenceResult]:
         """Get all inferred facts."""
@@ -376,6 +404,7 @@ class InferenceEngine:
     def clear_facts(self) -> None:
         """Clear all facts."""
         self.facts.clear()
+        self.unhashable_facts.clear()
         self.inferred_facts.clear()
 
     def reset(self) -> None:

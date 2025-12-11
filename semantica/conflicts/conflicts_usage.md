@@ -137,6 +137,16 @@ conflicts = detector.detect_entity_conflicts(
 print(f"Found {len(conflicts)} total conflicts across all properties")
 ```
 
+### Integrated Detection and Basic Resolution
+
+The `ConflictDetector` also provides a convenience method `resolve_conflicts` for basic resolution, which is primarily used by the `GraphBuilder`. For more control, use the `ConflictResolver` class.
+
+```python
+# Detect and automatically resolve conflicts (convenience method)
+resolution_result = detector.resolve_conflicts(conflicts)
+print(f"Resolved {resolution_result.get('resolved_count')} conflicts")
+```
+
 ### Using Detection Methods
 
 ```python

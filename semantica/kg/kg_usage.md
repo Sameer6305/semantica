@@ -44,6 +44,7 @@ analyzer = GraphAnalyzer()
 analysis = analyzer.analyze_graph(kg)
 ```
 
+
 ## Knowledge Graph Building
 
 ### Basic Graph Building
@@ -52,6 +53,8 @@ analysis = analyzer.analyze_graph(kg)
 from semantica.kg import GraphBuilder
 
 # Create graph builder
+# Note: resolve_conflicts=True uses the basic resolution capabilities of ConflictDetector.
+# For advanced conflict resolution, consider using the semantica.conflicts module directly.
 builder = GraphBuilder(
     merge_entities=True,
     entity_resolution_strategy="fuzzy",

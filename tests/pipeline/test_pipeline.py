@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import MagicMock, patch
-import time
 from semantica.pipeline.pipeline_builder import PipelineBuilder, StepStatus
 from semantica.pipeline.execution_engine import ExecutionEngine, PipelineStatus
 
