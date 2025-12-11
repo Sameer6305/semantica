@@ -89,6 +89,11 @@ class PropertyGenerator:
             submodule="PropertyGenerator",
             message=f"Inferring properties from {len(entities)} entities and {len(relationships)} relationships",
         )
+        
+        # Merge config into options
+        for key, value in self.config.items():
+            if key not in options:
+                options[key] = value
 
         try:
             properties = []

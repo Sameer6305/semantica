@@ -262,8 +262,8 @@ class NamingConventions:
             # camelCase for object properties
             suggested = self._to_camel_case(name)
         else:
-            # lowercase for data properties
-            suggested = name.lower()
+            # camelCase for data properties as well (standard practice)
+            suggested = self._to_camel_case(name)
 
         return suggested
 
@@ -364,6 +364,10 @@ class NamingConventions:
 
     def _to_camel_case(self, name: str) -> str:
         """Convert to camelCase."""
+        # Check if already likely camelCase (starts with lower, has upper, single word)
+        if name and name[0].islower() and any(c.isupper() for c in name) and ' ' not in name and '_' not in name:
+            return name
+
         words = re.findall(r"[a-zA-Z0-9]+", name)
         if not words:
             return "hasProperty"
@@ -381,8 +385,8 @@ class NamingConventions:
         # Basic singularization rules
         if name.lower().endswith("ies"):
             return name[:-3] + "y"
-        elif name.lower().endswith("es"):
+        elif name.lower().endswith("es") and not name.lower().endswith("ss"):
             return name[:-2]
-        elif name.lower().endswith("s") and len(name) > 1:
+        elif name.lower().endswith("s") and len(name) > 1 and not name.lower().endswith("ss") and name.lower() not in ["class", "process", "analysis"]:
             return name[:-1]
         return name

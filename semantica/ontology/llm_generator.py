@@ -31,7 +31,7 @@ class LLMOntologyGenerator:
         )
 
         base_uri = options.get("base_uri")
-        name = options.get("name") or "GeneratedOntology"
+        name = options.get("name")
         version = options.get("version") or "1.0"
 
         prompt = self._build_prompt(text=text, name=name, base_uri=base_uri)

@@ -302,14 +302,22 @@ class OntologyVisualizer:
             # Add domain edges
             domain = prop.get("domain")
             if domain:
-                edges.append({"source": prop_name, "target": domain, "type": "domain"})
+                if isinstance(domain, list):
+                    for d in domain:
+                        edges.append({"source": prop_name, "target": d, "type": "domain"})
+                else:
+                    edges.append({"source": prop_name, "target": domain, "type": "domain"})
 
             # Add range edges
             range_val = prop.get("range")
             if range_val:
-                edges.append(
-                    {"source": prop_name, "target": range_val, "type": "range"}
-                )
+                if isinstance(range_val, list):
+                    for r in range_val:
+                        edges.append({"source": prop_name, "target": r, "type": "range"})
+                else:
+                    edges.append(
+                        {"source": prop_name, "target": range_val, "type": "range"}
+                    )
 
         return self._visualize_structure_plotly(
             nodes, edges, output, file_path, **options

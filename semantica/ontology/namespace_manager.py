@@ -216,6 +216,10 @@ class NamespaceManager:
 
     def _to_camel_case(self, name: str) -> str:
         """Convert name to camelCase."""
+        # Check if already likely camelCase (starts with lower, has upper, single word)
+        if name and name[0].islower() and any(c.isupper() for c in name) and ' ' not in name and '_' not in name:
+            return name
+
         # Remove special characters and split
         words = re.findall(r"[a-zA-Z0-9]+", name)
         if not words:

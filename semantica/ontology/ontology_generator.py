@@ -170,7 +170,13 @@ class OntologyGenerator:
             self.progress_tracker.update_tracking(
                 tracking_id, message="Stage 3: Mapping to OWL types..."
             )
-            typed_definitions = self._stage3_definition_to_types(definitions, **options)
+            
+            # Ensure entities and relationships are available for property inference
+            stage3_options = options.copy()
+            stage3_options["entities"] = data.get("entities", [])
+            stage3_options["relationships"] = data.get("relationships", [])
+            
+            typed_definitions = self._stage3_definition_to_types(definitions, **stage3_options)
 
             # Stage 4: Hierarchy Generation
             self.progress_tracker.update_tracking(
@@ -266,9 +272,14 @@ class OntologyGenerator:
         relationships = options.get("relationships", [])
         entities = options.get("entities", [])
 
+        # Clean options for infer_properties to avoid multiple values for arguments
+        prop_options = options.copy()
+        prop_options.pop("entities", None)
+        prop_options.pop("relationships", None)
+
         # Infer properties
         properties = self.property_generator.infer_properties(
-            entities=entities, relationships=relationships, classes=classes, **options
+            entities=entities, relationships=relationships, classes=classes, **prop_options
         )
 
         # Add types to classes
