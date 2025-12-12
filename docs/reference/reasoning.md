@@ -245,7 +245,7 @@ kg.add_triples(inferred_triples)
 ## See Also
 
 - [Ontology Module](ontology.md) - Source of schema-based rules
-- [Triple Store Module](triple_store.md) - Backend for SPARQL reasoning
+- [Triplet Store Module](triplet_store.md) - Backend for SPARQL reasoning
 - [Modules Guide](../modules.md#quality-assurance) - Consistency checking overview
 
 ## Cookbook

@@ -1,11 +1,11 @@
 """
-Method Registry Module for Triple Store
+Method Registry Module for Triplet Store
 
-This module provides a method registry system for registering custom triple store methods,
-enabling extensibility and community contributions to the triple store toolkit.
+This module provides a method registry system for registering custom triplet store methods,
+enabling extensibility and community contributions to the triplet store toolkit.
 
 Supported Registration Types:
-    - Method Registry: Register custom triple store methods for:
+    - Method Registry: Register custom triplet store methods for:
         * "register": Store registration methods
         * "add": Triple addition methods
         * "get": Triple retrieval methods
@@ -24,20 +24,20 @@ Algorithms Used:
     - Task-based Organization: Hierarchical organization by task type
 
 Key Features:
-    - Method registry for custom triple store methods
+    - Method registry for custom triplet store methods
     - Task-based method organization (register, add, get, delete, update, query, optimize, bulk_load, validate)
     - Dynamic registration and unregistration
     - Easy discovery of available methods
     - Support for community-contributed extensions
 
 Main Classes:
-    - MethodRegistry: Registry for custom triple store methods
+    - MethodRegistry: Registry for custom triplet store methods
 
 Global Instances:
     - method_registry: Global method registry instance
 
 Example Usage:
-    >>> from semantica.triple_store.registry import method_registry
+    >>> from semantica.triplet_store.registry import method_registry
     >>> method_registry.register("add", "custom_method", custom_add_function)
     >>> available = method_registry.list_all("add")
 """
@@ -46,7 +46,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 
 class MethodRegistry:
-    """Registry for custom triple store methods."""
+    """Registry for custom triplet store methods."""
 
     def __init__(self):
         """Initialize method registry."""

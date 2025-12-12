@@ -12,7 +12,7 @@ Key Features:
     - Query expansion
     - Performance optimization
     - Error handling and recovery
-    - Triple store integration
+    - Triplet store integration
 
 Main Classes:
     - SPARQLReasoner: SPARQL-based reasoning engine
@@ -67,7 +67,7 @@ class SPARQLReasoner:
         Args:
             config: Configuration dictionary
             **kwargs: Additional configuration options:
-                - triple_store: Triple store connection
+                - triplet_store: Triplet store connection
                 - enable_inference: Enable inference rules
         """
         self.logger = get_logger("sparql_reasoner")
@@ -78,7 +78,7 @@ class SPARQLReasoner:
         self.progress_tracker = get_progress_tracker()
 
         self.rule_manager = RuleManager(**self.config)
-        self.triple_store = self.config.get("triple_store")
+        self.triplet_store = self.config.get("triplet_store")
         self.enable_inference = self.config.get("enable_inference", True)
 
         self.query_cache: Dict[str, Any] = {}
@@ -356,12 +356,12 @@ class SPARQLReasoner:
             )
             expanded_query = self.expand_query(query, **options)
 
-            # Execute query (if triple store available)
+            # Execute query (if triplet store available)
             self.progress_tracker.update_tracking(
                 tracking_id, message="Executing query..."
             )
-            if self.triple_store:
-                # This would call the triple store's query method
+            if self.triplet_store:
+                # This would call the triplet store's query method
                 # For now, return empty result
                 result = SPARQLQueryResult(bindings=[], variables=[])
             else:

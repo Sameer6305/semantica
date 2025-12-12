@@ -84,7 +84,7 @@ class _SemanticaModules:
         self._normalize = None
         self._export = None
         self._vector_store = None
-        self._triple_store = None
+        self._triplet_store = None
         self._graph_store = None
         self._ontology = None
         self._evals = None
@@ -160,11 +160,11 @@ class _SemanticaModules:
         return self._vector_store
 
     @property
-    def triple_store(self):
-        """Access triple store module."""
-        if self._triple_store is None:
-            self._triple_store = _ModuleProxy("triple_store")
-        return self._triple_store
+    def triplet_store(self):
+        """Access triplet store module."""
+        if self._triplet_store is None:
+            self._triplet_store = _ModuleProxy("triplet_store")
+        return self._triplet_store
 
     @property
     def graph_store(self):
@@ -289,7 +289,7 @@ def __getattr__(name: str):
         "normalize",
         "export",
         "vector_store",
-        "triple_store",
+        "triplet_store",
         "graph_store",
         "ontology",
         "evals",

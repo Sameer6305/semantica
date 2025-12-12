@@ -67,7 +67,7 @@ graph TB
 ### Knowledge Graphs
 - **`semantica.kg`** - Knowledge graph construction
 - **`semantica.vector_store`** - Vector storage (Pinecone, Weaviate, FAISS)
-- **`semantica.triple_store`** - RDF triple storage (Jena, Blazegraph)
+- **`semantica.triplet_store`** - RDF triplet storage (Jena, Blazegraph)
 - **`semantica.graph_store`** - Property graphs (Neo4j, FalkorDB)
 
 ### Quality Assurance
@@ -85,7 +85,7 @@ graph TB
 4. Semantic Extraction → Entities, relationships, events
 5. Graph Construction → Entity resolution, conflict resolution
 6. Quality Assurance → Deduplication, validation
-7. Storage → Vector, triple, and graph stores
+7. Storage → Vector, triplet, and graph stores
 8. Application → GraphRAG, agents, analytics
 ```
 

@@ -279,7 +279,7 @@ owl_ontology = ontology.to_owl()
 rdf_ontology = ontology.to_rdf()
 turtle_ontology = ontology.to_turtle()
 
-# Save to triple store
+# Save to triplet store
 ontology.save_to_triple_store("http://localhost:9999/blazegraph/sparql")
 ```
 

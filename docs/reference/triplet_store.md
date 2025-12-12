@@ -1,6 +1,6 @@
-# Triple Store
+# Triplet Store
 
-> **Store and query RDF triples with SPARQL support and semantic reasoning using industry-standard triple stores.**
+> **Store and query RDF triplets with SPARQL support and semantic reasoning using industry-standard triplet stores.**
 
 ---
 
@@ -12,7 +12,7 @@
 
     ---
 
-    Store subject-predicate-object triples in W3C-compliant RDF format
+    Store subject-predicate-object triplets in W3C-compliant RDF format
 
 -   :material-code-braces:{ .lg .middle } **SPARQL Queries**
 
@@ -36,7 +36,7 @@
 
     ---
 
-    Query across multiple triple stores with SPARQL federation
+    Query across multiple triplet stores with SPARQL federation
 
 -   :material-upload-multiple:{ .lg .middle } **Bulk Loading**
 
@@ -89,29 +89,29 @@
 
 ## Main Classes
 
-### TripleManager
+### TripletManager
 
-Main coordinator for triple store operations across multiple backends.
+Main coordinator for triplet store operations across multiple backends.
 
 **Methods:**
 
 | Method | Description | Algorithm |
 |--------|-------------|-----------|
-| `register_store(id, backend, endpoint)` | Register triple store | Store registration |
-| `add_triple(triple, store_id)` | Add single triple | Index insertion |
-| `add_triples(triples, store_id)` | Batch add triples | Bulk index insertion |
+| `register_store(store_id, backend, endpoint)` | Register triplet store | Store registration |
+| `add_triple(triple, store_id)` | Add single triplet | Index insertion |
+| `add_triples(triples, store_id)` | Batch add triplets | Bulk index insertion |
 | `query(sparql, store_id)` | Execute SPARQL query | Query optimization + execution |
-| `delete(pattern, store_id)` | Delete matching triples | Pattern matching + deletion |
+| `delete(pattern, store_id)` | Delete matching triplets | Pattern matching + deletion |
 | `bulk_load(file_path, format, store_id)` | Bulk load from file | Streaming parser + batch insert |
 | `get_stats(store_id)` | Get store statistics | Statistics collection |
 
 **Example:**
 
 ```python
-from semantica.triple_store import TripleManager
+from semantica.triplet_store import TripletManager
 
 # Initialize manager
-manager = TripleManager()
+manager = TripletManager()
 
 # Register Blazegraph store
 store = manager.register_store(
@@ -193,9 +193,9 @@ SPARQL query execution and optimization engine.
 **Example:**
 
 ```python
-from semantica.triple_store import QueryEngine, TripleManager
+from semantica.triplet_store import QueryEngine, TripletManager
 
-manager = TripleManager()
+manager = TripletManager()
 store = manager.register_store("main", "blazegraph", "http://localhost:9999/blazegraph/sparql")
 
 engine = QueryEngine()
@@ -270,9 +270,9 @@ High-performance bulk data loading with progress tracking.
 **Example:**
 
 ```python
-from semantica.triple_store import BulkLoader, TripleManager
+from semantica.triplet_store import BulkLoader, TripletManager
 
-manager = TripleManager()
+manager = TripletManager()
 store = manager.register_store("main", "blazegraph", "http://localhost:9999/blazegraph/sparql")
 
 loader = BulkLoader(
@@ -322,7 +322,7 @@ progress = loader.load_from_string(
 
 #### BlazegraphAdapter
 
-High-performance triple store with GPU acceleration support.
+High-performance triplet store with GPU acceleration support.
 
 **Features:**
 - High-performance SPARQL query execution
@@ -334,7 +334,7 @@ High-performance triple store with GPU acceleration support.
 **Example:**
 
 ```python
-from semantica.triple_store import BlazegraphAdapter
+from semantica.triplet_store import BlazegraphAdapter
 
 adapter = BlazegraphAdapter(
     endpoint="http://localhost:9999/blazegraph/sparql",
@@ -376,7 +376,7 @@ results = adapter.query("""
 Full-featured RDF framework with TDB2 storage.
 
 **Features:**
-- TDB2 native triple store
+- TDB2 native triplet store
 - SHACL validation
 - Inference engines (RDFS, OWL)
 - Fuseki SPARQL server
@@ -385,7 +385,7 @@ Full-featured RDF framework with TDB2 storage.
 **Example:**
 
 ```python
-from semantica.triple_store import JenaAdapter
+from semantica.triplet_store import JenaAdapter
 
 adapter = JenaAdapter(
     tdb_directory="./tdb2_data",
@@ -451,7 +451,7 @@ Java-based RDF framework with multiple storage backends.
 **Example:**
 
 ```python
-from semantica.triple_store import RDF4JAdapter
+from semantica.triplet_store import RDF4JAdapter
 
 adapter = RDF4JAdapter(
     server_url="http://localhost:8080/rdf4j-server",
@@ -497,7 +497,7 @@ Enterprise-grade RDF store with SQL integration.
 **Example:**
 
 ```python
-from semantica.triple_store import VirtuosoAdapter
+from semantica.triplet_store import VirtuosoAdapter
 
 adapter = VirtuosoAdapter(
     host="localhost",
@@ -534,10 +534,10 @@ results = adapter.query(f"""
 
 ## Convenience Functions
 
-Quick access to triple store operations:
+Quick access to triplet store operations:
 
 ```python
-from semantica.triple_store import (
+from semantica.triplet_store import (
     add_triple,
     add_triples,
     execute_query,
@@ -579,9 +579,9 @@ export_graph(
 
 ## Dataclasses
 
-### TripleStore
+### TripletStore
 
-Configuration dataclass for triple store instances.
+Configuration dataclass for triplet store instances.
 
 **Attributes:**
 
@@ -649,35 +649,35 @@ Bulk loading progress dataclass.
 
 ```bash
 # General settings
-export TRIPLE_STORE_DEFAULT_BACKEND=blazegraph
-export TRIPLE_STORE_BATCH_SIZE=10000
-export TRIPLE_STORE_TIMEOUT=30
+export TRIPLET_STORE_DEFAULT_BACKEND=blazegraph
+export TRIPLET_STORE_BATCH_SIZE=10000
+export TRIPLET_STORE_TIMEOUT=30
 
 # Blazegraph settings
-export TRIPLE_STORE_BLAZEGRAPH_ENDPOINT=http://localhost:9999/blazegraph/sparql
-export TRIPLE_STORE_BLAZEGRAPH_NAMESPACE=kb
+export TRIPLET_STORE_BLAZEGRAPH_ENDPOINT=http://localhost:9999/blazegraph/sparql
+export TRIPLET_STORE_BLAZEGRAPH_NAMESPACE=kb
 
 # Jena settings
-export TRIPLE_STORE_JENA_TDB_DIRECTORY=./tdb2_data
-export TRIPLE_STORE_JENA_INFERENCE=rdfs
+export TRIPLET_STORE_JENA_TDB_DIRECTORY=./tdb2_data
+export TRIPLET_STORE_JENA_INFERENCE=rdfs
 
 # RDF4J settings
-export TRIPLE_STORE_RDF4J_SERVER_URL=http://localhost:8080/rdf4j-server
-export TRIPLE_STORE_RDF4J_REPOSITORY_ID=my_repo
+export TRIPLET_STORE_RDF4J_SERVER_URL=http://localhost:8080/rdf4j-server
+export TRIPLET_STORE_RDF4J_REPOSITORY_ID=my_repo
 
 # Virtuoso settings
-export TRIPLE_STORE_VIRTUOSO_HOST=localhost
-export TRIPLE_STORE_VIRTUOSO_PORT=1111
-export TRIPLE_STORE_VIRTUOSO_USER=dba
-export TRIPLE_STORE_VIRTUOSO_PASSWORD=dba
+export TRIPLET_STORE_VIRTUOSO_HOST=localhost
+export TRIPLET_STORE_VIRTUOSO_PORT=1111
+export TRIPLET_STORE_VIRTUOSO_USER=dba
+export TRIPLET_STORE_VIRTUOSO_PASSWORD=dba
 ```
 
 ### YAML Configuration
 
 ```yaml
-# config.yaml - Triple Store Configuration
+# config.yaml - Triplet Store Configuration
 
-triple_store:
+triplet_store:
   backend: blazegraph  # blazegraph, jena, rdf4j, virtuoso
   batch_size: 10000
   timeout: 30

@@ -1,6 +1,6 @@
-# Triple Store Module Usage Guide
+# Triplet Store Module Usage Guide
 
-This comprehensive guide demonstrates how to use the triple store module for RDF data storage and querying, supporting multiple triple store backends (Blazegraph, Jena, RDF4J, Virtuoso) with unified interfaces, SPARQL query execution, bulk loading, and query optimization.
+This comprehensive guide demonstrates how to use the triplet store module for RDF data storage and querying, supporting multiple triplet store backends (Blazegraph, Jena, RDF4J, Virtuoso) with unified interfaces, SPARQL query execution, bulk loading, and query optimization.
 
 ## Table of Contents
 
@@ -17,14 +17,14 @@ This comprehensive guide demonstrates how to use the triple store module for RDF
 
 ## Basic Usage
 
-### Using TripleManager
+### Using TripletManager
 
 ```python
-from semantica.triple_store import TripleManager
+from semantica.triplet_store import TripletManager
 from semantica.semantic_extract.triple_extractor import Triple
 
-# Create triple manager
-manager = TripleManager()
+# Create triplet manager
+manager = TripletManager()
 
 # Register a store
 store = manager.register_store("main", "blazegraph", "http://localhost:9999/blazegraph")
@@ -44,7 +44,7 @@ print(f"Triple added: {result['success']}")
 ### Using Convenience Functions
 
 ```python
-from semantica.triple_store import register_store, add_triple, get_triples, execute_query
+from semantica.triplet_store import register_store, add_triple, get_triples, execute_query
 from semantica.semantic_extract.triple_extractor import Triple
 
 # Register store
@@ -66,7 +66,7 @@ print(f"Found {len(triples)} triples")
 ### Using QueryEngine
 
 ```python
-from semantica.triple_store import QueryEngine, BlazegraphAdapter
+from semantica.triplet_store import QueryEngine, BlazegraphAdapter
 
 # Create query engine
 engine = QueryEngine(enable_caching=True, enable_optimization=True)
@@ -87,9 +87,9 @@ print(f"Execution time: {result.execution_time:.2f}s")
 ### Registering a Store
 
 ```python
-from semantica.triple_store import TripleManager
+from semantica.triplet_store import TripletManager
 
-manager = TripleManager()
+manager = TripletManager()
 
 # Register Blazegraph store
 blazegraph_store = manager.register_store(
@@ -126,7 +126,7 @@ virtuoso_store = manager.register_store(
 ### Using Convenience Function
 
 ```python
-from semantica.triple_store import register_store
+from semantica.triplet_store import register_store
 
 # Register store using convenience function
 store = register_store(
@@ -143,9 +143,9 @@ print(f"Store type: {store.store_type}")
 ### Multiple Stores
 
 ```python
-from semantica.triple_store import TripleManager
+from semantica.triplet_store import TripletManager
 
-manager = TripleManager()
+manager = TripletManager()
 
 # Register multiple stores
 manager.register_store("primary", "blazegraph", "http://localhost:9999/blazegraph")
@@ -165,10 +165,10 @@ print(f"Store endpoint: {store.endpoint}")
 ### Adding Triples
 
 ```python
-from semantica.triple_store import TripleManager
+from semantica.triplet_store import TripletManager
 from semantica.semantic_extract.triple_extractor import Triple
 
-manager = TripleManager()
+manager = TripletManager()
 manager.register_store("main", "blazegraph", "http://localhost:9999/blazegraph")
 
 # Add single triple
@@ -194,9 +194,9 @@ print(f"Added {result['total_triples']} triples in {result['batches']} batches")
 ### Retrieving Triples
 
 ```python
-from semantica.triple_store import TripleManager
+from semantica.triplet_store import TripletManager
 
-manager = TripleManager()
+manager = TripletManager()
 manager.register_store("main", "blazegraph", "http://localhost:9999/blazegraph")
 
 # Get all triples for a subject
@@ -225,10 +225,10 @@ triples = manager.get_triple(
 ### Deleting Triples
 
 ```python
-from semantica.triple_store import TripleManager
+from semantica.triplet_store import TripletManager
 from semantica.semantic_extract.triple_extractor import Triple
 
-manager = TripleManager()
+manager = TripletManager()
 manager.register_store("main", "blazegraph", "http://localhost:9999/blazegraph")
 
 # Delete triple
@@ -244,10 +244,10 @@ print(f"Deleted: {result['success']}")
 ### Updating Triples
 
 ```python
-from semantica.triple_store import TripleManager
+from semantica.triplet_store import TripletManager
 from semantica.semantic_extract.triple_extractor import Triple
 
-manager = TripleManager()
+manager = TripletManager()
 manager.register_store("main", "blazegraph", "http://localhost:9999/blazegraph")
 
 # Update triple (delete old, add new)
@@ -270,7 +270,7 @@ print(f"Updated: {result['success']}")
 ### Basic Query Execution
 
 ```python
-from semantica.triple_store import QueryEngine, BlazegraphAdapter
+from semantica.triplet_store import QueryEngine, BlazegraphAdapter
 
 # Create query engine
 engine = QueryEngine(enable_caching=True)
@@ -298,7 +298,7 @@ for binding in result.bindings[:5]:
 ### Using Convenience Function
 
 ```python
-from semantica.triple_store import execute_query, BlazegraphAdapter
+from semantica.triplet_store import execute_query, BlazegraphAdapter
 
 adapter = BlazegraphAdapter(endpoint="http://localhost:9999/blazegraph")
 
@@ -311,7 +311,7 @@ print(f"Found {len(result.bindings)} results")
 ### Query Result Processing
 
 ```python
-from semantica.triple_store import QueryEngine, BlazegraphAdapter
+from semantica.triplet_store import QueryEngine, BlazegraphAdapter
 
 engine = QueryEngine()
 adapter = BlazegraphAdapter(endpoint="http://localhost:9999/blazegraph")
@@ -332,7 +332,7 @@ print(f"Metadata: {result.metadata}")
 ### Query Caching
 
 ```python
-from semantica.triple_store import QueryEngine, BlazegraphAdapter
+from semantica.triplet_store import QueryEngine, BlazegraphAdapter
 
 # Enable caching
 engine = QueryEngine(enable_caching=True, cache_size=1000)
@@ -357,7 +357,7 @@ engine.clear_cache()
 ### Basic Query Optimization
 
 ```python
-from semantica.triple_store import QueryEngine
+from semantica.triplet_store import QueryEngine
 
 engine = QueryEngine(enable_optimization=True)
 
@@ -377,7 +377,7 @@ print(f"Optimized query:\n{optimized}")
 ### Query Planning
 
 ```python
-from semantica.triple_store import QueryEngine
+from semantica.triplet_store import QueryEngine
 
 engine = QueryEngine(enable_optimization=True)
 
@@ -403,7 +403,7 @@ print(f"Execution steps: {plan.execution_steps}")
 ### Query Statistics
 
 ```python
-from semantica.triple_store import QueryEngine, BlazegraphAdapter
+from semantica.triplet_store import QueryEngine, BlazegraphAdapter
 
 engine = QueryEngine(enable_caching=True)
 adapter = BlazegraphAdapter(endpoint="http://localhost:9999/blazegraph")
@@ -427,7 +427,7 @@ print(f"Cache size: {stats['cache_size']}")
 ### Basic Bulk Loading
 
 ```python
-from semantica.triple_store import BulkLoader, BlazegraphAdapter
+from semantica.triplet_store import BulkLoader, BlazegraphAdapter
 from semantica.semantic_extract.triple_extractor import Triple
 
 # Create bulk loader
@@ -455,7 +455,7 @@ print(f"Throughput: {progress.metadata.get('throughput', 0):.0f} triples/sec")
 ### Progress Tracking
 
 ```python
-from semantica.triple_store import BulkLoader, BlazegraphAdapter, LoadProgress
+from semantica.triplet_store import BulkLoader, BlazegraphAdapter, LoadProgress
 from semantica.semantic_extract.triple_extractor import Triple
 
 loader = BulkLoader(batch_size=1000)
@@ -476,7 +476,7 @@ progress = loader.load_triples(triples, adapter, progress_callback=progress_call
 ### Pre-load Validation
 
 ```python
-from semantica.triple_store import BulkLoader
+from semantica.triplet_store import BulkLoader
 from semantica.semantic_extract.triple_extractor import Triple
 
 loader = BulkLoader()
@@ -501,7 +501,7 @@ print(f"Valid triples: {validation['valid_triples']}/{validation['total_triples'
 ### Stream-based Loading
 
 ```python
-from semantica.triple_store import BulkLoader, BlazegraphAdapter
+from semantica.triplet_store import BulkLoader, BlazegraphAdapter
 from semantica.semantic_extract.triple_extractor import Triple
 
 loader = BulkLoader(batch_size=1000)
@@ -522,7 +522,7 @@ print(f"Loaded {progress.loaded_triples} triples from stream")
 ### Blazegraph Adapter
 
 ```python
-from semantica.triple_store import BlazegraphAdapter
+from semantica.triplet_store import BlazegraphAdapter
 from semantica.semantic_extract.triple_extractor import Triple
 
 # Create Blazegraph adapter
@@ -548,7 +548,7 @@ print(f"Found {len(result['bindings'])} results")
 ### Jena Adapter
 
 ```python
-from semantica.triple_store import JenaAdapter
+from semantica.triplet_store import JenaAdapter
 from semantica.semantic_extract.triple_extractor import Triple
 
 # Create Jena adapter (in-memory)
@@ -575,7 +575,7 @@ print(turtle)
 ### RDF4J Adapter
 
 ```python
-from semantica.triple_store import RDF4JAdapter
+from semantica.triplet_store import RDF4JAdapter
 from semantica.semantic_extract.triple_extractor import Triple
 
 # Create RDF4J adapter
@@ -594,7 +594,7 @@ result = adapter.add_triples(triples)
 ### Virtuoso Adapter
 
 ```python
-from semantica.triple_store import VirtuosoAdapter
+from semantica.triplet_store import VirtuosoAdapter
 from semantica.semantic_extract.triple_extractor import Triple
 
 # Create Virtuoso adapter
@@ -613,7 +613,7 @@ result = adapter.add_triples(triples)
 
 ## Algorithms and Methods
 
-### Triple Store Management Algorithms
+### Triplet Store Management Algorithms
 
 #### Store Registration
 **Algorithm**: Store type detection and adapter factory pattern
@@ -783,9 +783,9 @@ cost = engine._estimate_query_cost(query)
 
 ### Methods
 
-#### TripleManager Methods
+#### TripletManager Methods
 
-- `register_store(store_id, store_type, endpoint, **config)`: Register triple store
+- `register_store(store_id, store_type, endpoint, **config)`: Register triplet store
 - `add_triple(triple, store_id, **options)`: Add single triple
 - `add_triples(triples, store_id, **options)`: Add multiple triples
 - `get_triple(subject, predicate, object, store_id, **options)`: Get triples matching pattern
@@ -824,14 +824,14 @@ cost = engine._estimate_query_cost(query)
 
 ## Dataclasses
 
-### TripleStore
+### TripletStore
 
-Configuration dataclass for triple store instances.
+Configuration dataclass for triplet store instances.
 
 ```python
-from semantica.triple_store import TripleStore
+from semantica.triplet_store import TripletStore
 
-store = TripleStore(
+store = TripletStore(
     store_id="main",
     store_type="blazegraph",
     endpoint="http://localhost:9999/blazegraph/sparql",
@@ -856,7 +856,7 @@ print(f"Type: {store.store_type}")
 Query execution result dataclass.
 
 ```python
-from semantica.triple_store import QueryEngine, QueryResult
+from semantica.triplet_store import QueryEngine, QueryResult
 
 engine = QueryEngine()
 result: QueryResult = engine.execute_query(query, adapter)
@@ -877,7 +877,7 @@ print(f"Execution time: {result.execution_time:.2f}s")
 Query execution plan dataclass.
 
 ```python
-from semantica.triple_store import QueryEngine, QueryPlan
+from semantica.triplet_store import QueryEngine, QueryPlan
 
 engine = QueryEngine(enable_optimization=True)
 plan: QueryPlan = engine.plan_query(query)
@@ -897,38 +897,38 @@ print(f"Execution steps: {plan.execution_steps}")
 ### Environment Variables
 
 ```bash
-# Triple store configuration
-export TRIPLE_STORE_DEFAULT_STORE=main
-export TRIPLE_STORE_BATCH_SIZE=1000
-export TRIPLE_STORE_ENABLE_CACHING=true
-export TRIPLE_STORE_CACHE_SIZE=1000
-export TRIPLE_STORE_ENABLE_OPTIMIZATION=true
-export TRIPLE_STORE_MAX_RETRIES=3
-export TRIPLE_STORE_RETRY_DELAY=1.0
-export TRIPLE_STORE_TIMEOUT=30
+# Triplet store configuration
+export TRIPLET_STORE_DEFAULT_STORE=main
+export TRIPLET_STORE_BATCH_SIZE=1000
+export TRIPLET_STORE_ENABLE_CACHING=true
+export TRIPLET_STORE_CACHE_SIZE=1000
+export TRIPLET_STORE_ENABLE_OPTIMIZATION=true
+export TRIPLET_STORE_MAX_RETRIES=3
+export TRIPLET_STORE_RETRY_DELAY=1.0
+export TRIPLET_STORE_TIMEOUT=30
 
 # Store endpoints
-export TRIPLE_STORE_BLAZEGRAPH_ENDPOINT=http://localhost:9999/blazegraph
-export TRIPLE_STORE_JENA_ENDPOINT=http://localhost:3030/ds
-export TRIPLE_STORE_RDF4J_ENDPOINT=http://localhost:8080/rdf4j-server
-export TRIPLE_STORE_VIRTUOSO_ENDPOINT=http://localhost:8890/sparql
+export TRIPLET_STORE_BLAZEGRAPH_ENDPOINT=http://localhost:9999/blazegraph
+export TRIPLET_STORE_JENA_ENDPOINT=http://localhost:3030/ds
+export TRIPLET_STORE_RDF4J_ENDPOINT=http://localhost:8080/rdf4j-server
+export TRIPLET_STORE_VIRTUOSO_ENDPOINT=http://localhost:8890/sparql
 ```
 
 ### Programmatic Configuration
 
 ```python
-from semantica.triple_store.config import triple_store_config
+from semantica.triplet_store.config import triplet_store_config
 
 # Get configuration
-batch_size = triple_store_config.get("batch_size", default=1000)
-enable_caching = triple_store_config.get("enable_caching", default=True)
+batch_size = triplet_store_config.get("batch_size", default=1000)
+enable_caching = triplet_store_config.get("enable_caching", default=True)
 
 # Set configuration
-triple_store_config.set("batch_size", 2000)
-triple_store_config.set("enable_caching", False)
+triplet_store_config.set("batch_size", 2000)
+triplet_store_config.set("enable_caching", False)
 
 # Update with dictionary
-triple_store_config.update({
+triplet_store_config.update({
     "batch_size": 2000,
     "enable_caching": True,
     "cache_size": 2000
@@ -939,7 +939,7 @@ triple_store_config.update({
 
 ```yaml
 # config.yaml
-triple_store:
+triplet_store:
   default_store: main
   batch_size: 1000
   enable_caching: true
@@ -956,11 +956,11 @@ triple_store:
 
 ## Advanced Examples
 
-### Complete Triple Store Pipeline
+### Complete Triplet Store Pipeline
 
 ```python
-from semantica.triple_store import (
-    TripleManager,
+from semantica.triplet_store import (
+    TripletManager,
     QueryEngine,
     BulkLoader,
     register_store,
@@ -980,7 +980,7 @@ triples = [
 result = add_triples(triples, store_id="main", batch_size=100)
 
 # 3. Execute queries
-from semantica.triple_store import BlazegraphAdapter
+from semantica.triplet_store import BlazegraphAdapter
 adapter = BlazegraphAdapter(endpoint="http://localhost:9999/blazegraph")
 query = "SELECT ?s ?p ?o WHERE { ?s ?p ?o } LIMIT 10"
 query_result = execute_query(query, adapter)
@@ -992,10 +992,10 @@ print(f"Query returned {len(query_result.bindings)} results")
 ### Multi-Store Operations
 
 ```python
-from semantica.triple_store import TripleManager
+from semantica.triplet_store import TripletManager
 from semantica.semantic_extract.triple_extractor import Triple
 
-manager = TripleManager()
+manager = TripletManager()
 
 # Register multiple stores
 manager.register_store("primary", "blazegraph", "http://localhost:9999/blazegraph")
@@ -1012,7 +1012,7 @@ manager.add_triple(triple, store_id="backup")
 ### Query Optimization Workflow
 
 ```python
-from semantica.triple_store import QueryEngine, BlazegraphAdapter
+from semantica.triplet_store import QueryEngine, BlazegraphAdapter
 
 engine = QueryEngine(enable_optimization=True, enable_caching=True)
 adapter = BlazegraphAdapter(endpoint="http://localhost:9999/blazegraph")
@@ -1040,7 +1040,7 @@ print(f"Optimized: {result.metadata.get('optimized', False)}")
 ### Bulk Loading with Validation
 
 ```python
-from semantica.triple_store import BulkLoader, BlazegraphAdapter
+from semantica.triplet_store import BulkLoader, BlazegraphAdapter
 from semantica.semantic_extract.triple_extractor import Triple
 
 loader = BulkLoader(batch_size=1000, max_retries=3)
@@ -1066,22 +1066,22 @@ else:
 ### Custom Method Registration
 
 ```python
-from semantica.triple_store.registry import method_registry
-from semantica.triple_store import add_triple
+from semantica.triplet_store.registry import method_registry
+from semantica.triplet_store import add_triple
 
 # Register custom add method
 def custom_add_triple(triple, store_id=None, **options):
     # Custom logic
     print(f"Custom add: {triple.subject}")
     # Call default implementation
-    from semantica.triple_store.methods import _get_manager
+    from semantica.triplet_store.methods import _get_manager
     manager = _get_manager()
     return manager.add_triple(triple, store_id=store_id, **options)
 
 method_registry.register("add", "custom", custom_add_triple)
 
 # Use custom method
-from semantica.triple_store.methods import add_triple
+from semantica.triplet_store.methods import add_triple
 result = add_triple(triple, store_id="main", method="custom")
 ```
 

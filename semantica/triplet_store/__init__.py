@@ -1,22 +1,22 @@
 """
-Triple Store Module
+Triplet Store Module
 
-This module provides comprehensive triple store integration and management
-for RDF data storage and querying, supporting multiple triple store backends
+This module provides comprehensive triplet store integration and management
+for RDF data storage and querying, supporting multiple triplet store backends
 with unified interfaces.
 
 Algorithms Used:
 
-Triple Store Management:
+Triplet Store Management:
     - Store Registration: Store type detection, adapter factory pattern, configuration management, default store selection
     - Adapter Pattern: Unified interface for multiple backends (Blazegraph, Jena, RDF4J, Virtuoso), adapter instantiation, backend-specific operation delegation
     - Store Selection: Default store resolution, store ID lookup, store validation
 
 CRUD Operations:
-    - Triple Addition: Single triple insertion, batch triple insertion, triple validation (subject/predicate/object checking, confidence validation), adapter delegation
-    - Triple Retrieval: Pattern matching (subject/predicate/object filtering), SPARQL query construction, result binding extraction, triple reconstruction
-    - Triple Deletion: Triple matching, deletion operation delegation, result verification
-    - Triple Update: Delete-then-add pattern, atomic update operations, conflict detection
+    - Triplet Addition: Single triplet insertion, batch triplet insertion, triplet validation (subject/predicate/object checking, confidence validation), adapter delegation
+    - Triplet Retrieval: Pattern matching (subject/predicate/object filtering), SPARQL query construction, result binding extraction, triplet reconstruction
+    - Triplet Deletion: Triplet matching, deletion operation delegation, result verification
+    - Triplet Update: Delete-then-add pattern, atomic update operations, conflict detection
 
 Bulk Loading:
     - Batch Processing: Chunking algorithm (fixed-size batch creation), batch size optimization, memory management for large datasets
@@ -46,7 +46,7 @@ Store Adapters:
 Data Validation:
     - Triple Validation: Required field checking (subject, predicate, object), confidence range validation (0-1), URI format validation
     - Pre-load Validation: Empty component detection, URI format checking, confidence threshold checking, error/warning categorization
-
+    
 Performance Optimization:
     - Batch Size Optimization: Configurable batch size, memory-aware batching, throughput-based optimization
     - Connection Pooling: Adapter-level connection management, connection reuse, connection lifecycle management
@@ -55,7 +55,7 @@ Performance Optimization:
 
 Key Features:
     - Multi-backend support (Blazegraph, Jena, RDF4J, Virtuoso)
-    - CRUD operations for RDF triples
+    - CRUD operations for RDF triplets
     - SPARQL query execution and optimization
     - Bulk data loading with progress tracking
     - Query caching and optimization
@@ -65,41 +65,41 @@ Key Features:
     - Configuration management with environment variables and config files
 
 Main Classes:
-    - TripleManager: Main triple store management coordinator
+    - TripletManager: Main triplet store management coordinator
     - QueryEngine: SPARQL query execution and optimization
     - BulkLoader: High-volume data loading
     - BlazegraphAdapter: Blazegraph integration adapter
     - JenaAdapter: Apache Jena integration adapter
     - RDF4JAdapter: Eclipse RDF4J integration adapter
     - VirtuosoAdapter: Virtuoso RDF store integration adapter
-    - TripleStore: Triple store configuration dataclass
+    - TripletStore: Triplet store configuration dataclass
     - QueryResult: Query result representation dataclass
     - QueryPlan: Query execution plan dataclass
     - LoadProgress: Bulk loading progress dataclass
 
 Convenience Functions:
-    - register_store: Register triple store wrapper
-    - add_triple: Add single triple wrapper
-    - add_triples: Add multiple triples wrapper
-    - get_triples: Get triples matching pattern wrapper
-    - delete_triple: Delete triple wrapper
+    - register_store: Register triplet store wrapper
+    - add_triple: Add single triplet wrapper
+    - add_triples: Add multiple triplets wrapper
+    - get_triples: Get triplets matching pattern wrapper
+    - delete_triple: Delete triplet wrapper
     - execute_query: Execute SPARQL query wrapper
     - optimize_query: Optimize SPARQL query wrapper
-    - bulk_load: Bulk load triples wrapper
-    - get_triple_store_method: Get triple store method by task and name
-    - list_available_methods: List registered triple store methods
+    - bulk_load: Bulk load triplets wrapper
+    - get_triplet_store_method: Get triplet store method by task and name
+    - list_available_methods: List registered triplet store methods
 
 Example Usage:
-    >>> from semantica.triple_store import TripleManager, register_store, add_triple, execute_query
+    >>> from semantica.triplet_store import TripletManager, register_store, add_triple, execute_query
     >>> # Using convenience functions
     >>> store = register_store("main", "blazegraph", "http://localhost:9999/blazegraph")
     >>> result = add_triple(triple, store_id="main")
     >>> query_result = execute_query(sparql_query, store_adapter)
     >>> # Using classes directly
-    >>> manager = TripleManager()
+    >>> manager = TripletManager()
     >>> store = manager.register_store("main", "blazegraph", "http://localhost:9999/blazegraph")
     >>> result = manager.add_triple(triple, store_id="main")
-    >>> from semantica.triple_store import QueryEngine
+    >>> from semantica.triplet_store import QueryEngine
     >>> engine = QueryEngine()
     >>> query_result = engine.execute_query(sparql_query, store_adapter)
 
@@ -109,7 +109,7 @@ License: MIT
 
 from .blazegraph_adapter import BlazegraphAdapter
 from .bulk_loader import BulkLoader, LoadProgress
-from .config import TripleStoreConfig, triple_store_config
+from .config import TripletStoreConfig, triplet_store_config
 from .jena_adapter import JenaAdapter
 from .methods import (
     add_triple,
@@ -117,7 +117,7 @@ from .methods import (
     bulk_load,
     delete_triple,
     execute_query,
-    get_triple_store_method,
+    get_triplet_store_method,
     get_triples,
     list_available_methods,
     optimize_query,
@@ -129,13 +129,13 @@ from .methods import (
 from .query_engine import QueryEngine, QueryPlan, QueryResult
 from .rdf4j_adapter import RDF4JAdapter
 from .registry import MethodRegistry, method_registry
-from .triple_manager import TripleManager, TripleStore
+from .triplet_manager import TripletManager, TripletStore
 from .virtuoso_adapter import VirtuosoAdapter
 
 __all__ = [
     # Triple management
-    "TripleManager",
-    "TripleStore",
+    "TripletManager",
+    "TripletStore",
     # Store adapters
     "BlazegraphAdapter",
     "JenaAdapter",
@@ -160,11 +160,11 @@ __all__ = [
     "plan_query",
     "bulk_load",
     "validate_triples",
-    "get_triple_store_method",
+    "get_triplet_store_method",
     "list_available_methods",
     # Configuration and registry
-    "TripleStoreConfig",
-    "triple_store_config",
+    "TripletStoreConfig",
+    "triplet_store_config",
     "MethodRegistry",
     "method_registry",
 ]

@@ -15,7 +15,7 @@ Semantica's modules are organized into six logical layers:
 | :--- | :--- | :--- |
 | **Input Layer** | [Ingest](#ingest-module), [Parse](#parse-module), [Split](#split-module), [Normalize](#normalize-module) | Data ingestion, parsing, chunking, and cleaning |
 | **Core Processing** | [Semantic Extract](#semantic-extract-module), [Knowledge Graph](#knowledge-graph-kg-module), [Ontology](#ontology-module), [Reasoning](#reasoning-module) | Entity extraction, graph construction, inference |
-| **Storage** | [Embeddings](#embeddings-module), [Vector Store](#vector-store-module), [Graph Store](#graph-store-module), [Triple Store](#triple-store-module) | Vector and graph persistence |
+| **Storage** | [Embeddings](#embeddings-module), [Vector Store](#vector-store-module), [Graph Store](#graph-store-module), [Triplet Store](#triplet-store-module) | Vector, graph, and triplet persistence |
 | **Quality Assurance** | [Deduplication](#deduplication-module), [Conflicts](#conflicts-module) | Data quality and consistency |
 | **Context & Memory** | [Context](#context-module), [Seed](#seed-module) | Agent memory and foundation data |
 | **Output & Orchestration** | [Export](#export-module), [Visualization](#visualization-module), [Pipeline](#pipeline-module) | Export, visualization, and workflow management |
@@ -563,15 +563,15 @@ results = store.execute_query("MATCH (p:Person) RETURN p.name")
 
 ---
 
-### Triple Store Module
+### Triplet Store Module
 
 !!! abstract "Purpose"
-    RDF triple store integration for semantic web applications. Supports SPARQL queries and multiple backends.
+    RDF triplet store integration for semantic web applications. Supports SPARQL queries and multiple backends.
 
 **Key Features:**
 
 - Multi-backend support (Blazegraph, Jena, RDF4J, Virtuoso)
-- CRUD operations for RDF triples
+- CRUD operations for RDF triplets
 - SPARQL query execution and optimization
 - Bulk data loading with progress tracking
 - Query caching and optimization
@@ -580,7 +580,7 @@ results = store.execute_query("MATCH (p:Person) RETURN p.name")
 
 **Components:**
 
-- `TripleManager` — Main triple store management coordinator
+- `TripletManager` — Main triplet store management coordinator
 - `QueryEngine` — SPARQL query execution and optimization
 - `BulkLoader` — High-volume data loading with progress tracking
 - `BlazegraphAdapter` — Blazegraph integration
@@ -601,9 +601,9 @@ results = store.execute_query("MATCH (p:Person) RETURN p.name")
 **Quick Example:**
 
 ```python
-from semantica.triple_store import TripleManager, execute_query
+from semantica.triplet_store import TripletManager, execute_query
 
-manager = TripleManager()
+manager = TripletManager()
 store = manager.register_store("main", "blazegraph", "http://localhost:9999/blazegraph")
 
 # Add triple
@@ -617,7 +617,7 @@ result = manager.add_triple({
 query_result = execute_query("SELECT ?s ?p ?o WHERE { ?s ?p ?o } LIMIT 10", store)
 ```
 
-**API Reference**: [Triple Store Module](reference/triple_store.md)
+**API Reference**: [Triplet Store Module](reference/triplet_store.md)
 
 ---
 
@@ -1114,7 +1114,7 @@ new_facts = inference_engine.forward_chain(kg, rule_manager)
 | **Embeddings** | `semantica.embeddings` | `EmbeddingGenerator` | Vector generation |
 | **Vector Store** | `semantica.vector_store` | `VectorStore` | Vector storage |
 | **Graph Store** | `semantica.graph_store` | `GraphStore` | Graph database |
-| **Triple Store** | `semantica.triple_store` | `TripleManager` | RDF storage |
+| **Triplet Store** | `semantica.triplet_store` | `TripletManager` | RDF storage |
 | **Deduplication** | `semantica.deduplication` | `DuplicateDetector` | Duplicate removal |
 | **Conflicts** | `semantica.conflicts` | `ConflictDetector` | Conflict resolution |
 | **Context** | `semantica.context` | `AgentMemory` | Agent context |

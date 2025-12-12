@@ -2,7 +2,7 @@
 Query Engine Module
 
 This module provides comprehensive SPARQL query execution and optimization
-for triple store operations, including query planning, caching, and performance
+for triplet store operations, including query planning, caching, and performance
 monitoring.
 
 Key Features:
@@ -20,7 +20,7 @@ Main Classes:
     - QueryPlan: Query execution plan representation dataclass
 
 Example Usage:
-    >>> from semantica.triple_store import QueryEngine
+    >>> from semantica.triplet_store import QueryEngine
     >>> engine = QueryEngine(enable_caching=True, enable_optimization=True)
     >>> result = engine.execute_query(sparql_query, store_adapter)
     >>> plan = engine.plan_query(sparql_query)
@@ -109,7 +109,7 @@ class QueryEngine:
             Query result
         """
         tracking_id = self.progress_tracker.start_tracking(
-            module="triple_store",
+            module="triplet_store",
             submodule="QueryEngine",
             message="Executing SPARQL query",
         )

@@ -1,14 +1,14 @@
 """
-Triple Store Methods Module
+Triplet Store Methods Module
 
-This module provides all triple store methods as simple, reusable functions for
-registering stores, adding triples, querying, and managing triple stores. It supports
+This module provides all triplet store methods as simple, reusable functions for
+registering stores, adding triples, querying, and managing triplet stores. It supports
 multiple approaches and integrates with the method registry for extensibility.
 
 Supported Methods:
 
 Store Registration:
-    - "default": Default store registration using TripleManager
+    - "default": Default store registration using TripletManager
     - "blazegraph": Blazegraph-specific registration
     - "jena": Jena-specific registration
     - "rdf4j": RDF4J-specific registration
@@ -78,7 +78,7 @@ Bulk Loading:
     - Stream Processing: Iterator-based processing, incremental batch collection
 
 Key Features:
-    - Multiple triple store operation methods
+    - Multiple triplet store operation methods
     - Store registration with method dispatch
     - Method dispatchers with registry support
     - Custom method registration capability
@@ -95,11 +95,11 @@ Main Functions:
     - optimize_query: Query optimization wrapper
     - bulk_load: Bulk loading wrapper
     - validate_triples: Triple validation wrapper
-    - get_triple_store_method: Get triple store method by task and name
+    - get_triplet_store_method: Get triplet store method by task and name
     - list_available_methods: List registered methods
 
 Example Usage:
-    >>> from semantica.triple_store.methods import register_store, add_triple, execute_query
+    >>> from semantica.triplet_store.methods import register_store, add_triple, execute_query
     >>> store = register_store("main", "blazegraph", "http://localhost:9999/blazegraph", method="default")
     >>> result = add_triple(triple, store_id="main", method="default")
     >>> query_result = execute_query(sparql_query, store_adapter, method="default")
@@ -109,23 +109,23 @@ from typing import Any, Dict, List, Optional, Union
 
 from ..semantic_extract.triple_extractor import Triple
 from .bulk_loader import BulkLoader, LoadProgress
-from .config import triple_store_config
+from .config import triplet_store_config
 from .query_engine import QueryEngine, QueryPlan, QueryResult
 from .registry import method_registry
-from .triple_manager import TripleManager, TripleStore
+from .triplet_manager import TripletManager, TripletStore
 
 # Global manager instances
-_global_manager: Optional[TripleManager] = None
+_global_manager: Optional[TripletManager] = None
 _global_query_engine: Optional[QueryEngine] = None
 _global_bulk_loader: Optional[BulkLoader] = None
 
 
-def _get_manager() -> TripleManager:
-    """Get or create global TripleManager instance."""
+def _get_manager() -> TripletManager:
+    """Get or create global TripletManager instance."""
     global _global_manager
     if _global_manager is None:
-        config = triple_store_config.get_all()
-        _global_manager = TripleManager(config=config)
+        config = triplet_store_config.get_all()
+        _global_manager = TripletManager(config=config)
     return _global_manager
 
 
@@ -133,7 +133,7 @@ def _get_query_engine() -> QueryEngine:
     """Get or create global QueryEngine instance."""
     global _global_query_engine
     if _global_query_engine is None:
-        config = triple_store_config.get_all()
+        config = triplet_store_config.get_all()
         _global_query_engine = QueryEngine(config=config)
     return _global_query_engine
 
@@ -142,16 +142,16 @@ def _get_bulk_loader() -> BulkLoader:
     """Get or create global BulkLoader instance."""
     global _global_bulk_loader
     if _global_bulk_loader is None:
-        config = triple_store_config.get_all()
+        config = triplet_store_config.get_all()
         _global_bulk_loader = BulkLoader(config=config)
     return _global_bulk_loader
 
 
 def register_store(
     store_id: str, store_type: str, endpoint: str, method: str = "default", **options
-) -> TripleStore:
+) -> TripletStore:
     """
-    Register a triple store.
+    Register a triplet store.
 
     Args:
         store_id: Store identifier
@@ -321,7 +321,7 @@ def execute_query(
 
     Args:
         query: SPARQL query string
-        store_adapter: Triple store adapter instance
+        store_adapter: Triplet store adapter instance
         method: Query method name (default: "default")
         **options: Additional options
 
@@ -383,7 +383,7 @@ def bulk_load(
 
     Args:
         triples: List of triples to load
-        store_adapter: Triple store adapter instance
+        store_adapter: Triplet store adapter instance
         method: Loading method name (default: "default")
         **options: Additional options
 
@@ -424,9 +424,9 @@ def validate_triples(
     return loader.validate_before_load(triples, **options)
 
 
-def get_triple_store_method(task: str, method_name: str) -> Optional[Any]:
+def get_triplet_store_method(task: str, method_name: str) -> Optional[Any]:
     """
-    Get triple store method by task and name.
+    Get triplet store method by task and name.
 
     Args:
         task: Task type (register, add, get, delete, update, query, optimize, bulk_load, validate)
@@ -440,7 +440,7 @@ def get_triple_store_method(task: str, method_name: str) -> Optional[Any]:
 
 def list_available_methods(task: Optional[str] = None) -> Dict[str, List[str]]:
     """
-    List all available triple store methods.
+    List all available triplet store methods.
 
     Args:
         task: Optional task type to filter by

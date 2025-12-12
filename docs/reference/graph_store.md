@@ -414,7 +414,7 @@ subgraph = graph_store.execute_query(query, parameters={"ids": node_ids})
 ## See Also
 
 - [Knowledge Graph Module](kg.md) - Logical layer above Graph Store
-- [Triple Store Module](triple_store.md) - RDF-based alternative
+- [Triplet Store Module](triplet_store.md) - RDF-based alternative
 - [Visualization Module](visualization.md) - Visualizing query results
 
 ## Cookbook

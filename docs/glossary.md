@@ -181,7 +181,7 @@ A comprehensive reference of terms and concepts used in Semantica.
 **Triple**
 : A basic unit of knowledge in RDF, consisting of a subject, predicate, and object (e.g., `<Apple_Inc> <founded_by> <Steve_Jobs>`).
 
-**Triple Store**
+**Triplet Store**
 : A database designed specifically for storing and querying RDF triples.
 
 ---

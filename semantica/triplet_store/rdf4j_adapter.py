@@ -16,7 +16,7 @@ Main Classes:
     - RDF4JAdapter: Main RDF4J integration adapter
 
 Example Usage:
-    >>> from semantica.triple_store import RDF4JAdapter
+    >>> from semantica.triplet_store import RDF4JAdapter
     >>> adapter = RDF4JAdapter(endpoint="http://localhost:8080/rdf4j-server", repository_id="repo1")
     >>> result = adapter.execute_sparql(sparql_query)
     >>> tx_id = adapter.begin_transaction()
@@ -38,7 +38,7 @@ from ..utils.progress_tracker import get_progress_tracker
 
 class RDF4JAdapter:
     """
-    Eclipse RDF4J adapter for triple store operations.
+    Eclipse RDF4J adapter for triplet store operations.
 
     • RDF4J connection and repository management
     • SPARQL query execution
@@ -184,7 +184,7 @@ class RDF4JAdapter:
             Query results
         """
         tracking_id = self.progress_tracker.start_tracking(
-            module="triple_store",
+            module="triplet_store",
             submodule="RDF4JAdapter",
             message="Executing SPARQL query on RDF4J",
         )
@@ -250,7 +250,7 @@ class RDF4JAdapter:
             Operation status
         """
         tracking_id = self.progress_tracker.start_tracking(
-            module="triple_store",
+            module="triplet_store",
             submodule="RDF4JAdapter",
             message=f"Adding {len(triples)} triples to RDF4J repository",
         )

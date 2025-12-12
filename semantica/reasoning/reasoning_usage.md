@@ -45,7 +45,7 @@ print(f"Inferred {len(results)} new facts")
 from semantica.reasoning import SPARQLReasoner
 
 # Create SPARQL reasoner
-reasoner = SPARQLReasoner(triple_store=kg)
+reasoner = SPARQLReasoner(triplet_store=kg)
 
 # Execute query
 query = "SELECT ?s ?p ?o WHERE { ?s ?p ?o }"
@@ -190,7 +190,7 @@ results = engine.forward_chain()
 from semantica.reasoning import SPARQLReasoner
 
 # Create reasoner with knowledge graph
-reasoner = SPARQLReasoner(triple_store=kg)
+reasoner = SPARQLReasoner(triplet_store=kg)
 
 # Execute SPARQL query
 query = """
@@ -212,7 +212,7 @@ for binding in result.bindings:
 ```python
 from semantica.reasoning import SPARQLReasoner
 
-reasoner = SPARQLReasoner(triple_store=kg, enable_inference=True)
+reasoner = SPARQLReasoner(triplet_store=kg, enable_inference=True)
 
 # Add inference rule
 reasoner.add_inference_rule("IF ?x :type :Company THEN ?x :type :Organization")
@@ -234,7 +234,7 @@ result = reasoner.execute_query(query)
 from semantica.reasoning import SPARQLReasoner
 
 reasoner = SPARQLReasoner(
-    triple_store=kg,
+    triplet_store=kg,
     enable_inference=True,
     inference_rules=["rdfs:subClassOf", "rdfs:subPropertyOf"]
 )
@@ -1165,7 +1165,7 @@ engine = InferenceEngine(
 
 # Configure SPARQL reasoner
 reasoner = SPARQLReasoner(
-    triple_store=kg,
+    triplet_store=kg,
     enable_inference=True,
     query_cache_size=1000
 )
@@ -1234,7 +1234,7 @@ for result in results:
     print(f"Explanation: {explanation.natural_language}")
 
 # 6. Query with SPARQL reasoning
-sparql_reasoner = SPARQLReasoner(triple_store=kg, enable_inference=True)
+sparql_reasoner = SPARQLReasoner(triplet_store=kg, enable_inference=True)
 query_result = sparql_reasoner.execute_query("SELECT ?x WHERE { ?x :type :Employee }")
 ```
 
@@ -1332,7 +1332,7 @@ from semantica.kg import build
 kg = build(sources=[...])
 
 # Create SPARQL reasoner with KG
-reasoner = SPARQLReasoner(triple_store=kg, enable_inference=True)
+reasoner = SPARQLReasoner(triplet_store=kg, enable_inference=True)
 
 # Add inference rules
 reasoner.add_inference_rule("IF ?x :type :Company THEN ?x :type :Organization")

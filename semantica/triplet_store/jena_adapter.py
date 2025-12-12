@@ -16,7 +16,7 @@ Main Classes:
     - JenaAdapter: Main Jena integration adapter
 
 Example Usage:
-    >>> from semantica.triple_store import JenaAdapter
+    >>> from semantica.triplet_store import JenaAdapter
     >>> adapter = JenaAdapter(endpoint="http://localhost:3030/ds", dataset="default")
     >>> result = adapter.add_triples(triples)
     >>> query_result = adapter.execute_sparql(sparql_query)
@@ -47,7 +47,7 @@ except ImportError:
 
 class JenaAdapter:
     """
-    Apache Jena adapter for triple store operations.
+    Apache Jena adapter for triplet store operations.
 
     • Jena connection and configuration
     • SPARQL query execution
@@ -129,7 +129,7 @@ class JenaAdapter:
             Operation status
         """
         tracking_id = self.progress_tracker.start_tracking(
-            module="triple_store",
+            module="triplet_store",
             submodule="JenaAdapter",
             message=f"Adding {len(triples)} triples to Jena model",
         )

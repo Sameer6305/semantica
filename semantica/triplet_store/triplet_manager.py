@@ -1,25 +1,25 @@
 """
-Triple Manager Module
+Triplet Manager Module
 
-This module provides comprehensive CRUD operations for RDF triples and triple
-store management, enabling unified access to multiple triple store backends
+This module provides comprehensive CRUD operations for RDF triplets and triplet
+store management, enabling unified access to multiple triplet store backends
 through a common interface.
 
 Key Features:
-    - CRUD operations for RDF triples
+    - CRUD operations for RDF triplets
     - Multi-store management and registration
     - Batch operations and bulk loading
-    - Triple validation and consistency
+    - Triplet validation and consistency
     - Store adapter pattern
     - Error handling and recovery
 
 Main Classes:
-    - TripleManager: Main triple store management coordinator
-    - TripleStore: Triple store configuration dataclass
+    - TripletManager: Main triplet store management coordinator
+    - TripletStore: Triplet store configuration dataclass
 
 Example Usage:
-    >>> from semantica.triple_store import TripleManager
-    >>> manager = TripleManager()
+    >>> from semantica.triplet_store import TripletManager
+    >>> manager = TripletManager()
     >>> store = manager.register_store("main", "blazegraph", "http://localhost:9999/blazegraph")
     >>> result = manager.add_triple(triple, store_id="main")
     >>> triples = manager.get_triple(subject="http://example.org/entity1")
@@ -39,8 +39,8 @@ from ..utils.progress_tracker import get_progress_tracker
 
 
 @dataclass
-class TripleStore:
-    """Triple store configuration."""
+class TripletStore:
+    """Triplet store configuration."""
 
     store_id: str
     store_type: str  # "blazegraph", "jena", "rdf4j", "virtuoso"
@@ -49,9 +49,9 @@ class TripleStore:
     connected: bool = False
 
 
-class TripleManager:
+class TripletManager:
     """
-    Triple store management system.
+    Triplet store management system.
 
     • CRUD operations for RDF triples
     • Batch operations and bulk loading
@@ -63,26 +63,26 @@ class TripleManager:
 
     def __init__(self, config: Optional[Dict[str, Any]] = None, **kwargs):
         """
-        Initialize triple manager.
+        Initialize triplet manager.
 
         Args:
             config: Configuration dictionary
             **kwargs: Additional configuration options:
-                - default_store: Default triple store to use
+                - default_store: Default triplet store to use
         """
-        self.logger = get_logger("triple_manager")
+        self.logger = get_logger("triplet_manager")
         self.config = config or {}
         self.config.update(kwargs)
         self.progress_tracker = get_progress_tracker()
 
-        self.stores: Dict[str, TripleStore] = {}
+        self.stores: Dict[str, TripletStore] = {}
         self.default_store_id = self.config.get("default_store")
 
     def register_store(
         self, store_id: str, store_type: str, endpoint: str, **config
-    ) -> TripleStore:
+    ) -> TripletStore:
         """
-        Register a triple store.
+        Register a triplet store.
 
         Args:
             store_id: Store identifier
@@ -93,7 +93,7 @@ class TripleManager:
         Returns:
             Registered store
         """
-        store = TripleStore(
+        store = TripletStore(
             store_id=store_id, store_type=store_type, endpoint=endpoint, config=config
         )
 
@@ -102,7 +102,7 @@ class TripleManager:
         if not self.default_store_id:
             self.default_store_id = store_id
 
-        self.logger.info(f"Registered triple store: {store_id} ({store_type})")
+        self.logger.info(f"Registered triplet store: {store_id} ({store_type})")
 
         return store
 
@@ -158,8 +158,8 @@ class TripleManager:
             Operation status
         """
         tracking_id = self.progress_tracker.start_tracking(
-            module="triple_store",
-            submodule="TripleManager",
+            module="triplet_store",
+            submodule="TripletManager",
             message=f"Adding {len(triples)} triples to store",
         )
 
@@ -301,7 +301,7 @@ class TripleManager:
 
         return True
 
-    def _get_store(self, store_id: Optional[str] = None) -> TripleStore:
+    def _get_store(self, store_id: Optional[str] = None) -> TripletStore:
         """Get store by ID."""
         store_id = store_id or self.default_store_id
 
@@ -313,7 +313,7 @@ class TripleManager:
 
         return self.stores[store_id]
 
-    def _get_adapter(self, store: TripleStore) -> Any:
+    def _get_adapter(self, store: TripletStore) -> Any:
         """Get adapter for store type."""
         store_type = store.store_type.lower()
 
@@ -336,7 +336,7 @@ class TripleManager:
         else:
             raise ValidationError(f"Unsupported store type: {store_type}")
 
-    def get_store(self, store_id: str) -> Optional[TripleStore]:
+    def get_store(self, store_id: str) -> Optional[TripletStore]:
         """Get store by ID."""
         return self.stores.get(store_id)
 

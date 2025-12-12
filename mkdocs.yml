@@ -123,7 +123,7 @@ nav:
     - Seed: reference/seed.md
     - Semantic Extract: reference/semantic_extract.md
     - Split: reference/split.md
-    - Triple Store: reference/triple_store.md
+    - Triplet Store: reference/triplet_store.md
     - Utils: reference/utils.md
     - Vector Store: reference/vector_store.md
     - Visualization: reference/visualization.md

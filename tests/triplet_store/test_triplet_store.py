@@ -1,19 +1,19 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from semantica.triple_store.triple_manager import TripleManager, TripleStore
-from semantica.triple_store.query_engine import QueryEngine, QueryResult
+from semantica.triplet_store.triplet_manager import TripletManager, TripletStore
+from semantica.triplet_store.query_engine import QueryEngine, QueryResult
 from semantica.semantic_extract.triple_extractor import Triple
 
-class TestTripleStore(unittest.TestCase):
+class TestTripletStore(unittest.TestCase):
 
     def setUp(self):
         self.mock_logger = MagicMock()
         self.mock_tracker = MagicMock()
         
-        self.logger_patcher = patch('semantica.triple_store.triple_manager.get_logger', return_value=self.mock_logger)
-        self.tracker_patcher = patch('semantica.triple_store.triple_manager.get_progress_tracker', return_value=self.mock_tracker)
-        self.logger_patcher_qe = patch('semantica.triple_store.query_engine.get_logger', return_value=self.mock_logger)
-        self.tracker_patcher_qe = patch('semantica.triple_store.query_engine.get_progress_tracker', return_value=self.mock_tracker)
+        self.logger_patcher = patch('semantica.triplet_store.triplet_manager.get_logger', return_value=self.mock_logger)
+        self.tracker_patcher = patch('semantica.triplet_store.triplet_manager.get_progress_tracker', return_value=self.mock_tracker)
+        self.logger_patcher_qe = patch('semantica.triplet_store.query_engine.get_logger', return_value=self.mock_logger)
+        self.tracker_patcher_qe = patch('semantica.triplet_store.query_engine.get_progress_tracker', return_value=self.mock_tracker)
         
         self.logger_patcher.start()
         self.tracker_patcher.start()
@@ -26,23 +26,23 @@ class TestTripleStore(unittest.TestCase):
         self.logger_patcher_qe.stop()
         self.tracker_patcher_qe.stop()
 
-    def test_triple_manager_init(self):
-        manager = TripleManager(default_store="main")
+    def test_triplet_manager_init(self):
+        manager = TripletManager(default_store="main")
         self.assertEqual(manager.default_store_id, "main")
         self.assertEqual(manager.stores, {})
 
     def test_register_store(self):
-        manager = TripleManager()
+        manager = TripletManager()
         store = manager.register_store("main", "blazegraph", "http://localhost:9999")
-        self.assertIsInstance(store, TripleStore)
+        self.assertIsInstance(store, TripletStore)
         self.assertEqual(store.store_id, "main")
         self.assertEqual(store.store_type, "blazegraph")
         self.assertEqual(store.endpoint, "http://localhost:9999")
         self.assertIn("main", manager.stores)
 
-    @patch('semantica.triple_store.triple_manager.TripleManager._get_adapter')
+    @patch('semantica.triplet_store.triplet_manager.TripletManager._get_adapter')
     def test_add_triple(self, mock_get_adapter):
-        manager = TripleManager()
+        manager = TripletManager()
         manager.register_store("main", "blazegraph", "http://localhost:9999")
         
         mock_adapter = MagicMock()
@@ -56,9 +56,9 @@ class TestTripleStore(unittest.TestCase):
         self.assertEqual(result["store_id"], "main")
         mock_adapter.add_triple.assert_called_once_with(triple)
 
-    @patch('semantica.triple_store.triple_manager.TripleManager._get_adapter')
+    @patch('semantica.triplet_store.triplet_manager.TripletManager._get_adapter')
     def test_add_triples(self, mock_get_adapter):
-        manager = TripleManager()
+        manager = TripletManager()
         manager.register_store("main", "blazegraph", "http://localhost:9999")
         
         mock_adapter = MagicMock()
@@ -76,9 +76,9 @@ class TestTripleStore(unittest.TestCase):
         self.assertEqual(result["total_triples"], 2)
         mock_adapter.add_triples.assert_called()
 
-    @patch('semantica.triple_store.triple_manager.TripleManager._get_adapter')
+    @patch('semantica.triplet_store.triplet_manager.TripletManager._get_adapter')
     def test_get_triple(self, mock_get_adapter):
-        manager = TripleManager()
+        manager = TripletManager()
         manager.register_store("main", "blazegraph", "http://localhost:9999")
         
         mock_adapter = MagicMock()
@@ -91,9 +91,9 @@ class TestTripleStore(unittest.TestCase):
         self.assertEqual(result, expected_triples)
         mock_adapter.get_triples.assert_called_once_with("s", None, None)
 
-    @patch('semantica.triple_store.triple_manager.TripleManager._get_adapter')
+    @patch('semantica.triplet_store.triplet_manager.TripletManager._get_adapter')
     def test_delete_triple(self, mock_get_adapter):
-        manager = TripleManager()
+        manager = TripletManager()
         manager.register_store("main", "blazegraph", "http://localhost:9999")
         
         mock_adapter = MagicMock()
@@ -106,9 +106,9 @@ class TestTripleStore(unittest.TestCase):
         self.assertTrue(result["success"])
         mock_adapter.delete_triple.assert_called_once_with(triple)
 
-    @patch('semantica.triple_store.triple_manager.TripleManager._get_adapter')
+    @patch('semantica.triplet_store.triplet_manager.TripletManager._get_adapter')
     def test_update_triple(self, mock_get_adapter):
-        manager = TripleManager()
+        manager = TripletManager()
         manager.register_store("main", "blazegraph", "http://localhost:9999")
         
         mock_adapter = MagicMock()

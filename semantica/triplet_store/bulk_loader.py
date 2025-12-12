@@ -1,7 +1,7 @@
 """
 Bulk Loader Module
 
-This module provides high-volume data loading capabilities for triple stores,
+This module provides high-volume data loading capabilities for triplet stores,
 enabling efficient batch processing with progress tracking and error recovery.
 
 Key Features:
@@ -18,7 +18,7 @@ Main Classes:
     - LoadProgress: Bulk loading progress representation dataclass
 
 Example Usage:
-    >>> from semantica.triple_store import BulkLoader
+    >>> from semantica.triplet_store import BulkLoader
     >>> loader = BulkLoader(batch_size=1000, max_retries=3)
     >>> progress = loader.load_triples(triples, store_adapter)
     >>> print(f"Loaded {progress.loaded_triples}/{progress.total_triples} triples")
@@ -56,7 +56,7 @@ class LoadProgress:
 
 class BulkLoader:
     """
-    High-volume data loading system for triple stores.
+    High-volume data loading system for triplet stores.
 
     • High-volume data loading strategies
     • Batch processing and chunking
@@ -104,7 +104,7 @@ class BulkLoader:
             Load progress information
         """
         tracking_id = self.progress_tracker.start_tracking(
-            module="triple_store",
+            module="triplet_store",
             submodule="BulkLoader",
             message=f"Loading {len(triples)} triples in bulk",
         )

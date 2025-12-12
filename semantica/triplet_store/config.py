@@ -1,14 +1,14 @@
 """
-Configuration Management Module for Triple Store
+Configuration Management Module for Triplet Store
 
-This module provides centralized configuration management for triple store operations,
+This module provides centralized configuration management for triplet store operations,
 supporting multiple configuration sources including environment variables, config files,
 and programmatic configuration.
 
 Supported Configuration Sources:
-    - Environment variables: TRIPLE_STORE_DEFAULT_STORE, TRIPLE_STORE_BATCH_SIZE, TRIPLE_STORE_ENABLE_CACHING, etc.
+    - Environment variables: TRIPLET_STORE_DEFAULT_STORE, TRIPLET_STORE_BATCH_SIZE, TRIPLET_STORE_ENABLE_CACHING, etc.
     - Config files: YAML, JSON, TOML formats
-    - Programmatic: Python API for setting triple store configurations
+    - Programmatic: Python API for setting triplet store configurations
 
 Algorithms Used:
     - Environment Variable Parsing: OS-level environment variable access
@@ -19,7 +19,7 @@ Algorithms Used:
     - Dictionary Merging: Deep merge algorithms for configuration updates
 
 Key Features:
-    - Environment variable support for triple store parameters
+    - Environment variable support for triplet store parameters
     - Config file support (YAML, JSON, TOML formats)
     - Programmatic configuration via Python API
     - Method-specific configuration management
@@ -27,13 +27,13 @@ Key Features:
     - Global config instance for easy access
 
 Main Classes:
-    - TripleStoreConfig: Main configuration manager class for triple store module
+    - TripletStoreConfig: Main configuration manager class for triplet store module
 
 Example Usage:
-    >>> from semantica.triple_store.config import triple_store_config
-    >>> default_store = triple_store_config.get("default_store", default="main")
-    >>> triple_store_config.set("default_store", "main")
-    >>> method_config = triple_store_config.get_method_config("add_triple")
+    >>> from semantica.triplet_store.config import triplet_store_config
+    >>> default_store = triplet_store_config.get("default_store", default="main")
+    >>> triplet_store_config.set("default_store", "main")
+    >>> method_config = triplet_store_config.get_method_config("add_triple")
 """
 
 import os
@@ -43,8 +43,8 @@ from typing import Any, Dict, Optional
 from ..utils.logging import get_logger
 
 
-class TripleStoreConfig:
-    """Configuration manager for triple store module - supports .env files, environment variables, and programmatic config."""
+class TripletStoreConfig:
+    """Configuration manager for triplet store module - supports .env files, environment variables, and programmatic config."""
 
     def __init__(self, config_file: Optional[str] = None):
         """
@@ -53,7 +53,7 @@ class TripleStoreConfig:
         Args:
             config_file: Optional path to configuration file (YAML, JSON, or TOML)
         """
-        self.logger = get_logger("triple_store_config")
+        self.logger = get_logger("triplet_store_config")
         self.config_file = config_file
         self._config: Dict[str, Any] = {}
         self._method_configs: Dict[str, Dict[str, Any]] = {}
@@ -86,40 +86,40 @@ class TripleStoreConfig:
 
                 with open(file_path, "r") as f:
                     config_data = yaml.safe_load(f)
-                    if config_data and "triple_store" in config_data:
-                        self._config.update(config_data["triple_store"])
+                    if config_data and "triplet_store" in config_data:
+                        self._config.update(config_data["triplet_store"])
             elif file_path.suffix == ".json":
                 import json
 
                 with open(file_path, "r") as f:
                     config_data = json.load(f)
-                    if config_data and "triple_store" in config_data:
-                        self._config.update(config_data["triple_store"])
+                    if config_data and "triplet_store" in config_data:
+                        self._config.update(config_data["triplet_store"])
             elif file_path.suffix == ".toml":
                 import tomli
 
                 with open(file_path, "rb") as f:
                     config_data = tomli.load(f)
-                    if config_data and "triple_store" in config_data:
-                        self._config.update(config_data["triple_store"])
+                    if config_data and "triplet_store" in config_data:
+                        self._config.update(config_data["triplet_store"])
         except Exception as e:
             self.logger.error(f"Failed to load config file: {e}")
 
     def _load_from_env(self) -> None:
         """Load configuration from environment variables."""
         env_mappings = {
-            "TRIPLE_STORE_DEFAULT_STORE": "default_store",
-            "TRIPLE_STORE_BATCH_SIZE": "batch_size",
-            "TRIPLE_STORE_ENABLE_CACHING": "enable_caching",
-            "TRIPLE_STORE_CACHE_SIZE": "cache_size",
-            "TRIPLE_STORE_ENABLE_OPTIMIZATION": "enable_optimization",
-            "TRIPLE_STORE_MAX_RETRIES": "max_retries",
-            "TRIPLE_STORE_RETRY_DELAY": "retry_delay",
-            "TRIPLE_STORE_TIMEOUT": "timeout",
-            "TRIPLE_STORE_BLAZEGRAPH_ENDPOINT": "blazegraph_endpoint",
-            "TRIPLE_STORE_JENA_ENDPOINT": "jena_endpoint",
-            "TRIPLE_STORE_RDF4J_ENDPOINT": "rdf4j_endpoint",
-            "TRIPLE_STORE_VIRTUOSO_ENDPOINT": "virtuoso_endpoint",
+            "TRIPLET_STORE_DEFAULT_STORE": "default_store",
+            "TRIPLET_STORE_BATCH_SIZE": "batch_size",
+            "TRIPLET_STORE_ENABLE_CACHING": "enable_caching",
+            "TRIPLET_STORE_CACHE_SIZE": "cache_size",
+            "TRIPLET_STORE_ENABLE_OPTIMIZATION": "enable_optimization",
+            "TRIPLET_STORE_MAX_RETRIES": "max_retries",
+            "TRIPLET_STORE_RETRY_DELAY": "retry_delay",
+            "TRIPLET_STORE_TIMEOUT": "timeout",
+            "TRIPLET_STORE_BLAZEGRAPH_ENDPOINT": "blazegraph_endpoint",
+            "TRIPLET_STORE_JENA_ENDPOINT": "jena_endpoint",
+            "TRIPLET_STORE_RDF4J_ENDPOINT": "rdf4j_endpoint",
+            "TRIPLET_STORE_VIRTUOSO_ENDPOINT": "virtuoso_endpoint",
         }
 
         for env_var, config_key in env_mappings.items():
@@ -238,4 +238,4 @@ class TripleStoreConfig:
 
 
 # Global configuration instance
-triple_store_config = TripleStoreConfig()
+triplet_store_config = TripletStoreConfig()

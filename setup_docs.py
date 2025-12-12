@@ -15,7 +15,7 @@ modules = {
     "kg": "semantica.kg",
     "embeddings": "semantica.embeddings",
     "vector_store": "semantica.vector_store",
-    "triple_store": "semantica.triple_store",
+    "triplet_store": "semantica.triplet_store",
     "ontology": "semantica.ontology",
     "reasoning": "semantica.reasoning",
     "pipeline": "semantica.pipeline",
