@@ -142,6 +142,19 @@ class NERExtractor:
                     f"spaCy model {self.model_name} not found. ML method will fallback."
                 )
 
+    def extract(self, text: str, **kwargs) -> List[Entity]:
+        """
+        Alias for extract_entities.
+        
+        Args:
+            text: Input text
+            **kwargs: Extraction options
+            
+        Returns:
+            list: List of extracted entities
+        """
+        return self.extract_entities(text, **kwargs)
+
     def extract_entities(self, text: str, **options) -> List[Entity]:
         """
         Extract named entities from text.

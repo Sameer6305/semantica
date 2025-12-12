@@ -12,10 +12,9 @@ This comprehensive guide demonstrates how to use the semantic extraction module 
 6. [Coreference Resolution](#coreference-resolution)
 7. [Semantic Analysis](#semantic-analysis)
 8. [Semantic Networks](#semantic-networks)
-9. [Using Methods](#using-methods)
-10. [Using Registry](#using-registry)
-11. [Configuration](#configuration)
-12. [Advanced Examples](#advanced-examples)
+9. [Using Registry](#using-registry)
+10. [Configuration](#configuration)
+11. [Advanced Examples](#advanced-examples)
 
 ## Basic Usage
 
@@ -31,7 +30,7 @@ print(f"Entities: {entities}")
 
 # Extract relations
 rel_extractor = RelationExtractor()
-relations = rel_extractor.extract_relations(text, entities=entities)
+relations = rel_extractor.extract(text, entities=entities)
 print(f"Relations: {relations}")
 
 print(f"Extracted {len(entities)} entities and {len(relations)} relations")
@@ -55,33 +54,33 @@ for entity in entities:
 ### Different Entity Extraction Methods
 
 ```python
-from semantica.semantic_extract.methods import get_entity_method
+from semantica.semantic_extract import NERExtractor
 
 text = "Apple Inc. was founded by Steve Jobs in 1976."
 
 # Pattern-based extraction
-pattern_method = get_entity_method("pattern")
-entities = pattern_method(text)
+extractor = NERExtractor(method="pattern")
+entities = extractor.extract(text)
 print(f"Pattern method: {len(entities)} entities")
 
 # Regex-based extraction
-regex_method = get_entity_method("regex")
-entities = regex_method(text)
+extractor = NERExtractor(method="regex")
+entities = extractor.extract(text)
 print(f"Regex method: {len(entities)} entities")
 
 # ML-based extraction (spaCy)
-ml_method = get_entity_method("ml")
-entities = ml_method(text)
+extractor = NERExtractor(method="ml")
+entities = extractor.extract(text)
 print(f"ML method: {len(entities)} entities")
 
 # HuggingFace model extraction
-hf_method = get_entity_method("huggingface")
-entities = hf_method(text, model="dslim/bert-base-NER")
+extractor = NERExtractor(method="huggingface")
+entities = extractor.extract(text, model="dslim/bert-base-NER")
 print(f"HuggingFace method: {len(entities)} entities")
 
 # LLM-based extraction
-llm_method = get_entity_method("llm")
-entities = llm_method(text, provider="openai", model="gpt-4")
+extractor = NERExtractor(method="llm")
+entities = extractor.extract(text, provider="openai", model="gpt-4")
 print(f"LLM method: {len(entities)} entities")
 ```
 
@@ -90,13 +89,29 @@ print(f"LLM method: {len(entities)} entities")
 ```python
 from semantica.semantic_extract import NERExtractor
 
-extractor = NERExtractor(method="ml")
+# 1. Standard ML (spaCy)
+extractor = NERExtractor(method="ml", model="en_core_web_trf")
+entities = extractor.extract(text)
+
+# 2. LLM-based extraction
+extractor = NERExtractor(
+    method="llm", 
+    provider="openai", 
+    model="gpt-4",
+    temperature=0.0
+)
+entities = extractor.extract(text)
+
+# 3. Regex with custom patterns
+extractor = NERExtractor(
+    method="regex", 
+    patterns={"CODE": r"[A-Z]{3}-\d{3}"}
+)
 entities = extractor.extract(text)
 
 for entity in entities:
     print(f"Entity: {entity.text}")
-    print(f"  Type: {entity.type}")
-    print(f"  Start: {entity.start}, End: {entity.end}")
+    print(f"  Type: {entity.label}")
     print(f"  Confidence: {entity.confidence}")
 ```
 
@@ -129,7 +144,7 @@ from semantica.semantic_extract import RelationExtractor
 extractor = RelationExtractor()
 text = "Steve Jobs founded Apple Inc. in 1976."
 
-relations = extractor.extract_relations(text, entities=entities)
+relations = extractor.extract(text, entities=entities)
 
 for relation in relations:
     print(f"{relation.subject} --[{relation.predicate}]--> {relation.object}")
@@ -139,29 +154,29 @@ for relation in relations:
 ### Different Relation Extraction Methods
 
 ```python
-from semantica.semantic_extract.methods import get_relation_method
+from semantica.semantic_extract import RelationExtractor
 
 text = "Steve Jobs founded Apple Inc."
 
 # Pattern-based extraction
-pattern_method = get_relation_method("pattern")
-relations = pattern_method(text, entities=entities)
+extractor = RelationExtractor(method="pattern")
+relations = extractor.extract(text, entities=entities)
 
 # Dependency parsing-based
-dependency_method = get_relation_method("dependency")
-relations = dependency_method(text, entities=entities)
+extractor = RelationExtractor(method="dependency")
+relations = extractor.extract(text, entities=entities)
 
 # Co-occurrence based
-cooccurrence_method = get_relation_method("cooccurrence")
-relations = cooccurrence_method(text, entities=entities)
+extractor = RelationExtractor(method="cooccurrence")
+relations = extractor.extract(text, entities=entities)
 
 # HuggingFace model
-hf_method = get_relation_method("huggingface")
-relations = hf_method(text, entities=entities, model="microsoft/DialoGPT-medium")
+extractor = RelationExtractor(method="huggingface")
+relations = extractor.extract(text, entities=entities, model="microsoft/DialoGPT-medium")
 
 # LLM-based
-llm_method = get_relation_method("llm")
-relations = llm_method(text, entities=entities, provider="openai")
+extractor = RelationExtractor(method="llm")
+relations = extractor.extract(text, entities=entities, provider="openai")
 ```
 
 ### Relation Types
@@ -201,25 +216,25 @@ for triple in triples:
 ### Different Triple Extraction Methods
 
 ```python
-from semantica.semantic_extract.methods import get_triple_method
+from semantica.semantic_extract import TripleExtractor
 
 text = "Apple Inc. was founded by Steve Jobs in 1976."
 
 # Pattern-based
-pattern_method = get_triple_method("pattern")
-triples = pattern_method(text)
+extractor = TripleExtractor(method="pattern")
+triples = extractor.extract_triples(text)
 
 # Rules-based
-rules_method = get_triple_method("rules")
-triples = rules_method(text)
+extractor = TripleExtractor(method="rules")
+triples = extractor.extract_triples(text)
 
 # HuggingFace model
-hf_method = get_triple_method("huggingface")
-triples = hf_method(text, model="t5-base")
+extractor = TripleExtractor(method="huggingface")
+triples = extractor.extract_triples(text, model="t5-base")
 
 # LLM-based
-llm_method = get_triple_method("llm")
-triples = llm_method(text, provider="openai", model="gpt-4")
+extractor = TripleExtractor(method="llm")
+triples = extractor.extract_triples(text, provider="openai", model="gpt-4")
 ```
 
 ### RDF Serialization
@@ -462,29 +477,6 @@ print(f"Node: {node.label}")
 print(f"Edge: {edge.source} --[{edge.relation}]--> {edge.target}")
 ```
 
-## Using Methods
-
-### Getting Available Methods
-
-```python
-from semantica.semantic_extract.methods import (
-    get_entity_method,
-    get_relation_method,
-    get_triple_method
-)
-
-# Get entity extraction method
-entity_method = get_entity_method("llm")
-entities = entity_method(text, provider="openai")
-
-# Get relation extraction method
-relation_method = get_relation_method("dependency")
-relations = relation_method(text, entities=entities)
-
-# Get triple extraction method
-triple_method = get_triple_method("pattern")
-triples = triple_method(text)
-```
 
 ## Using Registry
 
@@ -504,9 +496,9 @@ def custom_entity_extraction(text, **kwargs):
 method_registry.register("entity", "custom_method", custom_entity_extraction)
 
 # Use custom method
-from semantica.semantic_extract.methods import get_entity_method
-custom_method = get_entity_method("custom_method")
-entities = custom_method(text)
+from semantica.semantic_extract import NERExtractor
+extractor = NERExtractor(method="custom_method")
+entities = extractor.extract(text)
 ```
 
 ### Listing Registered Methods

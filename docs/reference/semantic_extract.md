@@ -44,6 +44,12 @@
 
     Use LLMs to improve extraction quality and handle complex schemas
 
+-   :material-graph:{ .lg .middle } **Semantic Networks**
+
+    ---
+
+    Build structured networks with nodes and edges from text
+
 </div>
 
 !!! tip "When to Use"
@@ -119,6 +125,49 @@ ner = NamedEntityRecognizer(
 entities = ner.extract_entities("Apple Inc. was founded in 1976.")
 ```
 
+### NERExtractor
+
+Core entity extraction implementation used by notebooks and lower-level integrations.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `method` | str or list | `"ml"` | Method(s): "ml", "llm", "pattern", "regex", "huggingface" |
+| `**config` | dict | `{}` | Method-specific config (e.g., `model`, `provider`) |
+
+**Methods:**
+
+| Method | Description |
+|--------|-------------|
+| `extract(text)` | Alias for `extract_entities`. Get list of entities. |
+| `extract_entities(text)` | Get list of entities |
+
+**Example:**
+
+```python
+from semantica.semantic_extract import NERExtractor
+
+# 1. ML (spaCy) - Default
+extractor = NERExtractor(method="ml", model="en_core_web_trf")
+entities = extractor.extract("Elon Musk leads SpaceX.")
+
+# 2. LLM (OpenAI/Gemini/etc)
+extractor = NERExtractor(
+    method="llm", 
+    provider="openai", 
+    model="gpt-4",
+    temperature=0.0
+)
+
+# 3. Regex with custom patterns
+patterns = {"CODE": r"[A-Z]{3}-\d{3}"}
+extractor = NERExtractor(method="regex", patterns=patterns)
+
+# 4. Ensemble (Multiple methods)
+extractor = NERExtractor(method=["ml", "llm"], ensemble_voting=True)
+```
+
 ### RelationExtractor
 
 Extracts relationships between entities.
@@ -136,6 +185,7 @@ Extracts relationships between entities.
 
 | Method | Description |
 |--------|-------------|
+| `extract(text, entities)` | Alias for `extract_relations`. Find links. |
 | `extract_relations(text, entities)` | Find links |
 
 **Example:**
@@ -150,7 +200,7 @@ entities = ner.extract_entities(text)
 
 # Basic relation extraction
 rel_extractor = RelationExtractor()
-relations = rel_extractor.extract_relations(text, entities=entities)
+relations = rel_extractor.extract(text, entities=entities)
 # [Relation(source="Elon Musk", target="SpaceX", type="founded")]
 
 # With configuration
@@ -159,7 +209,39 @@ rel_extractor = RelationExtractor(
     confidence_threshold=0.7,
     bidirectional=False
 )
-relations = rel_extractor.extract_relations(text, entities=entities)
+relations = rel_extractor.extract(text, entities=entities)
+```
+
+### CoreferenceResolver
+
+Resolves pronoun references and entity coreferences.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `method` | str or list | `None` | Underlying NER method(s) |
+| `**config` | dict | `{}` | Configuration for NER method |
+
+**Methods:**
+
+| Method | Description |
+|--------|-------------|
+| `resolve(text)` | Alias for `resolve_coreferences`. Get coreference chains. |
+| `resolve_coreferences(text)` | Get coreference chains |
+| `resolve_pronouns(text)` | Resolve pronouns to entities |
+
+**Example:**
+
+```python
+from semantica.semantic_extract import CoreferenceResolver
+
+resolver = CoreferenceResolver()
+text = "Steve Jobs founded Apple. He was the CEO."
+
+# Resolve references
+chains = resolver.resolve(text)
+# [CoreferenceChain(mentions=["Steve Jobs", "He"], representative="Steve Jobs")]
 ```
 
 ### EventDetector
@@ -204,6 +286,7 @@ Extracts RDF triples (Subject-Predicate-Object).
 |-----------|------|---------|-------------|
 | `include_temporal` | bool | `False` | Include time information |
 | `include_provenance` | bool | `False` | Track source sentences |
+| `method` | str | `"pattern"` | Extraction method ("pattern", "rules", "huggingface", "llm") |
 
 **Methods:**
 
@@ -224,6 +307,66 @@ triples = extractor.extract_triples("Steve Jobs founded Apple in 1976.")
 # [Triple(subject="Steve Jobs", predicate="founded", object="Apple", temporal="1976")]
 ```
 
+### SemanticNetworkExtractor
+
+Extracts structured semantic networks with nodes and edges.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `ner_method` | str | `None` | Method for node extraction |
+| `relation_method` | str | `None` | Method for edge extraction |
+| `**config` | dict | `{}` | Configuration for underlying extractors |
+
+**Methods:**
+
+| Method | Description |
+|--------|-------------|
+| `extract_network(text)` | Build network from text |
+| `extract(text)` | Alias for `extract_network` |
+| `export_to_yaml(network, path)` | Save network to YAML |
+
+**Example:**
+
+```python
+from semantica.semantic_extract import SemanticNetworkExtractor
+
+extractor = SemanticNetworkExtractor()
+network = extractor.extract("Apple Inc. is located in Cupertino.")
+
+# Analyze network
+print(f"Nodes: {len(network.nodes)}")
+print(f"Edges: {len(network.edges)}")
+```
+
+### LLMEnhancer
+
+Enhances extraction results using Large Language Models.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `provider` | str | `"openai"` | LLM provider ("openai", "gemini", "anthropic", etc.) |
+| `**config` | dict | `{}` | Model config (model name, api_key, etc.) |
+
+**Methods:**
+
+| Method | Description |
+|--------|-------------|
+| `enhance_entities(text, entities)` | Improve entity accuracy and details |
+| `enhance_relations(text, relations)` | Improve relation detection |
+
+**Example:**
+
+```python
+from semantica.semantic_extract import LLMEnhancer
+
+enhancer = LLMEnhancer(provider="openai", model="gpt-4")
+enhanced_entities = enhancer.enhance_entities(text, entities)
+```
+
 ---
 
 ## Usage Examples
@@ -234,7 +377,8 @@ from semantica.semantic_extract import (
     RelationExtractor,
     TripleExtractor,
     EventDetector,
-    CoreferenceResolver
+    CoreferenceResolver,
+    SemanticNetworkExtractor
 )
 
 text = "Apple released the iPhone in 2007. Steve Jobs announced it at Macworld."
@@ -259,10 +403,15 @@ triples = triple_extractor.extract_triples(text)
 event_detector = EventDetector(extract_time=True)
 events = event_detector.detect_events(text)
 
+# Extract semantic network
+network_extractor = SemanticNetworkExtractor()
+network = network_extractor.extract(text)
+
 print(f"Entities: {len(entities)}")
 print(f"Relations: {len(relations)}")
 print(f"Triples: {len(triples)}")
 print(f"Events: {len(events)}")
+print(f"Network Nodes: {len(network.nodes)}")
 ```
 
 ---

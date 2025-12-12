@@ -101,6 +101,7 @@ class NamedEntityRecognizer:
         # Use NERExtractor for actual extraction
         ner_config = self.config.get("ner", {})
         ner_config["confidence_threshold"] = confidence_threshold
+        ner_config["min_confidence"] = confidence_threshold
         ner_config["merge_overlapping"] = merge_overlapping
         if method is not None:
             ner_config["method"] = method

@@ -155,6 +155,20 @@ class RelationExtractor:
         }
 
 
+    def extract(self, text: str, entities: List[Entity], **kwargs) -> List[Relation]:
+        """
+        Alias for extract_relations.
+        
+        Args:
+            text: Input text
+            entities: List of entities in the text
+            **kwargs: Extraction options
+            
+        Returns:
+            list: List of extracted relations
+        """
+        return self.extract_relations(text, entities, **kwargs)
+
     def extract_relations(
         self, text: str, entities: List[Entity], **options
     ) -> List[Relation]:

@@ -311,6 +311,10 @@ def extract_entities_llm(
     text: str, provider: str = "openai", model: Optional[str] = None, **kwargs
 ) -> List[Entity]:
     """LLM-based entity extraction."""
+    # Support llm_model parameter to disambiguate from ML model
+    if "llm_model" in kwargs:
+        model = kwargs.pop("llm_model")
+
     llm = create_provider(provider, model=model, **kwargs)
 
     if not llm.is_available():
