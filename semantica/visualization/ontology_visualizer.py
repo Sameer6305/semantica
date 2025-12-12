@@ -37,10 +37,17 @@ from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-import plotly.express as px
-import plotly.graph_objects as go
+
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+except ImportError:
+    px = None
+    go = None
+    make_subplots = None
+
 from matplotlib.patches import FancyBboxPatch
-from plotly.subplots import make_subplots
 
 try:
     import graphviz
@@ -90,26 +97,60 @@ class OntologyVisualizer:
             self.color_scheme = ColorScheme.DEFAULT
         self.node_size = config.get("node_size", 15)
 
+    def _check_dependencies(self, require_graphviz: bool = False):
+        """Check if dependencies are available."""
+        if require_graphviz:
+            if graphviz is None:
+                raise ProcessingError(
+                    "Graphviz is required for DOT export. "
+                    "Install with: pip install graphviz"
+                )
+        else:
+            if px is None or go is None:
+                raise ProcessingError(
+                    "Plotly is required for ontology visualization. "
+                    "Install with: pip install plotly"
+                )
+
     def visualize_hierarchy(
         self,
         ontology: Dict[str, Any],
         output: str = "interactive",
         file_path: Optional[Union[str, Path]] = None,
+        node_color_by: str = "level",
+        node_size_by: str = "instances",
+        hover_data: Optional[List[str]] = None,
         **options,
     ) -> Optional[Any]:
         """
         Visualize class hierarchy as tree.
+
+        Implements the 5-step visualization process:
+        1. Problem setting: Implicit in ontology selection
+        2. Data analysis: Logs ontology statistics
+        3. Layout: Hierarchical tree layout
+        4. Styling: Configurable node color (e.g. by level) and size (e.g. by instances)
+        5. Interaction: Rich hover data
 
         Args:
             ontology: Ontology dictionary with classes, or SemanticNetwork object,
                      or ontology generator result
             output: Output type ("interactive", "html", "png", "svg", "dot")
             file_path: Output file path
+            node_color_by: Property to map to node color (default: "level")
+            node_size_by: Property to map to node size (default: "instances")
+            hover_data: List of properties to show in hover tooltip
             **options: Additional options
 
         Returns:
             Visualization figure or None
         """
+        # Check dependencies
+        if output == "dot":
+            self._check_dependencies(require_graphviz=True)
+        else:
+            self._check_dependencies()
+
         tracking_id = self.progress_tracker.start_tracking(
             module="visualization",
             submodule="OntologyVisualizer",
@@ -150,6 +191,15 @@ class OntologyVisualizer:
                     "No classes found in ontology. Please provide classes or a semantic network."
                 )
 
+            # Step 2: Data Analysis
+            num_classes = len(classes)
+            max_depth = 0
+            for cls in classes:
+                depth = self._calculate_class_depth(cls, classes)
+                max_depth = max(max_depth, depth)
+            
+            self.logger.info(f"Ontology Analysis: {num_classes} classes, max depth {max_depth}")
+
             # If output is dot and graphviz is available, use it
             if output == "dot" and graphviz is not None and file_path:
                 self.progress_tracker.update_tracking(
@@ -175,7 +225,14 @@ class OntologyVisualizer:
                 tracking_id, message="Generating visualization..."
             )
             result = self._visualize_hierarchy_plotly(
-                hierarchy, classes, output, file_path, **options
+                hierarchy, 
+                classes, 
+                output, 
+                file_path, 
+                node_color_by=node_color_by,
+                node_size_by=node_size_by,
+                hover_data=hover_data,
+                **options
             )
 
             self.progress_tracker.stop_tracking(
@@ -209,6 +266,7 @@ class OntologyVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing ontology properties")
 
         # Handle different input formats
@@ -258,6 +316,7 @@ class OntologyVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing ontology structure")
 
         classes = ontology.get("classes", [])
@@ -342,6 +401,7 @@ class OntologyVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing class-property matrix")
 
         classes = ontology.get("classes", [])
@@ -411,6 +471,7 @@ class OntologyVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing ontology metrics")
 
         classes = ontology.get("classes", [])
@@ -603,6 +664,7 @@ class OntologyVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing semantic model")
 
         # Handle OntologyGenerator result
@@ -651,6 +713,9 @@ class OntologyVisualizer:
         classes: List[Dict[str, Any]],
         output: str,
         file_path: Optional[Path],
+        node_color_by: str = "level",
+        node_size_by: str = "instances",
+        hover_data: Optional[List[str]] = None,
         **options,
     ) -> Optional[Any]:
         """Create Plotly hierarchy visualization."""
@@ -676,7 +741,16 @@ class OntologyVisualizer:
         edges = []
 
         def add_node_and_children(cls_name, level=0, x_offset=0):
-            nodes.append({"name": cls_name, "level": level, "x": x_offset, "y": -level})
+            # Find class data
+            cls_data = all_class_names.get(cls_name, {})
+            
+            nodes.append({
+                "name": cls_name, 
+                "level": level, 
+                "x": x_offset, 
+                "y": -level,
+                "data": cls_data
+            })
 
             children = hierarchy.get(cls_name, [])
             child_width = 1.0 / max(len(children), 1)
@@ -691,6 +765,63 @@ class OntologyVisualizer:
         for i, root in enumerate(root_classes):
             root_x = (i + 0.5) * root_width
             add_node_and_children(root, 0, root_x)
+
+        # Step 4: Styling - Node Colors
+        # Default to coloring by level
+        node_colors = []
+        if node_color_by == "level":
+             node_colors = [n["level"] for n in nodes]
+        else:
+            # Map custom property
+            values = []
+            for n in nodes:
+                val = str(n["data"].get(node_color_by, "Unknown"))
+                values.append(val)
+            
+            unique_vals = sorted(list(set(values)))
+            colors = ColorPalette.get_colors(self.color_scheme, len(unique_vals))
+            val_map = dict(zip(unique_vals, colors))
+            node_colors = [val_map.get(str(n["data"].get(node_color_by, "Unknown")), "#888") for n in nodes]
+
+        # Step 4: Styling - Node Sizes
+        # Default to sizing by instances (if available) or fixed size
+        node_sizes = []
+        if node_size_by:
+            raw_sizes = []
+            for n in nodes:
+                val = n["data"].get(node_size_by, 0)
+                try:
+                    s = float(val)
+                except (ValueError, TypeError):
+                    s = 0
+                raw_sizes.append(s)
+            
+            if raw_sizes and max(raw_sizes) > min(raw_sizes):
+                min_s, max_s = min(raw_sizes), max(raw_sizes)
+                # Scale between 10 and 40
+                node_sizes = [10 + 30 * ((s - min_s) / (max_s - min_s)) for s in raw_sizes]
+            else:
+                node_sizes = [self.node_size] * len(nodes)
+        else:
+             node_sizes = [self.node_size] * len(nodes)
+
+        # Step 5: Interaction - Rich Hover
+        node_text = []
+        for n in nodes:
+            cls_data = n["data"]
+            text = f"<b>{n['name']}</b><br>Level: {n['level']}"
+            
+            # Add instances if available
+            if "instances" in cls_data:
+                text += f"<br>Instances: {cls_data['instances']}"
+            
+            # Additional hover data
+            if hover_data:
+                for field in hover_data:
+                    val = cls_data.get(field, "N/A")
+                    text += f"<br>{field}: {val}"
+            
+            node_text.append(text)
 
         # Create visualization
         edge_x = []
@@ -714,18 +845,21 @@ class OntologyVisualizer:
 
         node_x = [n["x"] for n in nodes]
         node_y = [n["y"] for n in nodes]
-        node_text = [n["name"] for n in nodes]
 
         node_trace = go.Scatter(
             x=node_x,
             y=node_y,
             mode="markers+text",
-            text=node_text,
-            textposition="middle center",
+            text=[n["name"] for n in nodes], # Keep label on node simple
+            hovertext=node_text,             # Rich hover text
+            hoverinfo="text",
+            textposition="top center",
             marker=dict(
-                size=self.node_size * 10,
-                color="lightblue",
-                line=dict(width=2, color="darkblue"),
+                size=node_sizes,
+                color=node_colors,
+                colorscale="Viridis" if node_color_by == "level" else None,
+                line=dict(width=2, color="white"),
+                showscale=True if node_color_by == "level" else False
             ),
         )
 

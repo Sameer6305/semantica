@@ -33,9 +33,14 @@ License: MIT
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+except ImportError:
+    px = None
+    go = None
+    make_subplots = None
 
 from ..utils.exceptions import ProcessingError
 from ..utils.logging import get_logger
@@ -66,6 +71,14 @@ class TemporalVisualizer:
         except (KeyError, AttributeError):
             self.color_scheme = ColorScheme.DEFAULT
 
+    def _check_dependencies(self):
+        """Check if dependencies are available."""
+        if px is None or go is None:
+            raise ProcessingError(
+                "Plotly is required for temporal visualization. "
+                "Install with: pip install plotly"
+            )
+
     def visualize_timeline(
         self,
         temporal_data: Dict[str, Any],
@@ -85,6 +98,7 @@ class TemporalVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         tracking_id = self.progress_tracker.start_tracking(
             module="visualization",
             submodule="TemporalVisualizer",
@@ -208,6 +222,7 @@ class TemporalVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing temporal patterns")
 
         if not patterns:
@@ -279,6 +294,7 @@ class TemporalVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing snapshot comparison")
 
         timestamps = sorted(snapshots.keys())
@@ -371,6 +387,7 @@ class TemporalVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing version history")
 
         # Build tree structure
@@ -438,6 +455,7 @@ class TemporalVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing metrics evolution")
 
         fig = go.Figure()

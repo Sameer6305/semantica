@@ -34,10 +34,19 @@ License: MIT
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+try:
+    import numpy as np
+except ImportError:
+    np = None
+
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+except ImportError:
+    px = None
+    go = None
+    make_subplots = None
 
 from ..utils.exceptions import ProcessingError
 from ..utils.logging import get_logger
@@ -68,6 +77,23 @@ class AnalyticsVisualizer:
         except (KeyError, AttributeError):
             self.color_scheme = ColorScheme.DEFAULT
 
+    def _check_dependencies(self):
+        """Check if dependencies are available."""
+        if px is None or go is None:
+            raise ProcessingError(
+                "Plotly is required for analytics visualization. "
+                "Install with: pip install plotly"
+            )
+        if np is None:
+            raise ProcessingError(
+                "NumPy is required for analytics visualization. "
+                "Install with: pip install numpy"
+            )
+
+    def visualize_centrality(self, *args, **kwargs):
+        """Alias for visualize_centrality_rankings."""
+        return self.visualize_centrality_rankings(*args, **kwargs)
+
     def visualize_centrality_rankings(
         self,
         centrality: Dict[str, Any],
@@ -91,6 +117,7 @@ class AnalyticsVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         tracking_id = self.progress_tracker.start_tracking(
             module="visualization",
             submodule="AnalyticsVisualizer",
@@ -188,6 +215,7 @@ class AnalyticsVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing community structure")
 
         # Use KG visualizer for community visualization
@@ -217,6 +245,7 @@ class AnalyticsVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing connectivity analysis")
 
         # Extract metrics
@@ -291,6 +320,7 @@ class AnalyticsVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing degree distribution")
 
         # Calculate degrees
@@ -360,6 +390,7 @@ class AnalyticsVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing graph metrics dashboard")
 
         # Extract key metrics
@@ -498,6 +529,7 @@ class AnalyticsVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing centrality comparison")
 
         # Extract top nodes for each centrality type

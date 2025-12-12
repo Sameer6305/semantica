@@ -33,8 +33,12 @@ License: MIT
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import plotly.express as px
-import plotly.graph_objects as go
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+except ImportError:
+    px = None
+    go = None
 
 from ..utils.exceptions import ProcessingError
 from ..utils.logging import get_logger
@@ -62,6 +66,14 @@ class SemanticNetworkVisualizer:
         except (KeyError, AttributeError):
             self.color_scheme = ColorScheme.DEFAULT
 
+    def _check_dependencies(self):
+        """Check if dependencies are available."""
+        if px is None or go is None:
+            raise ProcessingError(
+                "Plotly is required for semantic network visualization. "
+                "Install with: pip install plotly"
+            )
+
     def visualize_network(
         self,
         semantic_network: Any,
@@ -87,6 +99,7 @@ class SemanticNetworkVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         tracking_id = self.progress_tracker.start_tracking(
             module="visualization",
             submodule="SemanticNetworkVisualizer",
@@ -274,6 +287,7 @@ class SemanticNetworkVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing semantic network node types")
 
         # Extract nodes
@@ -325,6 +339,7 @@ class SemanticNetworkVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing semantic network edge types")
 
         # Extract edges

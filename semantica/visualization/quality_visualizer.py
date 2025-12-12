@@ -33,9 +33,19 @@ License: MIT
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+try:
+    import numpy as np
+except ImportError:
+    np = None
+
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+except ImportError:
+    px = None
+    go = None
+    make_subplots = None
 
 from ..utils.exceptions import ProcessingError
 from ..utils.logging import get_logger
@@ -66,6 +76,14 @@ class QualityVisualizer:
         except (KeyError, AttributeError):
             self.color_scheme = ColorScheme.DEFAULT
 
+    def _check_dependencies(self):
+        """Check if dependencies are available."""
+        if px is None or go is None:
+            raise ProcessingError(
+                "Plotly is required for quality visualization. "
+                "Install with: pip install plotly"
+            )
+
     def visualize_dashboard(
         self,
         quality_report: Any,
@@ -85,6 +103,7 @@ class QualityVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         tracking_id = self.progress_tracker.start_tracking(
             module="visualization",
             submodule="QualityVisualizer",
@@ -266,6 +285,7 @@ class QualityVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing quality score distribution")
 
         fig = go.Figure(
@@ -315,6 +335,7 @@ class QualityVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing quality issues")
 
         # Extract issues
@@ -405,6 +426,7 @@ class QualityVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
         self.logger.info("Visualizing completeness metrics")
 
         # Extract metrics
@@ -468,6 +490,13 @@ class QualityVisualizer:
         Returns:
             Visualization figure or None
         """
+        self._check_dependencies()
+        if np is None:
+            raise ProcessingError(
+                "NumPy is required for consistency heatmap visualization. "
+                "Install with: pip install numpy"
+            )
+
         self.logger.info("Visualizing consistency heatmap")
 
         # Extract consistency matrix
@@ -476,8 +505,6 @@ class QualityVisualizer:
 
         if not matrix:
             raise ProcessingError("No consistency matrix found")
-
-        import numpy as np
 
         matrix = np.array(matrix)
 
