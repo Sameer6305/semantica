@@ -173,8 +173,9 @@ class OntologyGenerator:
             
             # Ensure entities and relationships are available for property inference
             stage3_options = options.copy()
-            stage3_options["entities"] = data.get("entities", [])
-            stage3_options["relationships"] = data.get("relationships", [])
+            # Use normalized entities and relationships from stage 1 if available
+            stage3_options["entities"] = semantic_network.get("entities", data.get("entities", []))
+            stage3_options["relationships"] = semantic_network.get("relationships", data.get("relationships", []))
             
             typed_definitions = self._stage3_definition_to_types(definitions, **stage3_options)
 
@@ -208,8 +209,60 @@ class OntologyGenerator:
 
         Extract domain concepts from entities and relationships.
         """
-        entities = data.get("entities", [])
+        raw_entities = data.get("entities", [])
         relationships = data.get("relationships", [])
+
+        # Normalize entities
+        entities = []
+
+        def process_entity(ent):
+            """Normalize entity to dictionary."""
+            if isinstance(ent, dict):
+                return ent
+            # Handle Entity object (from NERExtractor)
+            if hasattr(ent, "label") and hasattr(ent, "text"):
+                return {
+                    "type": ent.label,
+                    "name": ent.text,
+                    "entity_type": ent.label,
+                    "text": ent.text,
+                    "start_char": getattr(ent, "start_char", 0),
+                    "end_char": getattr(ent, "end_char", 0),
+                    "confidence": getattr(ent, "confidence", 1.0),
+                    "metadata": getattr(ent, "metadata", {}),
+                }
+            # Handle list/tuple (legacy or raw format)
+            if isinstance(ent, (list, tuple)) and len(ent) >= 2:
+                # Assume [text, label, ...]
+                return {
+                    "name": str(ent[0]),
+                    "text": str(ent[0]),
+                    "type": str(ent[1]),
+                    "entity_type": str(ent[1]),
+                }
+            return None
+
+        # Handle list of lists (batch output) or flat list
+        for item in raw_entities:
+            if isinstance(item, list):
+                # Check if it's a list of entities (batch) or a single entity as list
+                # If the first element is also a list or Entity object, it's a batch
+                if len(item) > 0 and (
+                    isinstance(item[0], list) or hasattr(item[0], "label")
+                ):
+                    for sub_item in item:
+                        processed = process_entity(sub_item)
+                        if processed:
+                            entities.append(processed)
+                else:
+                    # Treat as single entity [text, label]
+                    processed = process_entity(item)
+                    if processed:
+                        entities.append(processed)
+            else:
+                processed = process_entity(item)
+                if processed:
+                    entities.append(processed)
 
         # Extract concepts
         concepts = {}
@@ -220,10 +273,78 @@ class OntologyGenerator:
             concepts[entity_type]["instances"].append(entity)
 
         # Extract relationships
-        for rel in relationships:
+        normalized_relationships = []
+        for rel_item in relationships:
+            # Normalize relationship to dictionary
+            rel = None
+            if isinstance(rel_item, dict):
+                rel = rel_item
+            elif hasattr(rel_item, "subject") and hasattr(rel_item, "predicate") and hasattr(rel_item, "object"):
+                # Handle Relation object (subject, predicate, object)
+                rel = {
+                    "source": getattr(rel_item, "subject"),
+                    "type": getattr(rel_item, "predicate"),
+                    "target": getattr(rel_item, "object"),
+                    "relationship_type": getattr(rel_item, "predicate"),
+                    "source_type": getattr(rel_item, "source_type", "Entity"),
+                    "target_type": getattr(rel_item, "target_type", "Entity"),
+                    "confidence": getattr(rel_item, "confidence", 1.0),
+                    "metadata": getattr(rel_item, "metadata", {}),
+                }
+            elif hasattr(rel_item, "source") and hasattr(rel_item, "type") and hasattr(rel_item, "target"):
+                 # Handle Relation object (source, type, target) - alternative
+                rel = {
+                    "source": getattr(rel_item, "source"),
+                    "type": getattr(rel_item, "type"),
+                    "target": getattr(rel_item, "target"),
+                    "relationship_type": getattr(rel_item, "type"),
+                    "source_type": getattr(rel_item, "source_type", "Entity"),
+                    "target_type": getattr(rel_item, "target_type", "Entity"),
+                    "confidence": getattr(rel_item, "confidence", 1.0),
+                    "metadata": getattr(rel_item, "metadata", {}),
+                }
+            elif isinstance(rel_item, (list, tuple)) and len(rel_item) >= 3:
+                # Assume [source, type, target] (RDF triple style)
+                # or [source, target, type]
+                # Heuristic: if 2nd element is short and looks like a relation, assume [source, type, target]
+                rel = {
+                    "source": str(rel_item[0]),
+                    "type": str(rel_item[1]),
+                    "target": str(rel_item[2]),
+                    "relationship_type": str(rel_item[1]),
+                    "source_type": "Entity",
+                    "target_type": "Entity",
+                }
+            
+            if not rel:
+                continue
+
             rel_type = rel.get("type") or rel.get("relationship_type", "relatedTo")
             source_type = rel.get("source_type")
             target_type = rel.get("target_type")
+
+            # Try to resolve source/target types if not provided
+            if not source_type or source_type == "Entity":
+                # Look up source in entities list to find its type
+                source_name = rel.get("source")
+                for ent in entities:
+                    if ent.get("name") == source_name or ent.get("text") == source_name:
+                        source_type = ent.get("type") or ent.get("entity_type")
+                        break
+            
+            if not target_type or target_type == "Entity":
+                 # Look up target in entities list to find its type
+                target_name = rel.get("target")
+                for ent in entities:
+                    if ent.get("name") == target_name or ent.get("text") == target_name:
+                        target_type = ent.get("type") or ent.get("entity_type")
+                        break
+            
+            # Update rel with resolved types
+            rel["source_type"] = source_type
+            rel["target_type"] = target_type
+            
+            normalized_relationships.append(rel)
 
             if source_type and source_type in concepts:
                 concepts[source_type]["relationships"].append(rel)
@@ -231,7 +352,7 @@ class OntologyGenerator:
         return {
             "concepts": concepts,
             "entities": entities,
-            "relationships": relationships,
+            "relationships": normalized_relationships,
         }
 
     def _stage2_yaml_to_definition(

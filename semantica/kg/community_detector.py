@@ -135,6 +135,26 @@ class CommunityDetector:
                     import networkx.algorithms.community as nx_comm
 
                     nx_graph = self._to_networkx(graph)
+                    
+                    # Check if graph is empty or has no edges
+                    num_nodes = nx_graph.number_of_nodes()
+                    num_edges = nx_graph.number_of_edges()
+                    self.logger.debug(f"Graph stats: nodes={num_nodes}, edges={num_edges}")
+
+                    if num_nodes == 0 or num_edges == 0:
+                        self.logger.warning("Graph is empty or has no edges, returning 0 communities")
+                        self.progress_tracker.stop_tracking(
+                            tracking_id,
+                            status="completed",
+                            message="Detected 0 communities (empty graph/no edges)",
+                        )
+                        return {
+                            "communities": [],
+                            "node_assignments": {},
+                            "modularity": 0.0,
+                            "algorithm": "louvain",
+                        }
+
                     resolution = options.get("resolution", 1.0)
 
                     self.progress_tracker.update_tracking(
@@ -166,8 +186,9 @@ class CommunityDetector:
                     )
                     return result
                 except Exception as e:
+                    import traceback
                     self.logger.warning(
-                        f"NetworkX Louvain failed: {e}, using basic implementation"
+                        f"NetworkX Louvain failed: {e}, using basic implementation. Traceback: {traceback.format_exc()}"
                     )
 
             self.progress_tracker.update_tracking(

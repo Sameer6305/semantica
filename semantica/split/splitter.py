@@ -40,6 +40,7 @@ License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Union
+import os
 
 from ..utils.exceptions import ProcessingError
 from ..utils.logging import get_logger
@@ -222,3 +223,65 @@ class TextSplitter:
         """
         self.options.update(options)
         self._load_method_configs()
+
+    def split_documents(self, documents: List[Any], **override_options) -> List[Chunk]:
+        """
+        Split a list of documents into chunks.
+
+        Args:
+            documents: List of document objects (must have text/content/page_content attribute)
+            **override_options: Options to override for this split call
+
+        Returns:
+            List of Chunk objects
+        """
+        all_chunks = []
+        for doc in documents:
+            text = ""
+            # Duck typing to extract text
+            if isinstance(doc, str):
+                text = doc
+            elif hasattr(doc, "text"):
+                text = doc.text
+            elif hasattr(doc, "page_content"):
+                text = doc.page_content
+            elif hasattr(doc, "content"):
+                content = doc.content
+                if isinstance(content, bytes):
+                    try:
+                        text = content.decode("utf-8")
+                    except Exception:
+                        text = content.decode("utf-8", errors="ignore")
+                elif isinstance(content, str):
+                    text = content
+                elif content is None and hasattr(doc, "path") and doc.path:
+                     # Try reading from path if content is missing
+                     try:
+                        if os.path.exists(doc.path):
+                            with open(doc.path, "r", encoding="utf-8") as f:
+                                text = f.read()
+                     except Exception as e:
+                        self.logger.warning(f"Could not read file {doc.path}: {e}")
+                        continue
+                else:
+                    text = str(content) if content is not None else ""
+            
+            if not text:
+                continue
+
+            try:
+                # Split text
+                chunks = self.split(text, **override_options)
+                
+                # Merge metadata
+                doc_metadata = getattr(doc, "metadata", {})
+                if doc_metadata:
+                    for chunk in chunks:
+                        chunk.metadata = {**doc_metadata, **chunk.metadata}
+                
+                all_chunks.extend(chunks)
+            except Exception as e:
+                self.logger.warning(f"Failed to split document: {e}")
+                continue
+            
+        return all_chunks

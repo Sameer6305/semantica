@@ -100,12 +100,17 @@ from .registry import MethodRegistry, method_registry
 from .semantic_chunker import Chunk, SemanticChunker
 from .sliding_window_chunker import SlidingWindowChunker
 from .splitter import TextSplitter
+
+# Alias for backward compatibility
+Splitter = TextSplitter
+
 from .structural_chunker import StructuralChunker
 from .table_chunker import TableChunker
 
 __all__ = [
     # Unified splitter
     "TextSplitter",
+    "Splitter",
     # Existing chunkers
     "SemanticChunker",
     "Chunk",
