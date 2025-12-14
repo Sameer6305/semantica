@@ -117,6 +117,11 @@ class NumberNormalizer:
         # Remove formatting characters
         cleaned = number_input.replace(",", "").replace(" ", "").strip()
 
+        # Remove currency symbols
+        for symbol in self.currency_normalizer.currency_symbols:
+            if symbol in cleaned:
+                cleaned = cleaned.replace(symbol, "")
+
         # Handle percentages
         if "%" in cleaned:
             cleaned = cleaned.replace("%", "")
