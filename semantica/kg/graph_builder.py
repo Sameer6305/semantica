@@ -152,14 +152,19 @@ class GraphBuilder:
             }
             all_relationships.append(rel_dict)
         elif isinstance(item, dict):
+            processed = False
             if "entities" in item:
                 all_entities.extend(item["entities"])
-            elif "relationships" in item:
+                processed = True
+            if "relationships" in item:
                 all_relationships.extend(item["relationships"])
-            elif "source" in item and "target" in item:
-                all_relationships.append(item)
-            elif "id" in item or "entity_id" in item or "name" in item:
-                all_entities.append(item)
+                processed = True
+            
+            if not processed:
+                if "source" in item and "target" in item:
+                    all_relationships.append(item)
+                elif "id" in item or "entity_id" in item or "name" in item:
+                    all_entities.append(item)
         else:
             # Unknown type, try to treat as entity if it has string representation
             pass
