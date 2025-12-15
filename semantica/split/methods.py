@@ -950,6 +950,11 @@ def split_entity_aware(
                                         if text_pos <= e.start_char < text_end
                                     ]
                                 ),
+                                "entities": [
+                                    e
+                                    for e in entities
+                                    if text_pos <= e.start_char < text_end
+                                ],
                             },
                         )
                     )
@@ -981,6 +986,9 @@ def split_entity_aware(
                         "entity_count": len(
                             [e for e in entities if text_pos <= e.start_char < text_end]
                         ),
+                        "entities": [
+                            e for e in entities if text_pos <= e.start_char < text_end
+                        ],
                     },
                 )
             )
@@ -1086,6 +1094,16 @@ def split_relation_aware(
                                         if text_pos <= r.subject.start_char < text_end
                                     ]
                                 ),
+                                "relationships": [
+                                    r
+                                    for r in relations
+                                    if text_pos <= r.subject.start_char < text_end
+                                ],
+                                "triplets": [
+                                    r
+                                    for r in relations
+                                    if text_pos <= r.subject.start_char < text_end
+                                ],
                             },
                         )
                     )
@@ -1118,9 +1136,19 @@ def split_relation_aware(
                             [
                                 r
                                 for r in relations
-                                if text_pos <= r.subject_start < text_end
+                                if text_pos <= r.subject.start_char < text_end
                             ]
                         ),
+                        "relationships": [
+                            r
+                            for r in relations
+                            if text_pos <= r.subject.start_char < text_end
+                        ],
+                        "triplets": [
+                            r
+                            for r in relations
+                            if text_pos <= r.subject.start_char < text_end
+                        ],
                     },
                 )
             )
