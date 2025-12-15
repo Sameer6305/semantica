@@ -599,69 +599,102 @@ def extract_relations_dependency(
     # print(f"DEBUG: Token to entity mapping keys: {[t.text for t in token_to_entity.keys()]}")
 
     # DEBUG: Dump full dependency tree
-    print("DEBUG: Dependency Tree:")
+    # print("DEBUG: Dependency Tree:")
+    # for token in doc:
+    #     print(f"  {token.i}: {token.text} ({token.dep_}) -> {token.head.text} ({token.head.i})")
+
+    # Helper to find entity for a token (or its head chain)
+    def find_subject_entity(token):
+        # 1. If acl, check head
+        if token.dep_ == "acl":
+            head = token.head
+            if head in token_to_entity:
+                return token_to_entity[head]
+            
+            # 2. If head is attr/acomp, check its head's nsubj
+            if head.dep_ in ["attr", "acomp", "dobj"] and head.head.pos_ in ["VERB", "AUX"]:
+                copula = head.head
+                for child in copula.children:
+                    if child.dep_ in ["nsubj", "nsubjpass"] and child in token_to_entity:
+                        return token_to_entity[child]
+        return None
+
+    # Helper to expand objects via conjunctions
+    def expand_conjunctions(token):
+        results = [token]
+        for child in token.children:
+            if child.dep_ == "conj":
+                results.extend(expand_conjunctions(child))
+        return results
+
     for token in doc:
-        print(f"  {token.i}: {token.text} ({token.dep_}) -> {token.head.text} ({token.head.i})")
+        # Check if token is a potential predicate (Verb)
+        # We process verbs that have nsubj OR are acl OR are ROOT/VERB
+        
+        subject_entity = None
+        
+        # Case 1: Token has nsubj/nsubjpass
+        nsubj = next((c for c in token.children if c.dep_ in ["nsubj", "nsubjpass"]), None)
+        if nsubj:
+            subject_entity = token_to_entity.get(nsubj)
+        
+        # Case 2: Token is acl or other modifier, try to infer subject from context
+        if not subject_entity:
+             subject_entity = find_subject_entity(token)
+             
+        if not subject_entity:
+            continue
 
-    for token in doc:
-        # Look for subject-verb-object patterns
-        if token.dep_ in ["nsubj", "nsubjpass"]:
-            # Check if subject token maps to an entity
-            subject_entity = token_to_entity.get(token)
+        verb = token
+        # DEBUG: Print found subject
+        # print(f"DEBUG: Found subject {subject_entity.text} for verb {verb.text}")
+
+        # Find objects
+        potential_objects = []
+        for child in verb.children:
+            # Direct objects
+            if child.dep_ in ["dobj", "attr", "acomp"]:
+                potential_objects.extend(expand_conjunctions(child))
+                # Check for "attr of object" pattern (e.g. "CEO of Apple")
+                for grandchild in child.children:
+                    if grandchild.dep_ == "prep":
+                        for greatgrandchild in grandchild.children:
+                            if greatgrandchild.dep_ == "pobj":
+                                potential_objects.extend(expand_conjunctions(greatgrandchild))
+                                
+            # Prepositional objects (including agent)
+            elif child.dep_ in ["prep", "agent"]:
+                for grandchild in child.children:
+                    if grandchild.dep_ == "pobj":
+                        potential_objects.extend(expand_conjunctions(grandchild))
+        
+        # DEBUG: Print potential objects
+        # print(f"DEBUG: Potential objects for verb {verb.text}: {[t.text for t in potential_objects]}")
+
+        for obj_token in potential_objects:
+            object_entity = token_to_entity.get(obj_token)
             
-            # DEBUG: Print subject checking
-            # print(f"DEBUG: Checking subject token: {token.text} (dep={token.dep_}), Entity: {subject_entity}")
-            
-            if not subject_entity:
-                continue
+            # DEBUG: Print object checking
+            # print(f"DEBUG: Checking object token: {obj_token.text}, Entity: {object_entity}")
 
-            verb = token.head
-            # DEBUG: Print all children of verb
-            # print(f"DEBUG: Verb '{verb.text}' children: {[f'{c.text}({c.dep_})' for c in verb.children]}")
-
-            # Find object
-            potential_objects = []
-            for child in verb.children:
-                if child.dep_ in ["dobj", "attr", "acomp"]:
-                    potential_objects.append(child)
-                    # Check for "attr of object" pattern (e.g. "CEO of Apple")
-                    for grandchild in child.children:
-                        if grandchild.dep_ == "prep":
-                            for greatgrandchild in grandchild.children:
-                                if greatgrandchild.dep_ == "pobj":
-                                    potential_objects.append(greatgrandchild)
-                elif child.dep_ in ["prep", "agent"]:
-                    for grandchild in child.children:
-                        if grandchild.dep_ == "pobj":
-                            potential_objects.append(grandchild)
-            
-            # DEBUG: Print potential objects
-            print(f"DEBUG: Potential objects for verb {verb.text}: {[t.text for t in potential_objects]}")
-
-            for obj_token in potential_objects:
-                object_entity = token_to_entity.get(obj_token)
-                
-                # DEBUG: Print object checking
-                print(f"DEBUG: Checking object token: {obj_token.text}, Entity: {object_entity}")
-
-                if object_entity and subject_entity != object_entity:
-                    relations.append(
-                        Relation(
-                            subject=subject_entity,
-                            predicate=verb.lemma_,
-                            object=object_entity,
-                            confidence=0.8,
-                            context=text[
-                                max(0, token.idx - 30) : min(
-                                    len(text), obj_token.idx + len(obj_token.text) + 30
-                                )
-                            ],
-                            metadata={
-                                "extraction_method": "dependency",
-                                "dependency_path": f"{token.dep_} -> ... -> {obj_token.dep_}",
-                            },
-                        )
+            if object_entity and subject_entity != object_entity:
+                relations.append(
+                    Relation(
+                        subject=subject_entity,
+                        predicate=verb.lemma_,
+                        object=object_entity,
+                        confidence=0.8,
+                        context=text[
+                            max(0, token.idx - 30) : min(
+                                len(text), obj_token.idx + len(obj_token.text) + 30
+                            )
+                        ],
+                        metadata={
+                            "extraction_method": "dependency",
+                            "dependency_path": f"{token.dep_} -> ... -> {obj_token.dep_}",
+                        },
                     )
+                )
 
     return relations
 
