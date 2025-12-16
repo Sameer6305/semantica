@@ -1,0 +1,23 @@
+@prefix : <https://docs.semantica.dev/ontology/v1.0> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://docs.semantica.dev/ontology/name> a owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:domain <https://docs.semantica.dev/ontology/Person> ;
+    rdfs:range xsd:string .
+
+<https://docs.semantica.dev/ontology/role> a owl:DatatypeProperty ;
+    rdfs:label "role" ;
+    rdfs:domain <https://docs.semantica.dev/ontology/Person> ;
+    rdfs:range xsd:string .
+
+: a owl:Ontology ;
+    rdfs:label "CorporateOntology" ;
+    owl:versionInfo "1.0" .
+
+<https://docs.semantica.dev/ontology/Person> a owl:Class ;
+    rdfs:label "Person" ;
+    rdfs:comment "Class representing person entities" .
+
