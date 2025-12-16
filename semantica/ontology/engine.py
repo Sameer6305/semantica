@@ -6,9 +6,9 @@ from ..utils.progress_tracker import get_progress_tracker
 from .ontology_generator import OntologyGenerator
 from .class_inferrer import ClassInferrer
 from .property_generator import PropertyGenerator
-from .ontology_validator import OntologyValidator
 from .owl_generator import OWLGenerator
 from .ontology_evaluator import OntologyEvaluator
+from .ontology_validator import OntologyValidator
 from .llm_generator import LLMOntologyGenerator
 
 
@@ -21,9 +21,9 @@ class OntologyEngine:
         self.generator = OntologyGenerator(**config)
         self.inferrer = ClassInferrer(**config)
         self.propgen = PropertyGenerator(**config)
-        self.validator = OntologyValidator(**config)
         self.owl = OWLGenerator(**config)
         self.evaluator = OntologyEvaluator(**config)
+        self.validator = OntologyValidator(**config)
         self.llm = LLMOntologyGenerator(**config)
 
     def from_data(self, data: Dict[str, Any], **options) -> Dict[str, Any]:
@@ -57,11 +57,11 @@ class OntologyEngine:
     ) -> List[Dict[str, Any]]:
         return self.propgen.infer_properties(entities, relationships, classes, **options)
 
-    def validate(self, ontology: Dict[str, Any], **options):
-        return self.validator.validate_ontology(ontology, **options)
-
     def evaluate(self, ontology: Dict[str, Any], **options):
         return self.evaluator.evaluate_ontology(ontology, **options)
+
+    def validate(self, ontology: Dict[str, Any], **options):
+        return self.validator.validate(ontology, **options)
 
     def to_owl(self, ontology: Dict[str, Any], format: str = "turtle", **options):
         return self.owl.generate_owl(ontology, format=format, **options)

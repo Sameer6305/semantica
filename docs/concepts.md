@@ -1694,55 +1694,6 @@ classDiagram
     print("Ontology saved to company_ontology.ttl")
     ```
 
-=== "Ontology Validation"
-    Validate ontologies with symbolic reasoners:
-    
-    ```python
-    from semantica.ontology import OntologyValidator, validate_ontology
-    
-    # Load or create ontology
-    ontology_file = "company_ontology.ttl"
-    
-    # Method 1: Using the convenience function
-    result = validate_ontology(ontology_file, method="default")
-    print(f"Quick validation: {'Valid' if result['valid'] else 'Invalid'}")
-    
-    # Method 2: Using OntologyValidator for more control
-    validator = OntologyValidator(
-        reasoner="hermit",  # hermit, pellet, or auto
-        check_consistency=True,
-        check_satisfiability=True
-    )
-    
-    # Validate the ontology
-    validation_result = validator.validate(ontology_file)
-    
-    print(f"Validation Results:")
-    print(f"  Consistent: {'Yes' if validation_result.consistent else 'No'}")
-    print(f"  Satisfiable: {'Yes' if validation_result.satisfiable else 'No'}")
-    
-    if validation_result.errors:
-        print(f"Errors ({len(validation_result.errors)}):")
-        for error in validation_result.errors:
-            print(f"  - {error}")
-    
-    if validation_result.warnings:
-        print(f"Warnings ({len(validation_result.warnings)}):")
-        for warning in validation_result.warnings:
-            print(f"  - {warning}")
-    
-    # Check specific constraints
-    constraints = [
-        "Every CEO must work for exactly one Company",
-        "A Person cannot be their own manager"
-    ]
-    
-    for constraint in constraints:
-        is_valid = validator.check_constraint(constraint)
-        status = "PASS" if is_valid else "FAIL"
-        print(f"  [{status}] {constraint}")
-    ```
-
 === "Competency Questions"
     Define and evaluate competency questions:
     

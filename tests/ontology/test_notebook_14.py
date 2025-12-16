@@ -137,20 +137,6 @@ class TestNotebook14(unittest.TestCase):
         self.assertEqual(len(messy_ontology['classes']), 2)
         self.assertEqual(len(clean_ontology['classes']), 1)
 
-    # def test_ontology_validator(self):
-    #     """Test OntologyValidator usage."""
-    #     validator = OntologyValidator(
-    #         check_consistency=False, # Skip reasoner for unit test speed/dependency
-    #         check_satisfiability=False
-    #     )
-    #
-    #     ontology = self._run_full_pipeline()
-    #     result = validator.validate_ontology(ontology)
-    #
-    #     self.assertTrue(result.valid)
-    #     # consistent might be None if check skipped, or True/False.
-    #     # Just check it runs without error.
-
     @patch("semantica.visualization.ontology_visualizer.make_subplots")
     @patch("semantica.visualization.ontology_visualizer.go")
     def test_visualization(self, mock_go, mock_make_subplots):

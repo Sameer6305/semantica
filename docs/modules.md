@@ -339,7 +339,7 @@ print(f"Density: {metrics['density']:.3f}")
 **Components:**
 
 - `OntologyGenerator` — Generate ontologies from knowledge graphs
-- `OntologyValidator` — Validate ontology structure
+- `OntologyValidator` — Validate ontologies
 - `OWLGenerator` — Generate OWL format ontologies
 - `PropertyGenerator` — Generate ontology properties
 - `ClassInferrer` — Infer ontology classes
@@ -349,13 +349,24 @@ print(f"Density: {metrics['density']:.3f}")
 **Quick Example:**
 
 ```python
-from semantica.ontology import OntologyGenerator
+from semantica.ontology import OntologyEngine
 
-generator = OntologyGenerator(base_uri="https://example.org/ontology/")
-ontology = generator.generate_from_graph(kg)
+# Initialize engine
+engine = OntologyEngine(base_uri="https://example.org/ontology/")
+
+# Generate ontology from data
+ontology = engine.from_data({
+    "entities": [...],
+    "relationships": [...]
+})
+
+# Validate ontology
+result = engine.validate(ontology)
+if result.valid:
+    print("Ontology is valid!")
 
 # Export to OWL
-owl_content = generator.export_owl(ontology, format="turtle")
+owl_content = engine.to_owl(ontology, format="turtle")
 print(f"Generated {len(owl_content)} lines of OWL")
 ```
 

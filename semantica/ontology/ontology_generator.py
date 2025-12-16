@@ -40,6 +40,7 @@ from .class_inferrer import ClassInferrer
 from .namespace_manager import NamespaceManager
 from .naming_conventions import NamingConventions
 from .property_generator import PropertyGenerator
+from .ontology_validator import OntologyValidator
 
 
 class OntologyGenerator:
@@ -102,20 +103,20 @@ class OntologyGenerator:
         self.property_generator = PropertyGenerator(
             namespace_manager=self.namespace_manager, **self.config
         )
+        self.validator = OntologyValidator(**self.config)
 
         self.supported_formats = ["owl", "ttl", "rdf", "json-ld"]
 
     def generate_ontology(self, data: Dict[str, Any], **options) -> Dict[str, Any]:
         """
-        Generate ontology from data using 6-stage pipeline.
+        Generate ontology from data using 5-stage pipeline.
 
-        Executes the complete 6-stage ontology generation pipeline:
+        Executes the complete 5-stage ontology generation pipeline:
         1. Semantic Network Parsing: Extract domain concepts from entities/relationships
         2. YAML-to-Definition: Transform concepts into class definitions
         3. Definition-to-Types: Map definitions to OWL types
         4. Hierarchy Generation: Build taxonomic structures
         5. TTL Generation: (Handled by OWLGenerator)
-        6. Symbolic Validation: (Handled by OntologyValidator)
 
         Args:
             data: Input data dictionary containing:
@@ -186,7 +187,22 @@ class OntologyGenerator:
             ontology = self._stage4_hierarchy_generation(typed_definitions, **options)
 
             # Stage 5: TTL Generation (handled by OWLGenerator)
-            # Stage 6: Symbolic Validation (handled by OntologyValidator)
+
+            # Stage 6: Symbolic Validation
+            if options.get("validate", True):
+                self.progress_tracker.update_tracking(
+                    tracking_id, message="Stage 6: Validating ontology..."
+                )
+                validation_result = self.validator.validate(ontology)
+                ontology["validation"] = {
+                    "valid": validation_result.valid,
+                    "consistent": validation_result.consistent,
+                    "satisfiable": validation_result.satisfiable,
+                    "errors": validation_result.errors,
+                    "warnings": validation_result.warnings
+                }
+                if not validation_result.valid:
+                    self.logger.warning(f"Ontology validation failed: {validation_result.errors}")
 
             self.progress_tracker.stop_tracking(
                 tracking_id,

@@ -8,7 +8,6 @@ from semantica.ontology.class_inferrer import ClassInferrer
 from semantica.ontology.property_generator import PropertyGenerator
 from semantica.ontology.naming_conventions import NamingConventions
 from semantica.ontology.ontology_generator import OntologyGenerator
-# from semantica.ontology.ontology_validator import OntologyValidator, ValidationResult
 from semantica.ontology.namespace_manager import NamespaceManager
 from semantica.ontology.module_manager import ModuleManager
 
@@ -32,8 +31,6 @@ class TestOntologyComprehensive(unittest.TestCase):
             patch('semantica.ontology.naming_conventions.get_progress_tracker', return_value=self.mock_tracker),
             patch('semantica.ontology.ontology_generator.get_logger', return_value=self.mock_logger),
             patch('semantica.ontology.ontology_generator.get_progress_tracker', return_value=self.mock_tracker),
-            # patch('semantica.ontology.ontology_validator.get_logger', return_value=self.mock_logger),
-            # patch('semantica.ontology.ontology_validator.get_progress_tracker', return_value=self.mock_tracker),
         ]
         
         for p in self.patchers:
@@ -169,23 +166,7 @@ class TestOntologyComprehensive(unittest.TestCase):
         self.assertIn("hasName", owl_output)
 
     # --- OntologyValidator Tests ---
-    # def test_ontology_validator(self):
-    #     try:
-    #         from semantica.ontology.ontology_validator import OntologyValidator, ValidationResult
-    #     except ImportError:
-    #         self.skipTest("OntologyValidator not importable")
-            
-    #     validator = OntologyValidator(reasoner="auto") # or mock reasoner
-    #     ontology = {
-    #         "name": "TestOntology",
-    #         "classes": [{"name": "Person", "parent": "Entity"}]
-    #     }
-        
-    #     # Without owlready2, it might just return valid=True (default) or fail gracefully
-    #     # If owlready2 is missing, it should handle it.
-    #     # Let's check basic structure validation if any.
-    #     result = validator.validate_ontology(ontology)
-    #     self.assertIsInstance(result, ValidationResult)
+    # Removed as per request
         
     # --- LLMOntologyGenerator Tests ---
     def test_llm_ontology_generator(self):

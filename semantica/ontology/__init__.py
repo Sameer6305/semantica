@@ -12,7 +12,7 @@ Ontology Generation (6-Stage Pipeline):
     - Stage 3 - Definition-to-Types: Map definitions to OWL types, type inference, OWL class/property mapping (@type assignment: owl:Class, owl:ObjectProperty, owl:DatatypeProperty), property inference (PropertyGenerator.infer_properties)
     - Stage 4 - Hierarchy Generation: Build taxonomic structures, parent-child relationship inference, hierarchy validation, circular dependency detection (DFS), transitive closure calculation
     - Stage 5 - TTL Generation: Generate OWL/Turtle syntax using rdflib, namespace prefix handling, RDF serialization (rdflib.serialize format="turtle"), triplet generation (subject-predicate-object)
-    - Stage 6 - Symbolic Validation: HermiT/Pellet reasoning (owlready2.sync_reasoner), consistency checking, satisfiability checking, constraint validation
+    - Stage 6 - Symbolic Validation: HermiT/Pellet reasoning, consistency checking, satisfiability checking, structural validation
 
 Class Inference:
     - Pattern-Based Inference: Entity type frequency analysis (Counter), minimum occurrence threshold filtering, similarity-based class merging (threshold matching), entity grouping by type
@@ -23,11 +23,6 @@ Property Inference:
     - Object Property Inference: Relationship type analysis, domain/range inference from entity types, property cardinality detection, relationship-to-property mapping
     - Data Property Inference: Entity attribute analysis, XSD type detection (string, integer, float, boolean, date), property domain inference, attribute frequency analysis
     - Property Validation: Domain/range validation, property hierarchy management, naming convention enforcement (camelCase), property IRI generation
-
-Ontology Validation:
-    - Symbolic Reasoning: HermiT reasoner integration (owlready2.sync_reasoner), Pellet reasoner integration, consistency checking, satisfiability checking, reasoner selection (auto/hermit/pellet)
-    - Constraint Validation: Domain/range constraint checking, cardinality constraint validation, logical constraint validation, structure validation
-    - Hallucination Detection: LLM-generated ontology validation, fact verification, relationship validation, error/warning collection
 
 OWL/RDF Generation:
     - RDF Graph Construction: rdflib.Graph creation, namespace binding, triplet generation (subject-predicate-object), namespace prefix declaration
@@ -66,7 +61,6 @@ Associative Class Creation:
 Key Features:
     - Automatic ontology generation from data (6-stage pipeline)
     - Class and property inference from entities and relationships
-    - Ontology validation with symbolic reasoners (HermiT, Pellet)
     - OWL/RDF generation and serialization
     - Ontology quality evaluation and assessment
     - Requirements specification and competency questions
@@ -85,9 +79,8 @@ Main Classes:
     - OntologyGenerator: Main ontology generation class (6-stage pipeline)
     - ClassInferrer: Class discovery and hierarchy building
     - PropertyGenerator: Property inference and data types
-    - OntologyValidator: Validation with symbolic reasoners
-    - OWLGenerator: OWL/RDF generation using rdflib
     - OntologyEvaluator: Ontology quality evaluation
+    - OWLGenerator: OWL/RDF generation using rdflib
     - RequirementsSpecManager: Requirements specification and competency questions
     - CompetencyQuestionsManager: Competency question management
     - ReuseManager: Ontology reuse management
@@ -105,7 +98,6 @@ Convenience Functions:
     - generate_ontology: Ontology generation wrapper (6-stage pipeline)
     - infer_classes: Class inference wrapper
     - infer_properties: Property inference wrapper
-    - validate_ontology: Ontology validation wrapper
     - generate_owl: OWL/RDF generation wrapper
     - evaluate_ontology: Ontology evaluation wrapper
     - create_requirements_spec: Requirements specification wrapper
@@ -119,11 +111,10 @@ Convenience Functions:
     - list_available_methods: List registered methods
 
 Example Usage:
-    >>> from semantica.ontology import generate_ontology, infer_classes, validate_ontology, OntologyGenerator
+    >>> from semantica.ontology import generate_ontology, infer_classes, OntologyGenerator
     >>> # Using convenience functions
     >>> ontology = generate_ontology({"entities": [...], "relationships": [...]}, method="default")
     >>> classes = infer_classes(entities, method="default")
-    >>> result = validate_ontology(ontology, method="default")
     >>> # Using classes directly
     >>> from semantica.ontology import OntologyGenerator, ClassInferrer, PropertyGenerator
     >>> generator = OntologyGenerator(base_uri="https://example.org/ontology/")
@@ -157,7 +148,7 @@ from .ontology_generator import (
     OntologyOptimizer,
     PropertyInferencer,
 )
-from .ontology_validator import OntologyValidator, ValidationResult
+from .ontology_validator import OntologyValidator, ValidationResult, validate_ontology
 from .owl_generator import OWLGenerator
 from .property_generator import PropertyGenerator
 from .registry import MethodRegistry, method_registry
@@ -176,6 +167,7 @@ __all__ = [
     # Validation and evaluation
     "OntologyValidator",
     "ValidationResult",
+    "validate_ontology",
     "OntologyEvaluator",
     "EvaluationResult",
     # OWL/RDF generation

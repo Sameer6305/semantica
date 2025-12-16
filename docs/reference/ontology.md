@@ -20,18 +20,6 @@
 
     Infer classes, properties, and hierarchies from entity patterns
 
--   :material-check-decagram:{ .lg .middle } **Validation**
-
-    ---
-
-    Symbolic reasoning (HermiT/Pellet) for consistency checking
-
--   :material-recycle:{ .lg .middle } **Reuse Management**
-
-    ---
-
-    Import and align with standard ontologies (FOAF, Schema.org)
-
 -   :material-chart-bar:{ .lg .middle } **Evaluation**
 
     ---
@@ -50,7 +38,6 @@
     - **Schema Design**: When defining the structure of your Knowledge Graph
     - **Data Modeling**: To formalize domain concepts and relationships
     - **Interoperability**: To ensure your data follows standard semantic web practices
-    - **Validation**: To enforce constraints on your data
 
 ---
 
@@ -62,17 +49,11 @@
 3.  **Definition-to-Types**: Map definitions to OWL types (`owl:Class`, `owl:ObjectProperty`).
 4.  **Hierarchy Generation**: Build taxonomy trees using transitive closure and cycle detection.
 5.  **TTL Generation**: Serialize to Turtle format using `rdflib`.
-6.  **Symbolic Validation**: Run reasoner to check for logical inconsistencies.
 
 ### Inference Algorithms
 - **Class Inference**: Clustering entities by type and attribute similarity.
 - **Property Inference**: Determining domain/range based on connected entity types.
 - **Hierarchy Inference**: `A is_a B` detection based on subset relationships.
-
-### Validation
-- **Symbolic Reasoning**: Uses HermiT or Pellet to check satisfiability.
-- **Constraint Checking**: Validates cardinality, domain, and range constraints.
-- **Hallucination Detection**: LLM-based verification of generated concepts.
 
 ---
 
@@ -88,9 +69,9 @@ Unified orchestration for generation, inference, validation, OWL export, and eva
 |--------|-------------|
 | `from_data(data, **options)` | Generate ontology from structured data |
 | `from_text(text, provider=None, model=None, **options)` | LLM-based generation from text |
+| `validate(ontology, **options)` | Validate ontology consistency |
 | `infer_classes(entities, **options)` | Infer classes from entities |
 | `infer_properties(entities, relationships, classes, **options)` | Infer properties |
-| `validate(ontology, **options)` | Validate ontology (returns `ValidationResult`) |
 | `evaluate(ontology, **options)` | Evaluate ontology quality |
 | `to_owl(ontology, format="turtle")` | Export OWL/RDF serialization |
 | `export_owl(ontology, path, format="turtle")` | Save OWL to file |
@@ -105,7 +86,6 @@ engine = OntologyEngine(base_uri="https://example.org/ontology/")
 data = {"entities": entities, "relationships": relationships}
 ontology = engine.from_data(data, name="MyOntology")
 
-result = engine.validate(ontology, reasoner="auto")
 turtle = engine.to_owl(ontology, format="turtle")
 ```
 
@@ -162,16 +142,6 @@ ontology = generator.generate_ontology({
 print(ontology.serialize(format="turtle"))
 ```
 
-### OntologyValidator
-
-Validates ontology consistency.
-
-**Methods:**
-
-| Method | Description |
-|--------|-------------|
-| `validate_ontology(ontology)` | Run symbolic reasoner and structure checks |
-
 ### OntologyEvaluator
 
 Scores ontology quality.
@@ -225,7 +195,6 @@ turtle = engine.to_owl(ontology, format="turtle")
 
 ```bash
 export ONTOLOGY_BASE_URI="http://my-org.com/ontology/"
-export ONTOLOGY_REASONER="hermit"
 export ONTOLOGY_STRICT_MODE=true
 ```
 
@@ -237,10 +206,6 @@ ontology:
   generation:
     min_class_size: 5
     infer_hierarchy: true
-    
-  validation:
-    reasoner: hermit
-    timeout: 60
 ```
 
 ---

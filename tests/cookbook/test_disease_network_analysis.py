@@ -13,7 +13,7 @@ try:
     from semantica.semantic_extract import NERExtractor, RelationExtractor, TripletExtractor, SemanticAnalyzer
     from semantica.kg import GraphBuilder, GraphAnalyzer, CentralityCalculator, CommunityDetector
     from semantica.kg import ConnectivityAnalyzer, TemporalGraphQuery, TemporalPatternDetector
-    from semantica.ontology import OntologyGenerator, ClassInferrer, PropertyGenerator
+    from semantica.ontology import OntologyGenerator, ClassInferrer, PropertyGenerator, OntologyValidator
     from semantica.reasoning import InferenceEngine, RuleManager, ExplanationGenerator
     from semantica.export import JSONExporter, RDFExporter, OWLExporter, ReportGenerator
     # Visualization might require matplotlib/networkx which might be missing or headless
@@ -160,7 +160,7 @@ class TestDiseaseNetworkAnalysis(unittest.TestCase):
         ontology_generator = OntologyGenerator()
         class_inferrer = ClassInferrer()
         property_generator = PropertyGenerator()
-        # ontology_validator = OntologyValidator()
+        ontology_validator = OntologyValidator()
         
         # Combine entities and relationships into a source structure for the builder
         sources = [{"entities": disease_entities, "relationships": disease_relationships}]

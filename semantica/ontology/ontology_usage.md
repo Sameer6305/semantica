@@ -8,18 +8,17 @@ This comprehensive guide demonstrates how to use the ontology management module 
 2. [Ontology Generation](#ontology-generation)
 3. [Class Inference](#class-inference)
 4. [Property Inference](#property-inference)
-5. [Ontology Validation](#ontology-validation)
-6. [OWL/RDF Generation](#owlrdf-generation)
-7. [Ontology Evaluation](#ontology-evaluation)
-8. [Requirements Specification](#requirements-specification)
-9. [Ontology Reuse](#ontology-reuse)
-10. [Version Management](#version-management)
-11. [Namespace Management](#namespace-management)
-12. [Associative Classes](#associative-classes)
-13. [Using Methods](#using-methods)
-14. [Using Registry](#using-registry)
-15. [Configuration](#configuration)
-16. [Advanced Examples](#advanced-examples)
+5. [OWL/RDF Generation](#owlrdf-generation)
+6. [Ontology Evaluation](#ontology-evaluation)
+7. [Requirements Specification](#requirements-specification)
+8. [Ontology Reuse](#ontology-reuse)
+9. [Version Management](#version-management)
+10. [Namespace Management](#namespace-management)
+11. [Associative Classes](#associative-classes)
+12. [Using Methods](#using-methods)
+13. [Using Registry](#using-registry)
+14. [Configuration](#configuration)
+15. [Advanced Examples](#advanced-examples)
 
 ## Basic Usage
 
@@ -783,7 +782,7 @@ classes = inferrer.infer_classes(entities, build_hierarchy=True)
 properties = prop_gen.infer_properties(entities, relationships, classes)
 
 # Validate
-result = validator.validate_ontology(ontology)
+result = validator.validate(ontology)
 
 # Generate OWL
 turtle = owl_gen.generate_owl(ontology, format="turtle")
