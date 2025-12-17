@@ -31,7 +31,7 @@ Example Usage:
     >>> merger = EntityMerger(preserve_provenance=True)
     >>> operations = merger.merge_duplicates(
     ...     entities,
-    ...     strategy=MergeStrategy.KEEP_MOST_COMPLETE
+    ...     strategy="keep_most_complete"
     ... )
     >>> history = merger.get_merge_history()
     >>> 
@@ -43,7 +43,7 @@ License: MIT
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from ..utils.exceptions import ProcessingError, ValidationError
 from ..utils.logging import get_logger
@@ -80,7 +80,7 @@ class EntityMerger:
 
     Example Usage:
         >>> merger = EntityMerger(preserve_provenance=True)
-        >>> operations = merger.merge_duplicates(entities, strategy=MergeStrategy.KEEP_MOST_COMPLETE)
+        >>> operations = merger.merge_duplicates(entities, strategy="keep_most_complete")
         >>> history = merger.get_merge_history()
     """
 
@@ -132,7 +132,7 @@ class EntityMerger:
     def merge_duplicates(
         self,
         entities: List[Dict[str, Any]],
-        strategy: Optional[MergeStrategy] = None,
+        strategy: Optional[Union[MergeStrategy, str]] = None,
         **options,
     ) -> List[MergeOperation]:
         """
@@ -154,8 +154,8 @@ class EntityMerger:
             entities: List of entity dictionaries to merge. Entities should have
                      at least "id" or "name" fields.
             strategy: Merge strategy to use (default: strategy manager's default).
-                     Options: KEEP_FIRST, KEEP_LAST, KEEP_MOST_COMPLETE,
-                     KEEP_HIGHEST_CONFIDENCE, MERGE_ALL
+                     Options: "keep_first", "keep_last", "keep_most_complete",
+                     "keep_highest_confidence", "merge_all" or MergeStrategy Enum.
             **options: Additional merge options passed to duplicate detector and
                       merge strategy manager:
                 - threshold: Similarity threshold for duplicate detection
@@ -175,7 +175,7 @@ class EntityMerger:
             ... ]
             >>> operations = merger.merge_duplicates(
             ...     entities,
-            ...     strategy=MergeStrategy.KEEP_MOST_COMPLETE
+            ...     strategy="keep_most_complete"
             ... )
             >>> merged = operations[0].merged_entity
         """
@@ -235,7 +235,7 @@ class EntityMerger:
                     metadata={
                         "group_confidence": group.confidence,
                         "similarity_scores": group.similarity_scores,
-                        "strategy": strategy.value if strategy else "default",
+                        "strategy": merge_result.metadata.get("strategy", "default"),
                     },
                 )
 
@@ -262,7 +262,7 @@ class EntityMerger:
     def merge_entity_group(
         self,
         entities: List[Dict[str, Any]],
-        strategy: Optional[MergeStrategy] = None,
+        strategy: Optional[Union[MergeStrategy, str]] = None,
         **options,
     ) -> MergeOperation:
         """
@@ -294,7 +294,7 @@ class EntityMerger:
             ... ]
             >>> operation = merger.merge_entity_group(
             ...     entities,
-            ...     strategy=MergeStrategy.KEEP_MOST_COMPLETE
+            ...     strategy="keep_most_complete"
             ... )
             >>> merged = operation.merged_entity
         """
@@ -303,9 +303,14 @@ class EntityMerger:
                 f"Need at least 2 entities to merge, got {len(entities)}"
             )
 
+        # Get strategy value safely for logging
+        strategy_val = "default"
+        if strategy:
+            strategy_val = strategy.value if hasattr(strategy, "value") else str(strategy)
+
         self.logger.debug(
             f"Merging group of {len(entities)} entities "
-            f"(strategy: {strategy.value if strategy else 'default'})"
+            f"(strategy: {strategy_val})"
         )
 
         # Apply merge strategy
@@ -325,7 +330,7 @@ class EntityMerger:
             merged_entity=merge_result.merged_entity,
             merge_result=merge_result,
             metadata={
-                "strategy": strategy.value if strategy else "default",
+                "strategy": merge_result.metadata.get("strategy", "default"),
                 "conflicts": len(merge_result.conflicts),
             },
         )

@@ -664,16 +664,16 @@ These modules ensure data quality, handle duplicates, and resolve conflicts.
 
 | Strategy | Description |
 | :--- | :--- |
-| `keep_first` | Preserve first entity, merge others |
-| `keep_last` | Preserve last entity, merge others |
-| `keep_most_complete` | Preserve entity with most properties |
-| `keep_highest_confidence` | Preserve entity with highest confidence |
-| `merge_all` | Combine all properties and relationships |
+| `"keep_first"` | Preserve first entity, merge others |
+| `"keep_last"` | Preserve last entity, merge others |
+| `"keep_most_complete"` | Preserve entity with most properties |
+| `"keep_highest_confidence"` | Preserve entity with highest confidence |
+| `"merge_all"` | Combine all properties and relationships |
 
 **Quick Example:**
 
 ```python
-from semantica.deduplication import DuplicateDetector, EntityMerger, MergeStrategy
+from semantica.deduplication import DuplicateDetector, EntityMerger
 
 # Detect duplicates
 detector = DuplicateDetector(similarity_threshold=0.8)
@@ -683,7 +683,7 @@ duplicate_groups = detector.detect_duplicate_groups(entities)
 merger = EntityMerger(preserve_provenance=True)
 merge_operations = merger.merge_duplicates(
     entities,
-    strategy=MergeStrategy.KEEP_MOST_COMPLETE
+    strategy="keep_most_complete"
 )
 
 merged_entities = [op.merged_entity for op in merge_operations]

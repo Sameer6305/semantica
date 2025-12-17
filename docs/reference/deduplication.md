@@ -146,26 +146,27 @@ EntityMerger(
 | `validate_merge_quality(merge_operation)` | Validate quality of a merge operation | `Dict[str, Any]` |
 
 **Strategies:**
-- `KEEP_FIRST`: Keep the first entity encountered
-- `KEEP_LAST`: Keep the last entity encountered
-- `KEEP_MOST_COMPLETE`: Keep entity with most properties/relationships
-- `KEEP_HIGHEST_CONFIDENCE`: Keep entity with highest confidence score
-- `MERGE_ALL`: Create new entity combining all info
+- `"keep_first"`: Keep the first entity encountered
+- `"keep_last"`: Keep the last entity encountered
+- `"keep_most_complete"`: Keep entity with most properties/relationships
+- `"keep_highest_confidence"`: Keep entity with highest confidence score
+- `"merge_all"`: Create new entity combining all info
 
 **Example:**
 
 ```python
-from semantica.deduplication import EntityMerger, MergeStrategy
+from semantica.deduplication import EntityMerger
 
 merger = EntityMerger(preserve_provenance=True)
+
+# Merge with specific strategy
 operations = merger.merge_duplicates(
     entities,
-    strategy=MergeStrategy.KEEP_MOST_COMPLETE
+    strategy="keep_most_complete"
 )
 
-for op in operations:
-    print(f"Merged {len(op.source_entities)} entities into 1")
-    print(f"Conflicts: {len(op.merge_result.conflicts)}")
+# Get merge history
+history = merger.get_merge_history()
 ```
 
 ### SimilarityCalculator

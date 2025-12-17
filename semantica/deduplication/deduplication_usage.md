@@ -605,14 +605,14 @@ for op in history:
 ### Property-Specific Merge Rules
 
 ```python
-from semantica.deduplication import MergeStrategyManager, MergeStrategy
+from semantica.deduplication import MergeStrategyManager
 
 manager = MergeStrategyManager(default_strategy="keep_most_complete")
 
 # Different strategies for different properties
-manager.add_property_rule("name", MergeStrategy.KEEP_FIRST)
-manager.add_property_rule("description", MergeStrategy.MERGE_ALL)
-manager.add_property_rule("founded", MergeStrategy.KEEP_HIGHEST_CONFIDENCE)
+manager.add_property_rule("name", "keep_first")
+manager.add_property_rule("description", "merge_all")
+manager.add_property_rule("founded", "keep_highest_confidence")
 
 # Custom conflict resolution for dates
 def resolve_date_conflict(dates):
@@ -621,7 +621,7 @@ def resolve_date_conflict(dates):
 
 manager.add_property_rule(
     "last_updated",
-    MergeStrategy.CUSTOM,
+    "custom",
     conflict_resolution=resolve_date_conflict
 )
 

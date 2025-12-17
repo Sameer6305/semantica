@@ -306,19 +306,8 @@ def merge_entities(
     # Use default EntityMerger
     merger = EntityMerger(preserve_provenance=preserve_provenance, **kwargs)
 
-    # Map method to merge strategy
-    strategy_map = {
-        "keep_first": MergeStrategy.KEEP_FIRST,
-        "keep_last": MergeStrategy.KEEP_LAST,
-        "keep_most_complete": MergeStrategy.KEEP_MOST_COMPLETE,
-        "keep_highest_confidence": MergeStrategy.KEEP_HIGHEST_CONFIDENCE,
-        "merge_all": MergeStrategy.MERGE_ALL,
-    }
-
-    strategy = strategy_map.get(method, MergeStrategy.KEEP_MOST_COMPLETE)
-
-    # Merge duplicates
-    return merger.merge_duplicates(entities, strategy=strategy, **kwargs)
+    # Merge duplicates (EntityMerger handles string strategies directly)
+    return merger.merge_duplicates(entities, strategy=method, **kwargs)
 
 
 def build_clusters(

@@ -103,6 +103,35 @@ class TestDeduplication(unittest.TestCase):
         op_merge = merger.merge_entity_group(to_merge, strategy=MergeStrategy.MERGE_ALL)
         self.assertIn("industry", op_merge.merged_entity["properties"])
         
+    def test_entity_merger_string_strategies(self):
+        """Test entity merging with string strategies."""
+        merger = EntityMerger(preserve_provenance=True)
+        to_merge = [self.entities[0], self.entities[1]]
+        
+        # Strategy: "keep_first"
+        op_first = merger.merge_entity_group(to_merge, strategy="keep_first")
+        self.assertEqual(op_first.merged_entity["id"], "e1")
+        
+        # Strategy: "keep_last"
+        op_last = merger.merge_entity_group(to_merge, strategy="keep_last")
+        self.assertEqual(op_last.merged_entity["id"], "e2")
+        
+        # Strategy: "keep_most_complete"
+        # Apple Inc. (e1) has 2 props, Apple (e2) has 1 prop
+        op_complete = merger.merge_entity_group(to_merge, strategy="keep_most_complete")
+        self.assertEqual(op_complete.merged_entity["id"], "e1")
+        
+        # Test property rule with string strategy
+        from semantica.deduplication.merge_strategy import MergeStrategyManager
+        manager = MergeStrategyManager()
+        manager.add_property_rule("name", "keep_last")
+        
+        # Manually invoke with manager (since EntityMerger creates its own default manager)
+        # We can pass a custom manager if EntityMerger allowed, but here we test manager directly
+        result = manager.merge_entities(to_merge)
+        # name should be from last entity ("Apple")
+        self.assertEqual(result.merged_entity["name"], "Apple")
+
     def test_incremental_detection(self):
         """Test incremental duplicate detection."""
         detector = DuplicateDetector(

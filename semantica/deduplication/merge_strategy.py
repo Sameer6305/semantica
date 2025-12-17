@@ -27,15 +27,15 @@ Main Classes:
     - PropertyMergeRule: Rule for merging specific properties
 
 Example Usage:
-    >>> from semantica.deduplication import MergeStrategyManager, MergeStrategy, PropertyMergeRule
+    >>> from semantica.deduplication import MergeStrategyManager
     >>> manager = MergeStrategyManager(default_strategy="keep_most_complete")
-    >>> manager.add_property_rule("name", MergeStrategy.KEEP_FIRST)
-    >>> result = manager.merge_entities(entities, strategy=MergeStrategy.KEEP_MOST_COMPLETE)
+    >>> manager.add_property_rule("name", "keep_first")
+    >>> result = manager.merge_entities(entities, strategy="keep_most_complete")
     >>> 
     >>> # Custom conflict resolution
     >>> def resolve_conflict(values):
     ...     return max(values, key=len)  # Return longest value
-    >>> manager.add_property_rule("description", MergeStrategy.CUSTOM, conflict_resolution=resolve_conflict)
+    >>> manager.add_property_rule("description", "custom", conflict_resolution=resolve_conflict)
 
 Author: Semantica Contributors
 License: MIT
@@ -43,7 +43,7 @@ License: MIT
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from ..utils.exceptions import ProcessingError, ValidationError
 from ..utils.logging import get_logger
@@ -99,7 +99,7 @@ class MergeStrategyManager:
 
     Example Usage:
         >>> manager = MergeStrategyManager(default_strategy="keep_most_complete")
-        >>> manager.add_property_rule("name", MergeStrategy.KEEP_FIRST)
+        >>> manager.add_property_rule("name", "keep_first")
         >>> result = manager.merge_entities(entities)
     """
 
@@ -154,7 +154,7 @@ class MergeStrategyManager:
     def add_property_rule(
         self,
         property_name: str,
-        strategy: MergeStrategy,
+        strategy: Union[MergeStrategy, str],
         conflict_resolution: Optional[Callable] = None,
         priority: int = 0,
     ) -> None:
@@ -163,10 +163,19 @@ class MergeStrategyManager:
 
         Args:
             property_name: Property name
-            strategy: Merge strategy
+            strategy: Merge strategy (Enum or string)
             conflict_resolution: Custom conflict resolution function
             priority: Rule priority
         """
+        if isinstance(strategy, str):
+            try:
+                strategy = MergeStrategy(strategy.lower())
+            except ValueError:
+                self.logger.warning(
+                    f"Invalid property strategy '{strategy}', defaulting to keep_most_complete"
+                )
+                strategy = MergeStrategy.KEEP_MOST_COMPLETE
+
         rule = PropertyMergeRule(
             property_name=property_name,
             strategy=strategy,
@@ -179,7 +188,7 @@ class MergeStrategyManager:
     def merge_entities(
         self,
         entities: List[Dict[str, Any]],
-        strategy: Optional[MergeStrategy] = None,
+        strategy: Optional[Union[MergeStrategy, str]] = None,
         **options,
     ) -> MergeResult:
         """
@@ -187,7 +196,7 @@ class MergeStrategyManager:
 
         Args:
             entities: List of entities to merge
-            strategy: Merge strategy (uses default if None)
+            strategy: Merge strategy (uses default if None). Can be Enum or string.
             **options: Merge options
 
         Returns:
@@ -213,7 +222,21 @@ class MergeStrategyManager:
                 )
                 return MergeResult(merged_entity=entities[0], merged_entities=entities)
 
-            strategy = strategy or self.default_strategy
+            # Resolve strategy
+            if strategy is None:
+                strategy = self.default_strategy
+            elif isinstance(strategy, str):
+                try:
+                    strategy = MergeStrategy(strategy.lower())
+                except ValueError:
+                    self.logger.warning(
+                        f"Invalid strategy '{strategy}', using default '{self.default_strategy.value}'"
+                    )
+                    strategy = self.default_strategy
+            
+            # If it's still not a MergeStrategy (e.g. invalid type passed), force default
+            if not isinstance(strategy, MergeStrategy):
+                 strategy = self.default_strategy
 
             self.progress_tracker.update_tracking(
                 tracking_id, message=f"Selecting base entity using {strategy.value}..."
@@ -241,8 +264,8 @@ class MergeStrategyManager:
             # Build merged entity
             merged_entity = {
                 "id": base_entity.get("id"),
-                "name": base_entity.get("name"),
-                "type": base_entity.get("type"),
+                "name": self._merge_top_level_field("name", entities, base_entity),
+                "type": self._merge_top_level_field("type", entities, base_entity),
                 "properties": merged_properties,
                 "relationships": merged_relationships,
                 "metadata": self._merge_metadata(entities, base_entity),
@@ -265,6 +288,35 @@ class MergeStrategyManager:
                 tracking_id, status="failed", message=str(e)
             )
             raise
+
+    def _merge_top_level_field(
+        self,
+        field_name: str,
+        entities: List[Dict[str, Any]],
+        base_entity: Dict[str, Any],
+    ) -> Any:
+        """Merge top-level field (name, type) respecting property rules."""
+        rule = self.property_rules.get(field_name)
+        if not rule:
+            return base_entity.get(field_name)
+
+        # If rule exists, merge from scratch following list order
+        valid_entities = [e for e in entities if e.get(field_name) is not None]
+        if not valid_entities:
+            return None
+
+        merged_value = valid_entities[0].get(field_name)
+
+        for i in range(1, len(valid_entities)):
+            val = valid_entities[i].get(field_name)
+            if merged_value != val:
+                conflict = self._resolve_property_conflict(
+                    field_name, merged_value, val, rule.strategy
+                )
+                if conflict.get("resolved"):
+                    merged_value = conflict["value"]
+
+        return merged_value
 
     def _select_base_entity(
         self, entities: List[Dict[str, Any]], strategy: MergeStrategy
