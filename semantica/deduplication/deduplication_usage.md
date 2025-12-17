@@ -20,10 +20,15 @@ This guide demonstrates how to use the deduplication module for detecting and me
 ```python
 from semantica.deduplication import SimilarityCalculator
 
-calculator = SimilarityCalculator(
-    string_weight=0.4,
-    property_weight=0.3,
-    embedding_weight=0.3
+# Initialize with default weights (optimized for entity resolution)
+# String: 0.6 (Jaro-Winkler), Property: 0.2, Relationship: 0.2
+calculator = SimilarityCalculator()
+
+# Or customize weights
+calculator_custom = SimilarityCalculator(
+    string_weight=0.6,
+    property_weight=0.2,
+    embedding_weight=0.2
 )
 
 entity1 = {"name": "Apple Inc.", "type": "Company"}

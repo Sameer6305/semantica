@@ -90,10 +90,10 @@ class SimilarityCalculator:
 
     def __init__(
         self,
-        embedding_weight: float = 0.4,
-        string_weight: float = 0.3,
+        embedding_weight: float = 0.0,
+        string_weight: float = 0.6,
         property_weight: float = 0.2,
-        relationship_weight: float = 0.1,
+        relationship_weight: float = 0.2,
         similarity_threshold: float = 0.7,
         config: Optional[Dict[str, Any]] = None,
         **kwargs,
@@ -268,7 +268,7 @@ class SimilarityCalculator:
             raise
 
     def calculate_string_similarity(
-        self, str1: str, str2: str, method: str = "levenshtein"
+        self, str1: str, str2: str, method: str = "jaro_winkler"
     ) -> float:
         """
         Calculate string similarity between two strings.
@@ -330,6 +330,9 @@ class SimilarityCalculator:
             val2 = props2.get(key)
 
             if val1 is None or val2 is None:
+                # Missing value in one entity is not a mismatch, but lack of evidence
+                # Assign neutral score (0.5) instead of 0.0
+                matches += 0.5
                 total += 1
                 continue
 
@@ -369,7 +372,7 @@ class SimilarityCalculator:
         rels2 = set(_make_hashable(r) for r in entity2.get("relationships", []))
 
         if not rels1 and not rels2:
-            return 1.0
+            return 0.5
 
         if not rels1 or not rels2:
             return 0.0

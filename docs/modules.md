@@ -645,6 +645,8 @@ These modules ensure data quality, handle duplicates, and resolve conflicts.
 **Key Features:**
 
 - Multiple similarity methods (exact, Levenshtein, Jaro-Winkler, cosine, embedding)
+- **Advanced String Matching**: Jaro-Winkler by default for better company/person name resolution
+- **Smart Property Handling**: Neutral scoring for disjoint properties to prevent false negatives
 - Duplicate detection with confidence scoring
 - Entity merging with configurable strategies
 - Cluster-based batch deduplication

@@ -57,10 +57,18 @@
 
 ### Similarity Calculation
 - **Levenshtein Distance**: Edit distance for string difference
-- **Jaro-Winkler**: String similarity with prefix weighting (good for names)
+- **Jaro-Winkler**: String similarity with prefix weighting (Default for strings, optimized for entity names)
 - **Cosine Similarity**: Vector similarity for embeddings
 - **Jaccard Similarity**: Set overlap for properties/relationships
+- **Property Matching**: Handles disjoint properties with neutral scoring (0.5) to prevent false negatives
 - **Multi-factor Aggregation**: Weighted sum of multiple metrics
+
+### Default Configuration
+The deduplication module uses the following default weights to prioritize name matching while considering other factors:
+- **String Similarity**: 0.6 (Primary factor, using Jaro-Winkler)
+- **Property Similarity**: 0.2 (Handles missing values neutrally)
+- **Relationship Similarity**: 0.2
+- **Embedding Similarity**: 0.0 (Optional, enabled if embeddings are present)
 
 ### Duplicate Detection
 - **Pairwise Comparison**: O(n²) comparison (for small sets)
