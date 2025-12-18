@@ -585,6 +585,7 @@ git push origin feature/your-feature
 2. **Documentation** - Improvements, tutorials
 3. **Bug Reports** - [Create issue](https://github.com/Hawksight-AI/semantica/issues/new)
 4. **Feature Requests** - [Request feature](https://github.com/Hawksight-AI/semantica/issues/new)
+5. **Performance and Latency** - Improve Speed, Performance, and Speedup Semantica 
 
 ### Recognition
 
@@ -593,6 +594,12 @@ Contributors receive:
 - GitHub badges
 - Semantica swag
 - Featured showcases
+
+## 🌟 Contributors
+
+<a href="https://github.com/Hawksight-AI/semantica/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Hawksight-AI/semantica" />
+</a>
 
 ## 📜 License
 
