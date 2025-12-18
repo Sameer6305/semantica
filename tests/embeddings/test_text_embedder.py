@@ -32,10 +32,18 @@ class TestTextEmbedder(unittest.TestCase):
         self.fe_avail_patcher.stop()
 
     def test_init_default(self):
-        """Test initialization with default parameters (sentence-transformers)."""
+        """Test initialization with default parameters (fastembed)."""
         embedder = TextEmbedder()
+        self.assertEqual(embedder.method, "fastembed")
+        self.assertEqual(embedder.model_name, "BAAI/bge-small-en-v1.5")
+        self.mock_fe_class.assert_called_once()
+        self.assertIsNotNone(embedder.fastembed_model)
+        self.assertIsNone(embedder.model)
+
+    def test_init_sentence_transformers(self):
+        """Test initialization with sentence-transformers method."""
+        embedder = TextEmbedder(method="sentence_transformers")
         self.assertEqual(embedder.method, "sentence_transformers")
-        self.assertEqual(embedder.model_name, "all-MiniLM-L6-v2")
         self.mock_st_class.assert_called_once()
         self.assertIsNotNone(embedder.model)
         self.assertIsNone(embedder.fastembed_model)
@@ -50,7 +58,7 @@ class TestTextEmbedder(unittest.TestCase):
 
     def test_embed_text_sentence_transformers(self):
         """Test embedding generation with sentence-transformers."""
-        embedder = TextEmbedder()
+        embedder = TextEmbedder(method="sentence_transformers")
         
         # Mock the encode method
         mock_embedding = np.array([[0.1, 0.2, 0.3]], dtype=np.float32)
@@ -90,8 +98,9 @@ class TestTextEmbedder(unittest.TestCase):
 
     def test_embed_batch_sentence_transformers(self):
         """Test batch embedding with sentence-transformers."""
-        embedder = TextEmbedder()
+        embedder = TextEmbedder(method="sentence_transformers")
         
+        # Mock the encode method
         mock_embeddings = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=np.float32)
         embedder.model.encode.return_value = mock_embeddings
         
@@ -143,13 +152,13 @@ class TestTextEmbedder(unittest.TestCase):
 
     def test_set_model(self):
         """Test dynamic model switching."""
-        embedder = TextEmbedder() # Default ST
-        self.assertEqual(embedder.method, "sentence_transformers")
-        
-        embedder.set_model(method="fastembed", model_name="new-model")
+        embedder = TextEmbedder() # Default FastEmbed
         self.assertEqual(embedder.method, "fastembed")
+        
+        embedder.set_model(method="sentence_transformers", model_name="new-model")
+        self.assertEqual(embedder.method, "sentence_transformers")
         self.assertEqual(embedder.model_name, "new-model")
-        self.mock_fe_class.assert_called()
+        self.mock_st_class.assert_called()
 
 if __name__ == '__main__':
     unittest.main()

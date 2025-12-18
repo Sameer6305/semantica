@@ -72,10 +72,10 @@ class TextEmbedder:
 
     def __init__(
         self,
-        model_name: str = "all-MiniLM-L6-v2",
+        model_name: str = "BAAI/bge-small-en-v1.5",
         device: str = "cpu",
         normalize: bool = True,
-        method: str = "sentence_transformers",
+        method: str = "fastembed",
         **config,
     ):
         """
@@ -86,13 +86,13 @@ class TextEmbedder:
 
         Args:
             model_name: Name of model to use
-                       (default: "all-MiniLM-L6-v2" for sentence-transformers,
-                        "BAAI/bge-small-en-v1.5" for FastEmbed)
+                       (default: "BAAI/bge-small-en-v1.5" for FastEmbed,
+                        "all-MiniLM-L6-v2" for sentence-transformers)
             device: Device to run model on - "cpu" or "cuda" (default: "cpu")
                    Note: FastEmbed doesn't use device parameter
             normalize: Whether to normalize embeddings to unit vectors (default: True)
-            method: Embedding method - "sentence_transformers" or "fastembed"
-                   (default: "sentence_transformers")
+            method: Embedding method - "fastembed" or "sentence_transformers"
+                   (default: "fastembed")
             **config: Additional configuration options
         """
         self.logger = get_logger("text_embedder")

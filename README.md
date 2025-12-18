@@ -153,6 +153,8 @@ flowchart TD
 
 ### How Semantica Solves These Problems
 
+**Efficient Embeddings** — Uses **FastEmbed** by default for high-performance, lightweight local embedding generation (faster than sentence-transformers).
+
 **Universal Data Ingestion** — Handles 50+ formats (PDF, DOCX, HTML, JSON, CSV, databases, APIs, streams) with unified pipeline, no custom parsers needed.
 
 **Automated Semantic Extraction** — NER, relationship extraction, and triplet generation with LLM enhancement discovers entities and relationships automatically.
@@ -340,12 +342,13 @@ print(f"Classes: {len(ontology.classes)}")
 
 ### Context Engineering for AI Agents
 
-> **Persistent Memory** • RAG + Knowledge Graphs • MCP-Compatible Tools
+> **Persistent Memory** • RAG + Knowledge Graphs • MCP-Compatible Tools • FastEmbed Integrated
 
 ```python
 from semantica.context import AgentMemory, ContextRetriever
 from semantica.vector_store import VectorStore
 
+# Uses FastEmbed by default for high-performance embedding generation
 memory = AgentMemory(vector_store=VectorStore(backend="faiss"), retention_policy="unlimited")
 memory.store("User prefers technical docs", metadata={"user_id": "user_123"})
 

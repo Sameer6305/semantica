@@ -39,60 +39,15 @@ print(f"Embedding dimension: {len(embeddings)}")
 
 ## Text Embedding
 
-### Sentence-Transformers Embedding
+### FastEmbed Embedding (Default)
+
+Semantica uses FastEmbed by default for efficient, local embedding generation.
 
 ```python
 from semantica.embeddings import TextEmbedder
 
-# Create text embedder with specific model
-embedder = TextEmbedder(
-    model_name="all-MiniLM-L6-v2",
-    device="cpu",
-    normalize=True
-)
-
-# Single text embedding
-embedding = embedder.embed_text("The quick brown fox jumps over the lazy dog")
-print(f"Embedding shape: {embedding.shape}")
-print(f"Embedding dimension: {embedder.get_embedding_dimension()}")
-
-# Batch text embedding
-texts = [
-    "Python is a programming language",
-    "Machine learning is fascinating",
-    "Natural language processing"
-]
-embeddings = embedder.embed_batch(texts)
-print(f"Batch embeddings shape: {embeddings.shape}")  # (3, embedding_dim)
-```
-
-### Sentence-Level Embedding
-
-```python
-from semantica.embeddings import TextEmbedder
-
+# Create text embedder (uses FastEmbed by default)
 embedder = TextEmbedder()
-
-# Extract embeddings for each sentence
-text = "First sentence. Second sentence! Third sentence?"
-sentence_embeddings = embedder.embed_sentences(text)
-
-print(f"Found {len(sentence_embeddings)} sentence embeddings")
-for i, emb in enumerate(sentence_embeddings):
-    print(f"Sentence {i+1}: shape {emb.shape}")
-```
-
-### FastEmbed Embedding
-
-```python
-from semantica.embeddings import TextEmbedder
-
-# Create text embedder with FastEmbed
-embedder = TextEmbedder(
-    model_name="BAAI/bge-small-en-v1.5",
-    method="fastembed",
-    normalize=True
-)
 
 # Single text embedding
 embedding = embedder.embed_text("The quick brown fox jumps over the lazy dog")
@@ -108,24 +63,45 @@ embeddings = embedder.embed_batch(texts)
 print(f"Batch embeddings shape: {embeddings.shape}")  # (3, embedding_dim)
 ```
 
+### Sentence-Transformers Embedding
+
+You can also use sentence-transformers models if preferred.
+
+```python
+from semantica.embeddings import TextEmbedder
+
+# Create text embedder with specific model
+embedder = TextEmbedder(
+    method="sentence_transformers",
+    model_name="all-MiniLM-L6-v2",
+    device="cpu",
+    normalize=True
+)
+
+# Single text embedding
+embedding = embedder.embed_text("The quick brown fox jumps over the lazy dog")
+print(f"Embedding shape: {embedding.shape}")
+print(f"Embedding dimension: {embedder.get_embedding_dimension()}")
+```
+
 ### Using Text Embedding Methods
 
 ```python
 from semantica.embeddings.methods import embed_text
 
-# Using sentence-transformers
-emb = embed_text("Hello world", method="sentence_transformers")
-
-# Using FastEmbed (fast and efficient)
+# Using FastEmbed (Default, fast and efficient)
 emb = embed_text("Hello world", method="fastembed")
+
+# Using sentence-transformers (Legacy/Alternative)
+emb = embed_text("Hello world", method="sentence_transformers")
 
 # Using fallback (hash-based)
 emb = embed_text("Hello world", method="fallback")
 
 # Batch processing
 texts = ["text1", "text2", "text3"]
-embs = embed_text(texts, method="sentence_transformers")
 embs_fast = embed_text(texts, method="fastembed")  # Faster batch processing
+embs = embed_text(texts, method="sentence_transformers")
 ```
 
 ## Checking Embedding Methods
