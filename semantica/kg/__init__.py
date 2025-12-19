@@ -112,6 +112,7 @@ from .connectivity_analyzer import ConnectivityAnalyzer
 from .entity_resolver import EntityResolver
 from .graph_analyzer import GraphAnalyzer
 from .graph_builder import GraphBuilder
+from .graph_validator import GraphValidator
 from .provenance_tracker import ProvenanceTracker
 from .registry import MethodRegistry, method_registry
 from .seed_manager import SeedManager
@@ -126,6 +127,7 @@ __all__ = [
     "GraphBuilder",
     "EntityResolver",
     "GraphAnalyzer",
+    "GraphValidator",
     "TemporalGraphQuery",
     "TemporalPatternDetector",
     "TemporalVersionManager",
