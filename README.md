@@ -161,7 +161,7 @@ flowchart TD
 
 **Knowledge Graph Construction** — Production-ready graphs with entity resolution, temporal support, and graph analytics. Queryable knowledge ready for AI applications.
 
-**GraphRAG Engine** — Hybrid vector + graph retrieval achieves 91% accuracy (30% improvement) via semantic search + graph traversal for multi-hop reasoning.
+**GraphRAG Engine** — Hybrid vector + graph retrieval achieves 91% accuracy (30% improvement) via semantic search + graph traversal for multi-hop reasoning. [See Comparison Benchmark](cookbook/use_cases/advanced_rag/02_RAG_vs_GraphRAG_Comparison.ipynb)
 
 **AI Agent Context Engineering** — Persistent memory with RAG + knowledge graphs enables context maintenance, action validation, and structured knowledge access.
 
@@ -364,15 +364,17 @@ print(f"Classes: {len(ontology.classes)}")
 
 ### Context Engineering & Memory Systems
 
-> **Persistent Memory** • **Hybrid Retrieval (Vector + Graph)** • **Hierarchical Storage** • **Entity Linking**
+> **Persistent Memory** • **Hybrid Retrieval (Vector + Graph)** • **Production Graph Store (Neo4j)** • **Entity Linking**
 
 ```python
 from semantica.context import AgentContext
 from semantica.vector_store import VectorStore
+from semantica.graph_store import GraphStore
 
 # Initialize Context with Hybrid Retrieval (Graph + Vector)
 context = AgentContext(
     vector_store=VectorStore(backend="faiss"),
+    knowledge_graph=GraphStore(backend="neo4j"), # Optional: Use persistent graph
     hybrid_alpha=0.75  # 75% weight to Knowledge Graph, 25% to Vector
 )
 
@@ -426,7 +428,8 @@ pipeline = PipelineBuilder() \
 
 result = ExecutionEngine().execute_pipeline(pipeline, parallel=True)
 ```
-
+
+
 
 ### Production-Ready Quality Assurance
 

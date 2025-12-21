@@ -252,6 +252,7 @@ ontology = ontology_gen.generate_from_graph(kg)
     **Goal**: Use the knowledge graph to retrieve precise context for RAG applications.
     
     [:material-arrow-right: View Cookbook](https://github.com/Hawksight-AI/semantica/blob/main/cookbook/use_cases/advanced_rag/01_GraphRAG_Complete.ipynb)
+    [:material-scale-balance: RAG vs GraphRAG Benchmark](https://github.com/Hawksight-AI/semantica/blob/main/cookbook/use_cases/advanced_rag/02_RAG_vs_GraphRAG_Comparison.ipynb)
 
 -   :material-domain: **Corporate Intelligence**
     ---
