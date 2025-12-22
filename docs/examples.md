@@ -182,6 +182,115 @@ print(f"Graph density: {analysis['density']}")
 print(f"Connected components: {analysis['components']}")
 ```
 
+### Example 9: Persistent Storage (Neo4j)
+
+**Difficulty**: Intermediate
+
+Store and query knowledge graphs in a persistent graph database.
+
+```python
+from semantica.graph_store import GraphStore
+
+# Initialize with Neo4j
+store = GraphStore(
+    backend="neo4j",
+    uri="bolt://localhost:7687",
+    user="neo4j",
+    password="password"
+)
+store.connect()
+
+# Create nodes and relationships
+apple = store.create_node(
+    labels=["Company"],
+    properties={"name": "Apple Inc."}
+)
+tim = store.create_node(
+    labels=["Person"],
+    properties={"name": "Tim Cook"}
+)
+store.create_relationship(
+    start_node_id=tim["id"],
+    end_node_id=apple["id"],
+    rel_type="CEO_OF"
+)
+
+store.close()
+```
+
+### Example 10: FalkorDB for Real-Time Applications
+
+**Difficulty**: Intermediate
+
+Ultra-fast graph queries for LLM applications using FalkorDB.
+
+```python
+from semantica.graph_store import GraphStore
+
+store = GraphStore(
+    backend="falkordb",
+    host="localhost",
+    port=6379,
+    graph_name="knowledge_graph"
+)
+store.connect()
+
+# Fast queries
+results = store.execute_query("MATCH (n)-[r]->(m) WHERE n.name CONTAINS 'AI' RETURN n")
+store.close()
+```
+
+### Example 11: GraphRAG (Knowledge-Powered Retrieval)
+
+**Difficulty**: Advanced
+
+Build a production-ready GraphRAG system with logical inference and hybrid retrieval.
+
+```python
+from semantica.context import AgentContext
+from semantica.reasoning import InferenceEngine
+
+# Initialize context with Hybrid Retrieval
+context = AgentContext(
+    vector_store=vs, 
+    knowledge_graph=kg,
+    use_graph_expansion=True,
+    hybrid_alpha=0.7
+)
+
+# Add logical reasoning rules
+engine = InferenceEngine(strategy="forward")
+engine.add_rule("IF ?x :type 'Library' AND ?y :type 'Language' THEN ?x :builtWith ?y")
+
+# Retrieve context for a query
+results = context.retrieve("What technologies are used in this project?")
+```
+
+[**View Complete GraphRAG Tutorial**](https://github.com/Hawksight-AI/semantica/blob/main/cookbook/use_cases/advanced_rag/01_GraphRAG_Complete.ipynb)
+
+### Example 12: RAG vs. GraphRAG Comparison
+
+**Difficulty**: Intermediate
+
+Benchmark standard Vector RAG against Graph-enhanced retrieval.
+
+[**View RAG vs. GraphRAG Comparison**](https://github.com/Hawksight-AI/semantica/blob/main/cookbook/use_cases/advanced_rag/02_RAG_vs_GraphRAG_Comparison.ipynb)
+
+---
+
+## Production Patterns
+
+### Example 13: Streaming Data Processing
+
+**Difficulty**: Advanced
+
+Process data streams in real-time.
+
+```python
+from semantica.ingest import StreamIngestor
+from semantica.core import Semantica
+```
+
 ## Use Case Examples
 
 ### Research Paper Analysis
