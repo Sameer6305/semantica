@@ -161,7 +161,7 @@ flowchart TD
 
 **Knowledge Graph Construction** — Production-ready graphs with entity resolution, temporal support, and graph analytics. Queryable knowledge ready for AI applications.
 
-**GraphRAG Engine** — Hybrid vector + graph retrieval achieves 91% accuracy (30% improvement) via semantic search + graph traversal for multi-hop reasoning. [See Comparison Benchmark](cookbook/use_cases/advanced_rag/02_RAG_vs_GraphRAG_Comparison.ipynb)
+**GraphRAG Engine** — Hybrid vector + graph retrieval achieves 91% accuracy (30% improvement) via semantic search + graph traversal for multi-hop reasoning. Features LLM-generated responses grounded in knowledge graph context with reasoning traces. [See Comparison Benchmark](cookbook/use_cases/advanced_rag/02_RAG_vs_GraphRAG_Comparison.ipynb)
 
 **AI Agent Context Engineering** — Persistent memory with RAG + knowledge graphs enables context maintenance, action validation, and structured knowledge access.
 
@@ -179,7 +179,8 @@ flowchart TD
 | **Semantic Extraction** | NER, relationship extraction, triplet generation, LLM enhancement | Automated discovery of entities and relationships |
 | **Knowledge Graphs** | Entity resolution, temporal support, graph analytics, query interface | Production-ready, queryable knowledge structures |
 | **Ontology Generation** | 6-stage LLM pipeline, OWL generation, HermiT/Pellet validation | Automated ontology creation from documents |
-| **GraphRAG** | Hybrid vector + graph retrieval, multi-hop reasoning | 91% accuracy, 30% improvement over vector-only |
+| **GraphRAG** | Hybrid vector + graph retrieval, multi-hop reasoning, LLM-generated responses | 91% accuracy, 30% improvement over vector-only, reasoning traces |
+| **LLM Providers** | Unified interface to 100+ LLMs (Groq, OpenAI, HuggingFace, LiteLLM) | Clean imports, multiple providers, structured output |
 | **Agent Memory** | Persistent memory (Save/Load), Hybrid Retrieval (Vector+Graph), FastEmbed support | Context-aware agents with semantic understanding |
 | **Pipeline Orchestration** | Parallel execution, custom steps, orchestrator-worker pattern | Scalable, flexible data processing |
 | **Quality Assurance** | Conflict detection, deduplication, quality scoring, provenance | Trusted knowledge graphs ready for production |
@@ -322,8 +323,10 @@ pip install -e ".[dev]"
 | **Data Ingestion** | **Semantic Extract** | **Knowledge Graphs** | **Ontology** |
 |:--------------------:|:----------------------:|:----------------------:|:--------------:|
 | [Multiple Formats](#universal-data-ingestion) | [Entity & Relations](#semantic-intelligence-engine) | [Graph Analytics](#knowledge-graph-construction) | [Auto Generation](#ontology-generation--management) |
-| **Context** | **GraphRAG** | **Pipeline** | **QA** |
-| [Agent Memory](#context-engineering-for-ai-agents) | [Hybrid RAG](#knowledge-graph-powered-rag-graphrag) | [Parallel Workers](#pipeline-orchestration--parallel-processing) | [Conflict Resolution](#production-ready-quality-assurance) |
+| **Context** | **GraphRAG** | **LLM Providers** | **Pipeline** |
+| [Agent Memory](#context-engineering--memory-systems) | [Hybrid RAG](#knowledge-graph-powered-rag-graphrag) | [100+ LLMs](#llm-providers-module) | [Parallel Workers](#pipeline-orchestration--parallel-processing) |
+| **QA** | **Reasoning** | | |
+| [Conflict Resolution](#production-ready-quality-assurance) | [Rule-based Inference](#reasoning--inference-engine) | | |
 
 ---
 
@@ -428,12 +431,13 @@ print(f"Classes: {len(ontology.classes)}")
 
 ### Context Engineering & Memory Systems
 
-> **Persistent Memory** • **Hybrid Retrieval (Vector + Graph)** • **Production Graph Store (Neo4j)** • **Entity Linking**
+> **Persistent Memory** • **Hybrid Retrieval (Vector + Graph)** • **Production Graph Store (Neo4j)** • **Entity Linking** • **Multi-Hop Reasoning**
 
 ```python
 from semantica.context import AgentContext
 from semantica.vector_store import VectorStore
 from semantica.graph_store import GraphStore
+from semantica.llms import Groq
 
 # Initialize Context with Hybrid Retrieval (Graph + Vector)
 context = AgentContext(
@@ -450,6 +454,14 @@ context.store(
 
 # Retrieve with context expansion
 results = context.retrieve("What is the user building?", use_graph_expansion=True)
+
+# Query with reasoning and LLM-generated responses
+llm_provider = Groq(model="llama-3.1-8b-instant", api_key=os.getenv("GROQ_API_KEY"))
+reasoned_result = context.query_with_reasoning(
+    query="What is the user building?",
+    llm_provider=llm_provider,
+    max_hops=2
+)
 ```
 
 **Core Notebooks:**
@@ -461,21 +473,89 @@ results = context.retrieve("What is the user building?", use_graph_expansion=Tru
 
 ### Knowledge Graph-Powered RAG (GraphRAG)
 
-> **30% Accuracy Improvement** • Vector + Graph Hybrid Search • 91% Accuracy
+> **30% Accuracy Improvement** • Vector + Graph Hybrid Search • 91% Accuracy • **Multi-Hop Reasoning** • **LLM-Generated Responses**
 
 ```python
-from semantica.qa_rag import GraphRAGEngine
+from semantica.context import AgentContext
+from semantica.llms import Groq, OpenAI, LiteLLM
 from semantica.vector_store import VectorStore
+import os
 
-graphrag = GraphRAGEngine(
+# Initialize GraphRAG with hybrid retrieval
+context = AgentContext(
     vector_store=VectorStore(backend="faiss"),
     knowledge_graph=kg
 )
-result = graphrag.query("Who founded the company?", top_k=5, expand_graph=True)
-print(f"Answer: {result.answer} (Confidence: {result.confidence:.2f})")
+
+# Configure LLM provider (supports Groq, OpenAI, HuggingFace, LiteLLM)
+llm_provider = Groq(
+    model="llama-3.1-8b-instant",
+    api_key=os.getenv("GROQ_API_KEY")
+)
+
+# Query with multi-hop reasoning and LLM-generated responses
+result = context.query_with_reasoning(
+    query="What IPs are associated with security alerts?",
+    llm_provider=llm_provider,
+    max_results=10,
+    max_hops=2
+)
+
+print(f"Response: {result['response']}")
+print(f"Reasoning Path: {result['reasoning_path']}")
+print(f"Confidence: {result['confidence']:.3f}")
 ```
 
-[**Cookbook: GraphRAG**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/use_cases/advanced_rag/01_GraphRAG_Complete.ipynb)
+**Key Features:**
+- **Multi-Hop Reasoning**: Traverses knowledge graph up to N hops to find related entities
+- **LLM-Generated Responses**: Natural language answers grounded in graph context
+- **Reasoning Trace**: Shows entity relationship paths used in reasoning
+- **Multiple LLM Providers**: Supports Groq, OpenAI, HuggingFace, and LiteLLM (100+ LLMs)
+
+[**Cookbook: GraphRAG**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/use_cases/advanced_rag/01_GraphRAG_Complete.ipynb) • [**Real-Time Anomaly Detection**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/use_cases/cybersecurity/01_Real_Time_Anomaly_Detection.ipynb)
+
+### LLM Providers Module
+
+> **Unified LLM Interface** • **100+ LLM Support via LiteLLM** • **Clean Imports** • **Multiple Providers**
+
+```python
+from semantica.llms import Groq, OpenAI, HuggingFaceLLM, LiteLLM
+import os
+
+# Groq - Fast inference
+groq = Groq(
+    model="llama-3.1-8b-instant",
+    api_key=os.getenv("GROQ_API_KEY")
+)
+response = groq.generate("What is AI?")
+
+# OpenAI
+openai = OpenAI(
+    model="gpt-4",
+    api_key=os.getenv("OPENAI_API_KEY")
+)
+response = openai.generate("What is AI?")
+
+# HuggingFace - Local models
+hf = HuggingFaceLLM(model_name="gpt2")
+response = hf.generate("What is AI?")
+
+# LiteLLM - Unified interface to 100+ LLMs
+litellm = LiteLLM(
+    model="openai/gpt-4o",  # or "anthropic/claude-sonnet-4-20250514", "groq/llama-3.1-8b-instant", etc.
+    api_key=os.getenv("OPENAI_API_KEY")
+)
+response = litellm.generate("What is AI?")
+
+# Structured output
+structured = groq.generate_structured("Extract entities from: Apple Inc. was founded by Steve Jobs.")
+```
+
+**Supported Providers:**
+- **Groq**: Fast inference with Llama models
+- **OpenAI**: GPT-3.5, GPT-4, and other OpenAI models
+- **HuggingFace**: Local LLM inference with Transformers
+- **LiteLLM**: Unified interface to 100+ LLM providers (OpenAI, Anthropic, Azure, Bedrock, Vertex AI, and more)
 
 ### Reasoning & Inference Engine
 

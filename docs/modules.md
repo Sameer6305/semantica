@@ -17,7 +17,7 @@ Semantica's modules are organized into six logical layers:
 | **Core Processing** | [Semantic Extract](#semantic-extract-module), [Knowledge Graph](#knowledge-graph-kg-module), [Ontology](#ontology-module), [Reasoning](#reasoning-module) | Entity extraction, graph construction, inference |
 | **Storage** | [Embeddings](#embeddings-module), [Vector Store](#vector-store-module), [Graph Store](#graph-store-module), [Triplet Store](#triplet-store-module) | Vector, graph, and triplet persistence |
 | **Quality Assurance** | [Deduplication](#deduplication-module), [Conflicts](#conflicts-module) | Data quality and consistency |
-| **Context & Memory** | [Context](#context-module), [Seed](#seed-module) | Agent memory and foundation data |
+| **Context & Memory** | [Context](#context-module), [Seed](#seed-module), [LLM Providers](#llm-providers-module) | Agent memory, foundation data, and LLM integration |
 | **Output & Orchestration** | [Export](#export-module), [Visualization](#visualization-module), [Pipeline](#pipeline-module) | Export, visualization, and workflow management |
 
 ---
@@ -778,7 +778,7 @@ These modules provide context engineering for agents and foundation data managem
 ### Context Module
 
 !!! abstract "Purpose"
-    Context engineering infrastructure for agents. Formalizes context as a graph of connections with RAG-enhanced memory.
+    Context engineering infrastructure for agents. Formalizes context as a graph of connections with RAG-enhanced memory. Features GraphRAG with multi-hop reasoning and LLM-generated responses.
 
 **Key Features:**
 
@@ -786,6 +786,9 @@ These modules provide context engineering for agents and foundation data managem
 - Agent memory management with RAG integration
 - Entity linking across sources with URI assignment
 - Hybrid context retrieval (vector + graph + memory)
+- **Multi-hop reasoning** through knowledge graphs
+- **LLM-generated responses** grounded in graph context
+- **Reasoning trace** showing entity relationship paths
 - Conversation history management
 - Context accumulation and synthesis
 - Graph-based context traversal
@@ -796,9 +799,10 @@ These modules provide context engineering for agents and foundation data managem
 - `ContextNode` — Context graph node data structure
 - `ContextEdge` — Context graph edge data structure
 - `AgentMemory` — Manages persistent agent memory with RAG
+- `AgentContext` — High-level context interface with GraphRAG capabilities
+- `ContextRetriever` — Retrieves relevant context with multi-hop reasoning
 - `MemoryItem` — Memory item data structure
 - `EntityLinker` — Links entities across sources with URI assignment
-- `ContextRetriever` — Retrieves relevant context from multiple sources
 
 **Algorithms:**
 
@@ -807,22 +811,43 @@ These modules provide context engineering for agents and foundation data managem
 | **Graph Construction** | BFS/DFS traversal, type-based indexing |
 | **Memory Management** | Vector embedding, similarity search, retention policies |
 | **Context Retrieval** | Vector similarity, multi-hop graph expansion, hybrid scoring |
+| **Multi-Hop Reasoning** | BFS traversal up to N hops, reasoning path construction |
+| **LLM Integration** | Prompt engineering with context and reasoning paths |
 | **Entity Linking** | Hash-based URI generation, text similarity matching |
 
 **Quick Example:**
 
 ```python
-from semantica.context import ContextGraph, AgentMemory
-from semantica.context.methods import build_context_graph
+from semantica.context import AgentContext, ContextGraph, AgentMemory
+from semantica.llms import Groq
+from semantica.vector_store import VectorStore
+import os
 
-# Using convenience function
-result = build_context_graph(
-    entities=entities,
-    relationships=relationships,
-    method="entities_relationships"
+# Using AgentContext with GraphRAG reasoning
+context = AgentContext(
+    vector_store=VectorStore(backend="faiss"),
+    knowledge_graph=kg
 )
 
-# Using classes directly
+# Configure LLM provider
+llm_provider = Groq(
+    model="llama-3.1-8b-instant",
+    api_key=os.getenv("GROQ_API_KEY")
+)
+
+# Query with multi-hop reasoning and LLM-generated response
+result = context.query_with_reasoning(
+    query="What IPs are associated with security alerts?",
+    llm_provider=llm_provider,
+    max_results=10,
+    max_hops=2
+)
+
+print(f"Response: {result['response']}")
+print(f"Reasoning Path: {result['reasoning_path']}")
+print(f"Confidence: {result['confidence']:.3f}")
+
+# Traditional context graph and memory
 graph = ContextGraph()
 graph_data = graph.build_from_entities_and_relationships(entities, relationships)
 
@@ -830,6 +855,72 @@ memory = AgentMemory(vector_store=vs, knowledge_graph=kg)
 memory_id = memory.store("User asked about Python", metadata={"type": "conversation"})
 results = memory.retrieve("Python", max_results=5)
 ```
+
+**API Reference**: [Context Module](reference/context.md)
+
+---
+
+### LLM Providers Module
+
+!!! abstract "Purpose"
+    Unified interface for LLM providers. Supports Groq, OpenAI, HuggingFace, and LiteLLM (100+ LLMs) with clean imports and consistent API.
+
+**Key Features:**
+
+- **Unified Interface**: Same `generate()` and `generate_structured()` methods across all providers
+- **Multiple Providers**: Groq, OpenAI, HuggingFace, and LiteLLM (100+ LLMs)
+- **Clean Imports**: Simple `from semantica.llms import Groq, OpenAI, HuggingFaceLLM, LiteLLM`
+- **Structured Output**: JSON generation support
+- **API Key Management**: Environment variable and direct key support
+- **Error Handling**: Graceful fallback when providers unavailable
+
+**Components:**
+
+- `Groq` — Groq API provider for fast inference
+- `OpenAI` — OpenAI API provider (GPT-3.5, GPT-4, etc.)
+- `HuggingFaceLLM` — HuggingFace Transformers for local LLM inference
+- `LiteLLM` — Unified interface to 100+ LLM providers (OpenAI, Anthropic, Azure, Bedrock, Vertex AI, etc.)
+
+**Supported Providers via LiteLLM:**
+
+- OpenAI, Anthropic, Groq, Azure, Bedrock, Vertex AI, Cohere, Mistral, and 90+ more
+
+**Quick Example:**
+
+```python
+from semantica.llms import Groq, OpenAI, HuggingFaceLLM, LiteLLM
+import os
+
+# Groq - Fast inference
+groq = Groq(
+    model="llama-3.1-8b-instant",
+    api_key=os.getenv("GROQ_API_KEY")
+)
+response = groq.generate("What is AI?")
+
+# OpenAI
+openai = OpenAI(
+    model="gpt-4",
+    api_key=os.getenv("OPENAI_API_KEY")
+)
+response = openai.generate("What is AI?")
+
+# HuggingFace - Local models
+hf = HuggingFaceLLM(model_name="gpt2")  # or model="gpt2" for consistency
+response = hf.generate("What is AI?")
+
+# LiteLLM - Unified interface to 100+ LLMs
+litellm = LiteLLM(
+    model="openai/gpt-4o",  # or "anthropic/claude-sonnet-4-20250514", etc.
+    api_key=os.getenv("OPENAI_API_KEY")
+)
+response = litellm.generate("What is AI?")
+
+# Structured output
+structured = groq.generate_structured("Extract entities from: Apple Inc. was founded by Steve Jobs.")
+```
+
+**API Reference**: [LLM Providers Module](reference/llms.md)
 
 ---
 
@@ -1115,7 +1206,8 @@ new_facts = reasoner.infer_facts(kg)
 | **Triplet Store** | `semantica.triplet_store` | `TripletStore` | RDF storage |
 | **Deduplication** | `semantica.deduplication` | `DuplicateDetector` | Duplicate removal |
 | **Conflicts** | `semantica.conflicts` | `ConflictDetector` | Conflict resolution |
-| **Context** | `semantica.context` | `AgentMemory` | Agent context |
+| **Context** | `semantica.context` | `AgentContext` | Agent context & GraphRAG |
+| **LLM Providers** | `semantica.llms` | `Groq`, `OpenAI`, `HuggingFaceLLM`, `LiteLLM` | LLM integration |
 | **Seed** | `semantica.seed` | `SeedDataManager` | Foundation data |
 | **Export** | `semantica.export` | `JSONExporter` | Data export |
 | **Visualization** | `semantica.visualization` | `KGVisualizer` | Visualization |

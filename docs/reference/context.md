@@ -70,6 +70,7 @@ The high-level facade that unifies all context operations. It routes data to the
 |--------|-------------|
 | `store(content, ...)` | Writes information to memory. Handles auto-detection, write-through to vector store, and entity extraction. |
 | `retrieve(query, ...)` | Fetches relevant context using hybrid search (Vector + Graph) and reranking. |
+| `query_with_reasoning(query, llm_provider, ...)` | **GraphRAG with multi-hop reasoning**: Retrieves context, builds reasoning paths, and generates LLM-based natural language responses grounded in the knowledge graph. |
 
 #### **Code Example**
 ```python
@@ -92,6 +93,26 @@ context.store(
 
 # 3. Retrieve Context
 results = context.retrieve("What is the user building?")
+
+# 4. Query with Reasoning (GraphRAG)
+from semantica.llms import Groq
+import os
+
+llm_provider = Groq(
+    model="llama-3.1-8b-instant",
+    api_key=os.getenv("GROQ_API_KEY")
+)
+
+result = context.query_with_reasoning(
+    query="What IPs are associated with security alerts?",
+    llm_provider=llm_provider,
+    max_results=10,
+    max_hops=2
+)
+
+print(f"Response: {result['response']}")
+print(f"Reasoning Path: {result['reasoning_path']}")
+print(f"Confidence: {result['confidence']:.3f}")
 ```
 
 ---
@@ -251,6 +272,119 @@ results = retriever.retrieve(
     max_results=5
 )
 ```
+
+---
+
+### GraphRAG with Multi-Hop Reasoning
+
+The `query_with_reasoning()` method extends traditional retrieval by performing multi-hop graph traversal and generating natural language responses using LLMs. This enables deeper understanding of relationships and context-aware answer generation.
+
+#### **How It Works**
+
+1. **Context Retrieval**: Retrieves relevant context using hybrid search (vector + graph)
+2. **Entity Extraction**: Extracts entities from query and retrieved context
+3. **Multi-Hop Reasoning**: Traverses knowledge graph up to N hops to find related entities
+4. **Reasoning Path Construction**: Builds reasoning chains showing entity relationships
+5. **LLM Response Generation**: Generates natural language response grounded in graph context
+
+#### **Key Features**
+
+- **Multi-Hop Reasoning**: Traverses graph up to configurable hops (default: 2)
+- **Reasoning Trace**: Shows entity relationship paths used in reasoning
+- **Grounded Responses**: LLM generates answers citing specific graph entities
+- **Multiple LLM Providers**: Supports Groq, OpenAI, HuggingFace, and LiteLLM (100+ LLMs)
+- **Fallback Handling**: Returns context with reasoning path if LLM unavailable
+
+#### **Method Signature**
+
+```python
+def query_with_reasoning(
+    self,
+    query: str,
+    llm_provider: Any,  # LLM provider from semantica.llms
+    max_results: int = 10,
+    max_hops: int = 2,
+    **kwargs
+) -> Dict[str, Any]:
+```
+
+**Parameters:**
+- `query` (str): User query
+- `llm_provider`: LLM provider instance (from `semantica.llms`)
+- `max_results` (int): Maximum context results to retrieve (default: 10)
+- `max_hops` (int): Maximum graph traversal hops (default: 2)
+- `**kwargs`: Additional retrieval options
+
+**Returns:**
+- `response` (str): Generated natural language answer
+- `reasoning_path` (str): Multi-hop reasoning trace
+- `sources` (List[Dict]): Retrieved context items used
+- `confidence` (float): Overall confidence score
+- `num_sources` (int): Number of sources retrieved
+- `num_reasoning_paths` (int): Number of reasoning paths found
+
+#### **Code Example**
+
+```python
+from semantica.context import AgentContext
+from semantica.llms import Groq
+from semantica.vector_store import VectorStore
+import os
+
+# Initialize context
+context = AgentContext(
+    vector_store=VectorStore(backend="faiss"),
+    knowledge_graph=kg
+)
+
+# Configure LLM provider
+llm_provider = Groq(
+    model="llama-3.1-8b-instant",
+    api_key=os.getenv("GROQ_API_KEY")
+)
+
+# Query with reasoning
+result = context.query_with_reasoning(
+    query="What IPs are associated with security alerts?",
+    llm_provider=llm_provider,
+    max_results=10,
+    max_hops=2
+)
+
+# Access results
+print(f"Response: {result['response']}")
+print(f"\nReasoning Path: {result['reasoning_path']}")
+print(f"Confidence: {result['confidence']:.3f}")
+```
+
+#### **Using Different LLM Providers**
+
+```python
+# Groq
+from semantica.llms import Groq
+llm = Groq(model="llama-3.1-8b-instant", api_key=os.getenv("GROQ_API_KEY"))
+
+# OpenAI
+from semantica.llms import OpenAI
+llm = OpenAI(model="gpt-4", api_key=os.getenv("OPENAI_API_KEY"))
+
+# LiteLLM (100+ providers)
+from semantica.llms import LiteLLM
+llm = LiteLLM(model="anthropic/claude-sonnet-4-20250514")
+
+# Use with query_with_reasoning
+result = context.query_with_reasoning(
+    query="Your question here",
+    llm_provider=llm,
+    max_hops=3
+)
+```
+
+!!! tip "When to Use"
+    - **Complex Queries**: When simple retrieval doesn't capture relationships
+    - **Explainable AI**: When you need to show reasoning paths
+    - **Multi-Hop Questions**: "What IPs are associated with alerts that affect users?"
+    - **Grounded Responses**: When you need answers citing specific graph entities
 
 ---
 

@@ -426,6 +426,64 @@ class AgentContext:
             # Convert to dicts
             return [self._memory_to_dict(r) for r in results]
 
+    def query_with_reasoning(
+        self,
+        query: str,
+        llm_provider: Any,
+        max_results: int = 10,
+        max_hops: int = 2,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Query with multi-hop reasoning and LLM-based response generation.
+
+        Retrieves context, builds reasoning paths through the graph, and generates
+        a natural language response grounded in the knowledge graph.
+
+        Args:
+            query: User query
+            llm_provider: LLM provider instance (from semantica.llms)
+            max_results: Maximum context results to retrieve (default: 10)
+            max_hops: Maximum graph traversal hops (default: 2)
+            **kwargs: Additional retrieval options
+
+        Returns:
+            Dictionary with:
+                - response: Generated natural language answer
+                - reasoning_path: Multi-hop reasoning trace
+                - sources: Retrieved context items
+                - confidence: Overall confidence score
+
+        Example:
+            >>> from semantica.llms import Groq
+            >>> llm = Groq(model="llama-3.1-8b-instant")
+            >>> result = context.query_with_reasoning(
+            ...     "What IPs are associated with security alerts?",
+            ...     llm_provider=llm,
+            ...     max_hops=2
+            ... )
+            >>> print(result['response'])
+        """
+        if not self._retriever:
+            # Fallback if retriever not available
+            return {
+                "response": "GraphRAG retriever not available. Please configure knowledge_graph.",
+                "reasoning_path": "",
+                "sources": [],
+                "confidence": 0.0,
+                "num_sources": 0,
+                "num_reasoning_paths": 0
+            }
+
+        # Delegate to ContextRetriever
+        return self._retriever.query_with_reasoning(
+            query=query,
+            llm_provider=llm_provider,
+            max_results=max_results,
+            max_hops=max_hops,
+            **kwargs
+        )
+
     def forget(
         self,
         memory_id: Optional[str] = None,

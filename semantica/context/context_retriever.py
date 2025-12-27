@@ -1226,6 +1226,354 @@ class ContextRetriever:
 
         return []
 
+    # Reasoning Methods
+    def _build_reasoning_path(
+        self,
+        query_entities: List[Dict[str, Any]],
+        max_hops: int = 2
+    ) -> List[Dict[str, Any]]:
+        """
+        Build multi-hop reasoning path through knowledge graph.
+
+        Args:
+            query_entities: List of entities extracted from query
+            max_hops: Maximum number of hops to traverse (default: 2)
+
+        Returns:
+            List of reasoning path segments with entity relationships
+        """
+        if not self.knowledge_graph:
+            return []
+
+        reasoning_paths = []
+        visited_entities = set()
+
+        # Get entities and relationships from knowledge graph
+        # Handle both dict and GraphStore objects
+        if isinstance(self.knowledge_graph, dict):
+            entities = self.knowledge_graph.get("entities", [])
+            relationships = self.knowledge_graph.get("relationships", [])
+        elif hasattr(self.knowledge_graph, "get_entities") and hasattr(self.knowledge_graph, "get_relationships"):
+            # GraphStore-like object
+            entities = self.knowledge_graph.get_entities() or []
+            relationships = self.knowledge_graph.get_relationships() or []
+        else:
+            # Try to access as dict anyway
+            entities = getattr(self.knowledge_graph, "entities", [])
+            relationships = getattr(self.knowledge_graph, "relationships", [])
+
+        # Create entity lookup
+        entity_map = {}
+        for entity in entities:
+            entity_id = entity.get("id") or entity.get("text") or entity.get("name")
+            if entity_id:
+                entity_map[entity_id] = entity
+
+        # Create relationship lookup
+        rel_map = {}
+        for rel in relationships:
+            source = rel.get("source") or rel.get("source_id")
+            target = rel.get("target") or rel.get("target_id")
+            rel_type = rel.get("type") or rel.get("predicate")
+            if source and target:
+                if source not in rel_map:
+                    rel_map[source] = []
+                rel_map[source].append({"target": target, "type": rel_type, "rel": rel})
+
+        # Start BFS from query entities
+        from collections import deque
+        queue = deque()
+
+        for query_entity in query_entities:
+            entity_id = query_entity.get("id") or query_entity.get("text") or query_entity.get("name")
+            if entity_id and entity_id in entity_map:
+                queue.append((entity_id, 0, [entity_id]))
+
+        while queue:
+            current_id, hop, path = queue.popleft()
+
+            if hop >= max_hops:
+                continue
+
+            if current_id in visited_entities:
+                continue
+            visited_entities.add(current_id)
+
+            # Get relationships from current entity
+            if current_id in rel_map:
+                for rel_info in rel_map[current_id]:
+                    target_id = rel_info["target"]
+                    rel_type = rel_info["type"]
+                    rel = rel_info["rel"]
+
+                    if target_id not in path:  # Avoid cycles
+                        new_path = path + [target_id]
+
+                        # Build relationships list for this path
+                        path_relationships = []
+                        for i in range(len(new_path) - 1):
+                            source_id = new_path[i]
+                            target_id_rel = new_path[i + 1]
+                            # Find the relationship type between these two entities
+                            rel_type_found = None
+                            if source_id in rel_map:
+                                for r_info in rel_map[source_id]:
+                                    if r_info["target"] == target_id_rel:
+                                        rel_type_found = r_info["type"]
+                                        break
+                            path_relationships.append({
+                                "source": source_id,
+                                "target": target_id_rel,
+                                "type": rel_type_found or "related_to"
+                            })
+
+                        # Add to reasoning paths
+                        reasoning_paths.append({
+                            "path": new_path,
+                            "hops": hop + 1,
+                            "relationships": path_relationships,
+                            "entities": [
+                                entity_map.get(eid, {}) for eid in new_path
+                            ]
+                        })
+
+                        # Continue traversal
+                        if target_id in entity_map and hop + 1 < max_hops:
+                            queue.append((target_id, hop + 1, new_path))
+
+        return reasoning_paths
+
+    def _generate_reasoned_response(
+        self,
+        query: str,
+        retrieved_context: List[RetrievedContext],
+        reasoning_paths: List[Dict[str, Any]],
+        llm_provider: Any
+    ) -> str:
+        """
+        Generate natural language response using LLM with retrieved context and reasoning paths.
+
+        Args:
+            query: User query
+            retrieved_context: Retrieved context items
+            reasoning_paths: Multi-hop reasoning paths
+            llm_provider: LLM provider instance (from semantica.llms)
+
+        Returns:
+            Generated natural language response
+        """
+        # Format retrieved context
+        context_text = "\n\n".join([
+            f"Context {i+1} (Score: {ctx.score:.2f}):\n{ctx.content}"
+            for i, ctx in enumerate(retrieved_context[:5])
+        ])
+
+        # Format reasoning paths
+        reasoning_text = ""
+        if reasoning_paths:
+            reasoning_text = "\n\nReasoning Paths (Multi-hop connections):\n"
+            for i, path_info in enumerate(reasoning_paths[:3], 1):
+                entities = path_info.get("entities", [])
+                relationships = path_info.get("relationships", [])
+                
+                if entities:
+                    path_parts = []
+                    for j, entity in enumerate(entities):
+                        entity_name = entity.get('text') or entity.get('name') or 'Unknown'
+                        path_parts.append(entity_name)
+                        # Add relationship after entity (except for last entity)
+                        if j < len(relationships) and relationships[j].get('type'):
+                            rel_type = relationships[j]['type']
+                            path_parts.append(f"--[{rel_type}]-->")
+                    path_str = " ".join(path_parts)
+                    reasoning_text += f"Path {i}: {path_str}\n"
+
+        # Construct prompt
+        prompt = f"""You are a knowledge graph reasoning assistant. Answer the user's question based on the retrieved context and reasoning paths from the knowledge graph.
+
+User Question: {query}
+
+Retrieved Context:
+{context_text}
+
+{reasoning_text}
+
+Instructions:
+1. Answer the question using the retrieved context and reasoning paths
+2. Cite specific entities and relationships from the reasoning paths
+3. Explain the multi-hop connections when relevant
+4. Be concise but comprehensive
+5. If information is not available in the context, say so
+
+Answer:"""
+
+        try:
+            response = llm_provider.generate(prompt, temperature=0.3)
+            return response
+        except Exception as e:
+            self.logger.warning(f"LLM generation failed: {e}")
+            # Fallback: return summary of context
+            return f"Based on the retrieved context, here are the relevant findings:\n\n{context_text[:500]}..."
+
+    def query_with_reasoning(
+        self,
+        query: str,
+        llm_provider: Any,
+        max_results: int = 10,
+        max_hops: int = 2,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Query with multi-hop reasoning and LLM-based response generation.
+
+        Retrieves context, builds reasoning paths through the graph, and generates
+        a natural language response grounded in the knowledge graph.
+
+        Args:
+            query: User query
+            llm_provider: LLM provider instance (from semantica.llms)
+            max_results: Maximum context results to retrieve (default: 10)
+            max_hops: Maximum graph traversal hops (default: 2)
+            **kwargs: Additional retrieval options
+
+        Returns:
+            Dictionary with:
+                - response: Generated natural language answer
+                - reasoning_path: Multi-hop reasoning trace
+                - sources: Retrieved context items
+                - confidence: Overall confidence score
+
+        Example:
+            >>> from semantica.llms import Groq
+            >>> llm = Groq(model="llama-3.1-8b-instant")
+            >>> result = retriever.query_with_reasoning(
+            ...     "What IPs are associated with security alerts?",
+            ...     llm_provider=llm,
+            ...     max_hops=2
+            ... )
+            >>> print(result['response'])
+        """
+        tracking_id = self.progress_tracker.start_tracking(
+            file=None,
+            module="context",
+            submodule="ContextRetriever",
+            message=f"Querying with reasoning: {query[:50]}...",
+        )
+
+        try:
+            # Step 1: Retrieve initial context
+            self.progress_tracker.update_tracking(
+                tracking_id, message="Retrieving context..."
+            )
+            retrieved_context = self.retrieve(
+                query,
+                max_results=max_results,
+                use_graph_expansion=True,
+                **kwargs
+            )
+
+            # Step 2: Extract entities from query and retrieved context
+            self.progress_tracker.update_tracking(
+                tracking_id, message="Extracting entities..."
+            )
+            query_entities = []
+            
+            # Extract entities from retrieved context
+            for ctx in retrieved_context:
+                query_entities.extend(ctx.related_entities)
+
+            # Deduplicate entities
+            seen_ids = set()
+            unique_entities = []
+            for entity in query_entities:
+                entity_id = entity.get("id") or entity.get("text") or entity.get("name")
+                if entity_id and entity_id not in seen_ids:
+                    seen_ids.add(entity_id)
+                    unique_entities.append(entity)
+
+            # Step 3: Build reasoning paths
+            self.progress_tracker.update_tracking(
+                tracking_id, message="Building reasoning paths..."
+            )
+            reasoning_paths = self._build_reasoning_path(
+                unique_entities,
+                max_hops=max_hops
+            )
+
+            # Step 4: Generate response using LLM
+            self.progress_tracker.update_tracking(
+                tracking_id, message="Generating response..."
+            )
+            response = self._generate_reasoned_response(
+                query,
+                retrieved_context,
+                reasoning_paths,
+                llm_provider
+            )
+
+            # Step 5: Format reasoning path as string
+            reasoning_path_str = ""
+            if reasoning_paths:
+                for path_info in reasoning_paths[:1]:  # Show first path
+                    entities = path_info.get("entities", [])
+                    relationships = path_info.get("relationships", [])
+                    if entities:
+                        path_parts = []
+                        for i, entity in enumerate(entities):
+                            entity_name = entity.get("text") or entity.get("name") or "Unknown"
+                            path_parts.append(entity_name)
+                            if i < len(relationships) and relationships[i].get("type"):
+                                path_parts.append(f"--[{relationships[i]['type']}]-->")
+                        reasoning_path_str = " ".join(path_parts)
+
+            # Calculate overall confidence
+            confidence = 0.0
+            if retrieved_context:
+                avg_score = sum(ctx.score for ctx in retrieved_context) / len(retrieved_context)
+                confidence = min(1.0, avg_score * 0.8 + (0.2 if reasoning_paths else 0.0))
+
+            self.progress_tracker.stop_tracking(
+                tracking_id, status="completed", message="Query with reasoning completed"
+            )
+
+            return {
+                "response": response,
+                "reasoning_path": reasoning_path_str,
+                "sources": [
+                    {
+                        "content": ctx.content[:200],
+                        "score": ctx.score,
+                        "source": ctx.source
+                    }
+                    for ctx in retrieved_context[:5]
+                ],
+                "confidence": confidence,
+                "num_sources": len(retrieved_context),
+                "num_reasoning_paths": len(reasoning_paths)
+            }
+
+        except Exception as e:
+            self.progress_tracker.stop_tracking(
+                tracking_id, status="failed", message=str(e)
+            )
+            self.logger.error(f"Query with reasoning failed: {e}")
+            # Fallback: return retrieved context without LLM generation
+            return {
+                "response": f"Retrieved {len(retrieved_context)} relevant items. LLM generation unavailable.",
+                "reasoning_path": "",
+                "sources": [
+                    {
+                        "content": ctx.content[:200],
+                        "score": ctx.score,
+                        "source": ctx.source
+                    }
+                    for ctx in retrieved_context[:5]
+                ],
+                "confidence": 0.5,
+                "num_sources": len(retrieved_context),
+                "num_reasoning_paths": 0
+            }
+
     # Filter Methods
     def filter_by_entity(
         self, entity_id: str, query: str, **options
