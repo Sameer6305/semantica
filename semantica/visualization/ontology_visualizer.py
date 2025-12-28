@@ -89,6 +89,9 @@ class OntologyVisualizer:
         self.logger = get_logger("ontology_visualizer")
         self.config = config
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         color_scheme_name = config.get("color_scheme", "default")
         try:

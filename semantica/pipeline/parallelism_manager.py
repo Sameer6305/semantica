@@ -92,6 +92,9 @@ class ParallelismManager:
 
         # Initialize progress tracker
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         self.max_workers = self.config.get("max_workers", 4)
         self.use_processes = self.config.get("use_processes", False)

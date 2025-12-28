@@ -96,6 +96,9 @@ class GraphBuilder:
 
         self.logger = get_logger("graph_builder")
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         # Initialize entity resolver if entity merging is enabled
         # This helps deduplicate and merge similar entities

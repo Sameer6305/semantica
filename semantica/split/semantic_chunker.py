@@ -74,6 +74,9 @@ class SemanticChunker:
         self.chunk_overlap = config.get("chunk_overlap", 200)
         self.language = config.get("language", "en")
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         # Initialize spaCy model if available
         self.nlp = None

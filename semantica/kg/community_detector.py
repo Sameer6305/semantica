@@ -92,6 +92,9 @@ class CommunityDetector:
 
         # Initialize progress tracker
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
     def detect_communities_louvain(
         self, graph: Any, resolution: float = 1.0, max_iter: int = 10, **options

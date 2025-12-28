@@ -113,6 +113,9 @@ class FailureHandler:
 
         # Initialize progress tracker
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         self.default_max_retries = self.config.get("default_max_retries", 3)
         self.default_backoff_factor = self.config.get("default_backoff_factor", 2.0)

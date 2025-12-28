@@ -133,8 +133,10 @@ class DuplicateDetector:
         self.confidence_threshold = confidence_threshold
         self.use_clustering = use_clustering
 
-        # Initialize progress tracker
+        # Initialize progress tracker and ensure it's enabled
         self.progress_tracker = get_progress_tracker()
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         self.logger.debug(
             f"Duplicate detector initialized: similarity_threshold={similarity_threshold}, "
@@ -215,7 +217,8 @@ class DuplicateDetector:
             # Create duplicate candidates from similar pairs
             candidates = []
             total_similarities = len(similarities)
-            update_interval = max(1, total_similarities // 20)  # Update every 5%
+            # Update more frequently: every 1% or at least every 10 items
+            update_interval = max(1, min(10, total_similarities // 100))
             
             for i, (entity1, entity2, score) in enumerate(similarities):
                 candidate = self._create_duplicate_candidate(entity1, entity2, score)
@@ -224,8 +227,8 @@ class DuplicateDetector:
                 if candidate.confidence >= self.confidence_threshold:
                     candidates.append(candidate)
                 
-                # Update progress periodically
-                if (i + 1) % update_interval == 0 or (i + 1) == total_similarities:
+                # Update progress more frequently
+                if (i + 1) % update_interval == 0 or (i + 1) == total_similarities or i == 0:
                     self.progress_tracker.update_progress(
                         tracking_id,
                         processed=i + 1,
@@ -304,6 +307,13 @@ class DuplicateDetector:
             self.logger.info(
                 f"Detecting duplicate groups from {len(entities)} entities"
             )
+            
+            # Initial progress update
+            self.progress_tracker.update_tracking(
+                tracking_id, 
+                status="running",
+                message=f"Starting duplicate detection for {len(entities)} entities..."
+            )
 
             # Detect duplicate candidates
             candidates = self.detect_duplicates(
@@ -324,14 +334,15 @@ class DuplicateDetector:
             )
             # Calculate group metrics for each group
             total_groups = len(groups)
-            update_interval = max(1, total_groups // 20)  # Update every 5%
+            # Update more frequently: every item if small, or every 1% if large
+            update_interval = max(1, min(5, total_groups // 100))
             
             for i, group in enumerate(groups):
                 group.confidence = self._calculate_group_confidence(group)
                 group.representative = self._select_representative(group)
                 
-                # Update progress periodically
-                if (i + 1) % update_interval == 0 or (i + 1) == total_groups:
+                # Update progress more frequently
+                if (i + 1) % update_interval == 0 or (i + 1) == total_groups or i == 0:
                     self.progress_tracker.update_progress(
                         tracking_id,
                         processed=i + 1,
@@ -434,7 +445,17 @@ class DuplicateDetector:
             candidates = []
             total_comparisons = len(new_entities) * len(existing_entities)
             processed = 0
-            update_interval = max(1, total_comparisons // 20)  # Update every 5%
+            # Update more frequently: every 1% or at least every 50 items
+            update_interval = max(1, min(50, total_comparisons // 100))
+            
+            # Initial progress update
+            if total_comparisons > 0:
+                self.progress_tracker.update_progress(
+                    tracking_id,
+                    processed=0,
+                    total=total_comparisons,
+                    message=f"Starting incremental detection... 0/{total_comparisons}"
+                )
 
             # Compare each new entity with all existing entities
             for new_entity in new_entities:
@@ -455,8 +476,8 @@ class DuplicateDetector:
                             candidates.append(candidate)
                     
                     processed += 1
-                    # Update progress periodically
-                    if processed % update_interval == 0 or processed == total_comparisons:
+                    # Update progress more frequently
+                    if processed % update_interval == 0 or processed == total_comparisons or processed == 1:
                         self.progress_tracker.update_progress(
                             tracking_id,
                             processed=processed,

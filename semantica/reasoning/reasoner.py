@@ -71,6 +71,9 @@ class Reasoner:
         """
         self.logger = get_logger("reasoner")
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
         self.config = kwargs
         
         self.rules: List[Rule] = []

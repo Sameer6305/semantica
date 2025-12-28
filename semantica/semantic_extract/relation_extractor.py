@@ -122,6 +122,9 @@ class RelationExtractor:
         self.logger = get_logger("relation_extractor")
         self.config = config
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         # Store parameters
         self.relation_types = relation_types
@@ -191,7 +194,16 @@ class RelationExtractor:
                 results = []
                 # Ensure lists are same length
                 min_len = min(len(text), len(entities))
-                update_interval = max(1, min_len // 20)  # Update every 5%
+                # Update more frequently: every 1% or at least every 10 items
+                update_interval = max(1, min(10, min_len // 100))
+                
+                # Initial progress update
+                self.progress_tracker.update_progress(
+                    tracking_id,
+                    processed=0,
+                    total=min_len,
+                    message=f"Starting batch extraction... 0/{min_len}"
+                )
                 
                 for i in range(min_len):
                     doc_item = text[i]
@@ -211,8 +223,8 @@ class RelationExtractor:
                     
                     results.append(self.extract_relations(doc_text, ent_item, **kwargs))
                     
-                    # Update progress periodically
-                    if (i + 1) % update_interval == 0 or (i + 1) == min_len:
+                    # Update progress more frequently
+                    if (i + 1) % update_interval == 0 or (i + 1) == min_len or i == 0:
                         self.progress_tracker.update_progress(
                             tracking_id,
                             processed=i + 1,

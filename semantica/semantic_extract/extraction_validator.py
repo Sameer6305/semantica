@@ -84,6 +84,9 @@ class ExtractionValidator:
         self.logger = get_logger("extraction_validator")
         self.config = config
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         self.method = method  # Reserved for future method-based validation
         self.min_confidence = config.get("min_confidence", 0.5)

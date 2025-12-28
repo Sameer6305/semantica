@@ -81,6 +81,9 @@ class BulkLoader:
         self.config = config or {}
         self.config.update(kwargs)
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         self.batch_size = self.config.get("batch_size", 1000)
         self.max_retries = self.config.get("max_retries", 3)

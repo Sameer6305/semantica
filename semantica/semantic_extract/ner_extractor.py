@@ -131,6 +131,9 @@ class NERExtractor:
         self.ensemble_voting = config.get("ensemble_voting", False)
         self.post_process = config.get("post_process", False)
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         # Initialize spaCy model if ML method is used
         self.nlp = None
@@ -165,7 +168,16 @@ class NERExtractor:
             try:
                 results = []
                 total_items = len(text)
-                update_interval = max(1, total_items // 20)  # Update every 5%
+                # Update more frequently: every 1% or at least every 10 items
+                update_interval = max(1, min(10, total_items // 100))
+                
+                # Initial progress update
+                self.progress_tracker.update_progress(
+                    tracking_id,
+                    processed=0,
+                    total=total_items,
+                    message=f"Starting batch extraction... 0/{total_items}"
+                )
                 
                 for idx, item in enumerate(text, 1):
                     try:
@@ -182,8 +194,8 @@ class NERExtractor:
                     except Exception:
                         results.append([])
                     
-                    # Update progress periodically
-                    if idx % update_interval == 0 or idx == total_items:
+                    # Update progress more frequently
+                    if idx % update_interval == 0 or idx == total_items or idx == 1:
                         self.progress_tracker.update_progress(
                             tracking_id,
                             processed=idx,

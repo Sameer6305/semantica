@@ -138,8 +138,10 @@ class SimilarityCalculator:
                 f"Weights sum to {total_weight:.2f}, will be normalized during calculation"
             )
 
-        # Initialize progress tracker
+        # Initialize progress tracker and ensure it's enabled
         self.progress_tracker = get_progress_tracker()
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         self.logger.debug("Similarity calculator initialized")
 
@@ -558,7 +560,23 @@ class SimilarityCalculator:
             # Calculate total pairs: n*(n-1)/2
             total_pairs = len(entities) * (len(entities) - 1) // 2
             processed = 0
-            update_interval = max(1, total_pairs // 20)  # Update every 5%
+            # Update more frequently: every 1% or at least every 50 items
+            update_interval = max(1, min(50, total_pairs // 100))
+            
+            # Initial progress update to show tracking started
+            self.progress_tracker.update_tracking(
+                tracking_id,
+                status="running",
+                message=f"Calculating similarity for {len(entities)} entities ({total_pairs} pairs)..."
+            )
+            
+            if total_pairs > 0:
+                self.progress_tracker.update_progress(
+                    tracking_id,
+                    processed=0,
+                    total=total_pairs,
+                    message=f"Starting similarity calculation... 0/{total_pairs}"
+                )
 
             for i in range(len(entities)):
                 for j in range(i + 1, len(entities)):
@@ -568,8 +586,8 @@ class SimilarityCalculator:
                         results.append((entities[i], entities[j], similarity.score))
                     
                     processed += 1
-                    # Update progress periodically
-                    if processed % update_interval == 0 or processed == total_pairs:
+                    # Update progress more frequently
+                    if processed % update_interval == 0 or processed == total_pairs or processed == 1:
                         self.progress_tracker.update_progress(
                             tracking_id,
                             processed=processed,

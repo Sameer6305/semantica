@@ -69,6 +69,9 @@ class TemporalVisualizer:
         self.logger = get_logger("temporal_visualizer")
         self.config = config
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
         color_scheme_name = config.get("color_scheme", "default")
         try:
             self.color_scheme = ColorScheme[color_scheme_name.upper()]

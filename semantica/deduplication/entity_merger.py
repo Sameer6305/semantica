@@ -122,8 +122,10 @@ class EntityMerger:
         self.merge_history: List[MergeOperation] = []
         self.preserve_provenance = preserve_provenance
 
-        # Initialize progress tracker
+        # Initialize progress tracker and ensure it's enabled
         self.progress_tracker = get_progress_tracker()
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         self.logger.debug(
             f"Entity merger initialized (preserve_provenance: {preserve_provenance})"
@@ -190,6 +192,13 @@ class EntityMerger:
         try:
             self.logger.info(f"Merging duplicates from {len(entities)} entities")
 
+            # Initial progress update
+            self.progress_tracker.update_tracking(
+                tracking_id, 
+                status="running",
+                message=f"Starting merge process for {len(entities)} entities..."
+            )
+            
             self.progress_tracker.update_tracking(
                 tracking_id, message="Detecting duplicate groups..."
             )
@@ -208,7 +217,17 @@ class EntityMerger:
             # Filter groups with 2+ entities (actual duplicates)
             mergeable_groups = [g for g in duplicate_groups if len(g.entities) >= 2]
             total_groups = len(mergeable_groups)
-            update_interval = max(1, total_groups // 20)  # Update every 5%
+            # Update more frequently: every item if small, or every 1% if large
+            update_interval = max(1, min(5, total_groups // 100))
+            
+            # Initial progress update
+            if total_groups > 0:
+                self.progress_tracker.update_progress(
+                    tracking_id,
+                    processed=0,
+                    total=total_groups,
+                    message=f"Starting merge operations... 0/{total_groups}"
+                )
 
             # Merge each duplicate group
             for i, group in enumerate(mergeable_groups):
@@ -243,8 +262,8 @@ class EntityMerger:
                 merge_operations.append(operation)
                 self.merge_history.append(operation)
                 
-                # Update progress periodically
-                if (i + 1) % update_interval == 0 or (i + 1) == total_groups:
+                # Update progress more frequently
+                if (i + 1) % update_interval == 0 or (i + 1) == total_groups or i == 0:
                     self.progress_tracker.update_progress(
                         tracking_id,
                         processed=i + 1,

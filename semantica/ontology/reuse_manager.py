@@ -78,6 +78,9 @@ class ReuseManager:
 
         # Initialize progress tracker
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         self.reuse_decisions: List[ReuseDecision] = []
         self.known_ontologies: Dict[str, Dict[str, Any]] = {}

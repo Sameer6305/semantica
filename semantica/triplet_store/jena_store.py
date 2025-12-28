@@ -64,6 +64,9 @@ class JenaStore:
         self.logger = get_logger("jena_store")
         self.config = config
         self.progress_tracker = get_progress_tracker()
+        # Ensure progress tracker is enabled
+        if not self.progress_tracker.enabled:
+            self.progress_tracker.enabled = True
 
         self.endpoint = config.get("endpoint")
         self.dataset = config.get("dataset", "default")
