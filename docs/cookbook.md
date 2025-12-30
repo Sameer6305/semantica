@@ -359,22 +359,6 @@ Real-world examples and end-to-end applications across various industries.
 
 </div>
 
-### Healthcare
-
-<div class="grid cards" markdown>
-
--   :material-pill-multiple: **Drug Interactions Analysis**
-    ---
-    Identifying potential drug interactions and contraindications using medical RSS feeds, relation-aware chunking, conflict detection, and safety ontology generation.
-    
-    **Topics**: Pharmacology, Drug Safety, Ontology, Conflict Resolution
-    
-    **Difficulty**: Advanced
-    
-    [Open Notebook](https://github.com/Hawksight-AI/semantica/blob/main/cookbook/use_cases/healthcare/02_Drug_Interactions_Analysis.ipynb)
-
-</div>
-
 ### Finance
 
 <div class="grid cards" markdown>

@@ -252,16 +252,13 @@ python -c "import semantica; print(semantica.__version__)"
 - [**Entity Extraction**](cookbook/introduction/05_Entity_Extraction.ipynb) - NER & Relationships
 - [**Building Knowledge Graphs**](cookbook/introduction/07_Building_Knowledge_Graphs.ipynb) - Graph Construction
 
-### Industry Use Cases (18 Cookbooks)
+### Industry Use Cases (17 Cookbooks)
 
 **Domain-Specific Cookbooks** showcasing real-world applications with real data sources, advanced chunking strategies, temporal KGs, GraphRAG, and comprehensive Semantica module integration:
 
 #### Biomedical
 - [**Drug Discovery Pipeline**](cookbook/use_cases/biomedical/01_Drug_Discovery_Pipeline.ipynb) - PubMed RSS, entity-aware chunking, GraphRAG, vector similarity search
 - [**Genomic Variant Analysis**](cookbook/use_cases/biomedical/02_Genomic_Variant_Analysis.ipynb) - bioRxiv RSS, temporal KGs, deduplication, pathway analysis
-
-#### Healthcare
-- [**Drug Interactions Analysis**](cookbook/use_cases/healthcare/02_Drug_Interactions_Analysis.ipynb) - Medical RSS, relation-aware chunking, conflict detection, safety ontology
 
 #### Finance
 - [**Financial Data Integration MCP**](cookbook/use_cases/finance/01_Financial_Data_Integration_MCP.ipynb) - Alpha Vantage API, MCP servers, seed data, real-time ingestion
@@ -685,9 +682,9 @@ print(f"Answer: {result.answer} | Nodes: {kg.node_count}, Edges: {kg.edge_count}
 
 **Finance & Trading** — Fraud detection, market intelligence, risk assessment.
 
-**Healthcare & Biomedical** — Clinical reports, drug discovery, medical literature analysis.
+**Biomedical** — Drug discovery, medical literature analysis.
 
-[**Explore Use Case Examples**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/use_cases) — See real-world implementations in finance, healthcare, cybersecurity, trading, and more. **18 comprehensive domain-specific cookbooks** with real data sources, advanced chunking strategies, temporal KGs, GraphRAG, and full Semantica module integration.
+[**Explore Use Case Examples**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/use_cases) — See real-world implementations in finance, biomedical, cybersecurity, trading, and more. **17 comprehensive domain-specific cookbooks** with real data sources, advanced chunking strategies, temporal KGs, GraphRAG, and full Semantica module integration.
 
 ## 🔬 Advanced Features
 

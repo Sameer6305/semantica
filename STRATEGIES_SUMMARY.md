@@ -4,8 +4,6 @@
 
 | Use Case | Deduplication Method | Merge Strategy | Conflict Detection | Conflict Resolution |
 |----------|---------------------|----------------|-------------------|---------------------|
-| **Healthcare** |
-| `02_Drug_Interactions_Analysis` | `EntityResolver` (semantic) | - | `relationship` | `voting` |
 | **Finance** |
 | `01_Financial_Data_Integration_MCP` | `DuplicateDetector` (incremental) | `keep_highest_confidence` | `temporal` | `most_recent` |
 | `02_Fraud_Detection` | `ClusterBuilder` (graph_based) | `merge_all` | `logical` | `expert_review` |
@@ -32,9 +30,6 @@
 ---
 
 ## Strategy Rationale by Domain
-
-### Healthcare
-- **Drug Interactions**: Semantic matching for drug names; voting for interaction data aggregation
 
 ### Finance
 - **Financial Data Integration**: Incremental for streaming data; most_recent for time-sensitive financial data

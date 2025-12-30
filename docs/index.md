@@ -307,7 +307,7 @@ Power GraphRAG applications with:
 
 -   :material-chef-hat: **Cookbook**
     ---
-    Interactive tutorials, real-world examples, and **18 domain-specific cookbooks**.
+    Interactive tutorials, real-world examples, and **17 domain-specific cookbooks**.
     
     [:arrow_right: Explore Cookbook](cookbook.md)
 
@@ -443,7 +443,7 @@ print(result.confidence)  # 0.98
 
 - [Getting Started Guide](getting-started.md) - Your first knowledge graph in 5 minutes
 - [Core Concepts](concepts.md) - Deep dive into knowledge graphs and ontologies
-- [Cookbook](cookbook.md) - Real-world examples and **18 domain-specific cookbooks**
+- [Cookbook](cookbook.md) - Real-world examples and **17 domain-specific cookbooks**
 - [API Reference](reference/core.md) - Complete technical documentation
 
 ---
