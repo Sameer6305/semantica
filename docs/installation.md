@@ -41,7 +41,7 @@ python -c "import semantica; print(semantica.__version__)"
 
 Expected output:
 ```
-0.0.1
+0.1.0
 ```
 
 You can also check the installation:

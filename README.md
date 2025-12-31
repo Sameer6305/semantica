@@ -6,7 +6,7 @@
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PyPI version](https://badge.fury.io/py/semantica.svg)](https://pypi.org/project/semantica/0.0.1/)
+[![PyPI version](https://badge.fury.io/py/semantica.svg)](https://pypi.org/project/semantica/)
 [![Downloads](https://pepy.tech/badge/semantica)](https://pepy.tech/project/semantica)
 [![Discord](https://img.shields.io/discord/semantica?color=7289da&label=discord)](https://discord.gg/semantica)
 [![CI](https://github.com/Hawksight-AI/semantica/workflows/CI/badge.svg)](https://github.com/Hawksight-AI/semantica/actions)
@@ -188,7 +188,7 @@ pip install semantica[all]
 python -c "import semantica; print(semantica.__version__)"
 ```
 
-**Current Version:** [![PyPI version](https://badge.fury.io/py/semantica.svg)](https://pypi.org/project/semantica/0.0.1/) • [View on PyPI](https://pypi.org/project/semantica/0.0.1/)
+**Current Version:** [![PyPI version](https://badge.fury.io/py/semantica.svg)](https://pypi.org/project/semantica/) • [View on PyPI](https://pypi.org/project/semantica/)
 
 
 
