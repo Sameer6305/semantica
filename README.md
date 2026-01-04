@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PyPI version](https://badge.fury.io/py/semantica.svg)](https://pypi.org/project/semantica/)
 [![Downloads](https://pepy.tech/badge/semantica)](https://pepy.tech/project/semantica)
-[![Discord](https://img.shields.io/discord/semantica?color=7289da&label=discord)](https://discord.gg/semantica)
+[![Discord](https://img.shields.io/discord/semantica?color=7289da&label=discord)](https://discord.gg/pMHguUzG)
 [![CI](https://github.com/Hawksight-AI/semantica/workflows/CI/badge.svg)](https://github.com/Hawksight-AI/semantica/actions)
 
 <p align="center">
@@ -29,7 +29,7 @@
 
 **100% Open Source** • **MIT Licensed** • **Production Ready** • **Community Driven**
 
-[**Discord**](https://discord.gg/semantica)
+[**Discord**](https://discord.gg/pMHguUzG)
 
 </div>
 
@@ -762,6 +762,7 @@ print(f"Found {len(results)} results")
 - [x] Advanced reasoning v2 (Rete, Forward/Backward Chaining)
 - [ ] Quality assurance features and Quality Assurance module
 - [ ] Enhanced multi-language support
+- [ ] Evals
 - [ ] Real-time streaming improvements
 
 ### Q2 2026
@@ -775,7 +776,7 @@ print(f"Found {len(results)} results")
 
 | **Channel** | **Purpose** |
 |:-----------:|:-----------|
-| [**Discord**](https://discord.gg/semantica) | Real-time help, showcases |
+| [**Discord**](https://discord.gg/pMHguUzG) | Real-time help, showcases |
 | [**GitHub Discussions**](https://github.com/Hawksight-AI/semantica/discussions) | Q&A, feature requests |
 
 ### Learning Resources
@@ -783,14 +784,20 @@ print(f"Found {len(results)} results")
 
 ### Enterprise Support
 
-| **Tier** | **Features** | **SLA** | **Price** |
-|:--------:|:-----------|:-------:|:--------:|
-| **Community** | Public support | Best effort | Free |
-| **Professional** | Email support | 48h | Contact |
-| **Enterprise** | 24/7 support | 4h | Contact |
-| **Premium** | Phone, custom dev | 1h | Contact |
+Enterprise support, professional services, and commercial licensing will be available in the future. For now, we offer community support through Discord and GitHub Discussions.
 
-**Contact:** [GitHub Issues](https://github.com/Hawksight-AI/semantica/issues) with "[Enterprise]" prefix
+**Current Support:**
+- **Community Support** - Free support via [Discord](https://discord.gg/pMHguUzG) and [GitHub Discussions](https://github.com/Hawksight-AI/semantica/discussions)
+- **Bug Reports** - [GitHub Issues](https://github.com/Hawksight-AI/semantica/issues)
+
+**Future Enterprise Offerings:**
+- Professional support with SLA
+- Enterprise licensing
+- Custom development services
+- Priority feature requests
+- Dedicated support channels
+
+Stay tuned for updates!
 
 ## 🤝 Contributing
 
@@ -824,15 +831,8 @@ git push origin feature/your-feature
 3. **Bug Reports** - [Create issue](https://github.com/Hawksight-AI/semantica/issues/new)
 4. **Feature Requests** - [Request feature](https://github.com/Hawksight-AI/semantica/issues/new)
 
-### Recognition
 
-Contributors receive:
-- Recognition in [CONTRIBUTORS.md](https://github.com/Hawksight-AI/semantica/blob/main/CONTRIBUTORS.md)
-- GitHub badges
-- Semantica swag
-- Featured showcases
-
-## 🏆 Contributors
+###  Contributors
 
 <a href="https://github.com/Hawksight-AI/semantica/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=Hawksight-AI/semantica" alt="Contributors" />
@@ -846,6 +846,6 @@ Semantica is licensed under the **MIT License** - see the [LICENSE](https://gith
 
 **Built by the Semantica Community**
 
-[GitHub](https://github.com/Hawksight-AI/semantica) • [Discord](https://discord.gg/semantica)
+[GitHub](https://github.com/Hawksight-AI/semantica) • [Discord](https://discord.gg/pMHguUzG)
 
 </div>
