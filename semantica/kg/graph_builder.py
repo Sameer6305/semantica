@@ -237,6 +237,7 @@ class GraphBuilder:
         self,
         sources: Union[List[Any], Any],
         second_arg: Optional[Any] = None,
+        pipeline_id: Optional[str] = None,
         **options,
     ) -> Dict[str, Any]:
         """
@@ -245,6 +246,7 @@ class GraphBuilder:
         Args:
             sources: Entities or sources list
             second_arg: Optional relationships list or entity_resolver (for backward compatibility)
+            pipeline_id: Optional pipeline ID for progress tracking
             **options: Additional build options
                 - extract: Whether to extract entities from text (default: True)
                 - extract_relations: Whether to extract relations from text (default: False)
@@ -307,6 +309,7 @@ class GraphBuilder:
             module="kg",
             submodule="GraphBuilder",
             message=f"Knowledge graph from {len(sources)} source(s)",
+            pipeline_id=pipeline_id,
         )
 
         try:
@@ -340,6 +343,7 @@ class GraphBuilder:
                         module="kg",
                         submodule="GraphBuilder",
                         message=f"Processing {len(entities_list)} entities",
+                        pipeline_id=pipeline_id,
                     )
                     
                     # Check if entities are already in dictionary format
@@ -409,6 +413,7 @@ class GraphBuilder:
                         module="kg",
                         submodule="GraphBuilder",
                         message=f"Processing {len(relationships_list)} relationships",
+                        pipeline_id=pipeline_id,
                     )
                     
                     # Check if relationships are already in dictionary format

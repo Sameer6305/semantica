@@ -217,3 +217,131 @@ class ProvenanceTracker:
                   or None if entity is not tracked
         """
         return self.provenance_data.get(entity_id)
+
+    def track_entities_batch(
+        self,
+        entities: List[Dict[str, Any]],
+        source: str,
+        pipeline_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> int:
+        """
+        Track provenance for multiple entities in batch.
+
+        Args:
+            entities: List of entity dictionaries, each containing at least 'id' key
+            source: Source identifier
+            pipeline_id: Optional pipeline ID for progress tracking
+            metadata: Optional metadata dictionary to apply to all entities
+
+        Returns:
+            int: Number of entities tracked
+        """
+        if not entities:
+            return 0
+
+        tracking_id = self.progress_tracker.start_tracking(
+            module="kg",
+            submodule="ProvenanceTracker",
+            message=f"Tracking provenance for {len(entities)} entities",
+            pipeline_id=pipeline_id,
+        )
+
+        try:
+            tracked_count = 0
+            for i, entity in enumerate(entities):
+                entity_id = entity.get("id") or entity.get("entity_id")
+                if not entity_id:
+                    self.logger.warning(f"Skipping entity without ID: {entity}")
+                    continue
+
+                # Merge entity-specific metadata with batch metadata
+                entity_metadata = {**(metadata or {}), **(entity.get("metadata", {}))}
+                self.track_entity(entity_id, source, entity_metadata)
+
+                tracked_count += 1
+
+                # Update progress
+                self.progress_tracker.update_progress(
+                    tracking_id,
+                    processed=i + 1,
+                    total=len(entities),
+                    message=f"Tracking entity {i+1}/{len(entities)}...",
+                )
+
+            self.progress_tracker.stop_tracking(
+                tracking_id,
+                status="completed",
+                message=f"Tracked {tracked_count} entities",
+            )
+            return tracked_count
+
+        except Exception as e:
+            self.progress_tracker.stop_tracking(
+                tracking_id, status="failed", message=str(e)
+            )
+            raise
+
+    def track_relationships_batch(
+        self,
+        relationships: List[Dict[str, Any]],
+        source: str,
+        pipeline_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> int:
+        """
+        Track provenance for multiple relationships in batch.
+
+        Args:
+            relationships: List of relationship dictionaries, each containing at least 'id' key
+            source: Source identifier
+            pipeline_id: Optional pipeline ID for progress tracking
+            metadata: Optional metadata dictionary to apply to all relationships
+
+        Returns:
+            int: Number of relationships tracked
+        """
+        if not relationships:
+            return 0
+
+        tracking_id = self.progress_tracker.start_tracking(
+            module="kg",
+            submodule="ProvenanceTracker",
+            message=f"Tracking provenance for {len(relationships)} relationships",
+            pipeline_id=pipeline_id,
+        )
+
+        try:
+            tracked_count = 0
+            for i, relationship in enumerate(relationships):
+                relationship_id = relationship.get("id") or relationship.get("relationship_id")
+                if not relationship_id:
+                    self.logger.warning(f"Skipping relationship without ID: {relationship}")
+                    continue
+
+                # Merge relationship-specific metadata with batch metadata
+                rel_metadata = {**(metadata or {}), **(relationship.get("metadata", {}))}
+                self.track_relationship(relationship_id, source, rel_metadata)
+
+                tracked_count += 1
+
+                # Update progress
+                self.progress_tracker.update_progress(
+                    tracking_id,
+                    processed=i + 1,
+                    total=len(relationships),
+                    message=f"Tracking relationship {i+1}/{len(relationships)}...",
+                )
+
+            self.progress_tracker.stop_tracking(
+                tracking_id,
+                status="completed",
+                message=f"Tracked {tracked_count} relationships",
+            )
+            return tracked_count
+
+        except Exception as e:
+            self.progress_tracker.stop_tracking(
+                tracking_id, status="failed", message=str(e)
+            )
+            raise

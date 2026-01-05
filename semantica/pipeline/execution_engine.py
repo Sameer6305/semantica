@@ -132,10 +132,36 @@ class ExecutionEngine:
             module="pipeline",
             submodule="ExecutionEngine",
             message=f"Executing pipeline: {pipeline_id}",
+            pipeline_id=pipeline_id,
         )
 
         try:
             self.logger.info(f"Executing pipeline: {pipeline_id}")
+
+            # Register pipeline modules for progress tracking
+            module_list = []
+            module_order = {}
+            if hasattr(pipeline, 'steps') and pipeline.steps:
+                for idx, step in enumerate(pipeline.steps):
+                    # Extract module name from step
+                    module_name = getattr(step, 'module', None) or getattr(step, 'name', None) or str(step)
+                    if module_name and module_name not in module_list:
+                        module_list.append(module_name)
+                        module_order[module_name] = idx
+            
+            # If no steps found, try to infer from pipeline structure
+            if not module_list:
+                # Common pipeline modules
+                module_list = ["ingest", "parse", "normalize", "semantic_extract", "kg", "embeddings"]
+                module_order = {module: idx for idx, module in enumerate(module_list)}
+            
+            # Register pipeline modules
+            if module_list:
+                self.progress_tracker.register_pipeline_modules(
+                    pipeline_id=pipeline_id,
+                    module_list=module_list,
+                    module_order=module_order
+                )
 
             # Set status
             with self.pipeline_lock:
@@ -174,6 +200,9 @@ class ExecutionEngine:
                     status="completed" if metrics["steps_failed"] == 0 else "failed",
                     message=f"Executed {metrics['steps_executed']} steps in {execution_time:.2f}s",
                 )
+                
+                # Clear pipeline context when pipeline completes
+                self.progress_tracker.clear_pipeline_context(pipeline_id)
 
                 return ExecutionResult(
                     success=metrics["steps_failed"] == 0,
@@ -193,6 +222,8 @@ class ExecutionEngine:
             self.progress_tracker.stop_tracking(
                 pipeline_tracking_id, status="failed", message=str(e)
             )
+            # Clear pipeline context on failure
+            self.progress_tracker.clear_pipeline_context(pipeline_id)
             self.logger.error(f"Pipeline execution failed: {e}")
             with self.pipeline_lock:
                 self.pipeline_status[pipeline_id] = PipelineStatus.FAILED

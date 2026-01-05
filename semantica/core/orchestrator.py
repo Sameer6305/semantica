@@ -203,6 +203,7 @@ class Semantica:
             sources: List of data sources (files, URLs, streams)
             **kwargs: Additional processing options:
                 - pipeline: Custom pipeline configuration
+                - pipeline_id: Optional pipeline ID for progress tracking
                 - embeddings: Whether to generate embeddings
                 - graph: Whether to build knowledge graph
                 - normalize: Whether to normalize data
@@ -220,11 +221,19 @@ class Semantica:
         # Auto-initialize if not already initialized
         self._ensure_initialized()
 
+        # Extract or generate pipeline_id
+        pipeline_id = kwargs.get("pipeline_id")
+        if not pipeline_id:
+            # Generate a unique pipeline ID
+            import uuid
+            pipeline_id = f"kb_build_{uuid.uuid4().hex[:8]}"
+
         # Start overall progress tracking
         overall_tracking_id = self.progress_tracker.start_tracking(
             module="core",
             submodule="Semantica",
             message=f"Building knowledge base from {len(sources)} sources",
+            pipeline_id=pipeline_id,
         )
 
         try:
@@ -236,6 +245,23 @@ class Semantica:
             # Create processing pipeline
             pipeline_config = kwargs.get("pipeline", {})
             pipeline = self._create_pipeline(pipeline_config)
+            
+            # Register pipeline modules for progress tracking
+            if hasattr(pipeline, 'steps') and pipeline.steps:
+                module_list = []
+                module_order = {}
+                for idx, step in enumerate(pipeline.steps):
+                    module_name = getattr(step, 'module', None) or getattr(step, 'name', None) or str(step)
+                    if module_name and module_name not in module_list:
+                        module_list.append(module_name)
+                        module_order[module_name] = idx
+                
+                if module_list:
+                    self.progress_tracker.register_pipeline_modules(
+                        pipeline_id=pipeline_id,
+                        module_list=module_list,
+                        module_order=module_order
+                    )
 
             # Process sources
             results = []
@@ -251,6 +277,7 @@ class Semantica:
                         module="core",
                         submodule="build_knowledge_base",
                         message=f"Processing {Path(file_str).name if file_str else 'source'}",
+                        pipeline_id=pipeline_id,
                     )
                     try:
                         result = self.run_pipeline(pipeline, source)
@@ -308,6 +335,9 @@ class Semantica:
                 message=f"Processed {len(results)} sources",
             )
 
+            # Clear pipeline context when complete
+            self.progress_tracker.clear_pipeline_context(pipeline_id)
+
             # Show summary
             self.progress_tracker.show_summary()
 
@@ -319,6 +349,7 @@ class Semantica:
                 "metadata": {
                     "sources": validated_sources,
                     "pipeline": pipeline_config,
+                    "pipeline_id": pipeline_id,
                 },
             }
 
@@ -326,6 +357,8 @@ class Semantica:
             self.progress_tracker.stop_tracking(
                 overall_tracking_id, status="failed", message=str(e)
             )
+            # Clear pipeline context on failure
+            self.progress_tracker.clear_pipeline_context(pipeline_id)
             self.logger.error(f"Failed to build knowledge base: {e}")
             raise ProcessingError(f"Failed to build knowledge base: {e}")
 

@@ -258,13 +258,14 @@ class EmbeddingGenerator:
         return max(0.0, min(1.0, similarity))
 
     def process_batch(
-        self, data_items: List[Union[str, Path]], **options
+        self, data_items: List[Union[str, Path]], pipeline_id: Optional[str] = None, **options
     ) -> Dict[str, Any]:
         """
         Process multiple data items for embedding generation.
 
         Args:
             data_items: List of data items
+            pipeline_id: Optional pipeline ID for progress tracking
             **options: Processing options
 
         Returns:
@@ -275,6 +276,7 @@ class EmbeddingGenerator:
             module="embeddings",
             submodule="EmbeddingGenerator",
             message=f"Batch of {len(data_items)} items",
+            pipeline_id=pipeline_id,
         )
 
         try:

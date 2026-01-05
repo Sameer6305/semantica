@@ -168,6 +168,7 @@ class RelationExtractor:
         self,
         text: Union[str, List[Dict[str, Any]], List[str]],
         entities: Union[List[Entity], List[List[Entity]]],
+        pipeline_id: Optional[str] = None,
         **kwargs
     ) -> Union[List[Relation], List[List[Relation]]]:
         """
@@ -177,6 +178,7 @@ class RelationExtractor:
         Args:
             text: Input text or list of documents
             entities: List of entities or list of list of entities
+            pipeline_id: Optional pipeline ID for progress tracking
             **kwargs: Extraction options
             
         Returns:
@@ -188,6 +190,7 @@ class RelationExtractor:
                 module="semantic_extract",
                 submodule="RelationExtractor",
                 message=f"Batch extracting relations from {len(text)} documents",
+                pipeline_id=pipeline_id,
             )
             
             try:

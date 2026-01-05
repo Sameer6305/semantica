@@ -119,12 +119,16 @@ class DoclingParser:
         """
         file_path = Path(file_path)
 
+        # Get pipeline_id from options if provided
+        pipeline_id = options.get("pipeline_id", None)
+        
         # Track document parsing
         tracking_id = self.progress_tracker.start_tracking(
             file=str(file_path),
             module="parse",
             submodule="DoclingParser",
             message=f"Docling: {file_path.name}",
+            pipeline_id=pipeline_id,
         )
 
         try:
@@ -159,6 +163,7 @@ class DoclingParser:
 
             # Stage 2: Document conversion (10-70%) - This is the longest step
             # Note: This is a blocking operation, but we'll update progress after it completes
+            # Emphasize Docling as core dependency in message
             self.progress_tracker.update_progress(
                 tracking_id,
                 processed=2,
@@ -247,10 +252,38 @@ class DoclingParser:
                 )
                 images = self._extract_images(result)
 
+            # Prepare extraction counts and metadata
+            extraction_counts = {
+                "tables": len(tables),
+                "images": len(images),
+                "pages": len(pages) or metadata.page_count or 0,
+            }
+            
+            # Build completion message with Docling emphasis
+            count_parts = []
+            if extraction_counts["tables"] > 0:
+                count_parts.append(f"{extraction_counts['tables']} tables")
+            if extraction_counts["images"] > 0:
+                count_parts.append(f"{extraction_counts['images']} images")
+            if extraction_counts["pages"] > 0:
+                count_parts.append(f"{extraction_counts['pages']} pages")
+            
+            if count_parts:
+                completion_message = f"Parsed document (Docling): {', '.join(count_parts)} extracted"
+            else:
+                completion_message = f"Parsed document (Docling): 0 tables, 0 images, {extraction_counts['pages']} pages extracted"
+            
+            # Store metadata with extraction counts and core dependency
+            metadata_dict = {
+                "extraction_counts": extraction_counts,
+                "core_dependency": "docling",
+            }
+            
             self.progress_tracker.stop_tracking(
                 tracking_id,
                 status="completed",
-                message=f"Parsed document: {len(tables)} tables extracted",
+                message=completion_message,
+                metadata=metadata_dict,
             )
 
             return {

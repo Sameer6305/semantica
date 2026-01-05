@@ -141,13 +141,14 @@ class NERExtractor:
                     f"spaCy model {self.model_name} not found. ML method will fallback."
                 )
 
-    def extract(self, text: Union[str, List[Dict[str, Any]], List[str]], **kwargs) -> Union[List[Entity], List[List[Entity]]]:
+    def extract(self, text: Union[str, List[Dict[str, Any]], List[str]], pipeline_id: Optional[str] = None, **kwargs) -> Union[List[Entity], List[List[Entity]]]:
         """
         Alias for extract_entities.
         Handles both single string and list of documents.
         
         Args:
             text: Input text or list of documents
+            pipeline_id: Optional pipeline ID for progress tracking
             **kwargs: Extraction options
             
         Returns:
@@ -159,6 +160,7 @@ class NERExtractor:
                 module="semantic_extract",
                 submodule="NERExtractor",
                 message=f"Batch extracting entities from {len(text)} documents",
+                pipeline_id=pipeline_id,
             )
             
             try:

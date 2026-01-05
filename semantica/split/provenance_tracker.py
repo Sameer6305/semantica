@@ -127,16 +127,22 @@ class ProvenanceTracker:
 
         return provenance_id
 
-    def track(self, **kwargs) -> Union[str, List[str]]:
+    def track(self, pipeline_id: Optional[str] = None, **kwargs) -> Union[str, List[str]]:
         """
         Track provenance (alias for track_chunk/track_chunks).
         Delegates based on input arguments.
+
+        Args:
+            pipeline_id: Optional pipeline ID for progress tracking
+            **kwargs: Arguments passed to track_chunk or track_chunks
         """
         if "chunks" in kwargs:
+            kwargs["pipeline_id"] = pipeline_id
             return self.track_chunks(**kwargs)
         if "chunk" in kwargs and isinstance(kwargs["chunk"], list):
              # Handle list passed to chunk arg
              kwargs["chunks"] = kwargs.pop("chunk")
+             kwargs["pipeline_id"] = pipeline_id
              return self.track_chunks(**kwargs)
         return self.track_chunk(**kwargs)
 
@@ -145,6 +151,7 @@ class ProvenanceTracker:
         chunks: List[Chunk],
         source_document: str,
         source_path: Optional[str] = None,
+        pipeline_id: Optional[str] = None,
         **metadata,
     ) -> List[str]:
         """
@@ -154,6 +161,7 @@ class ProvenanceTracker:
             chunks: List of chunks to track
             source_document: Source document identifier
             source_path: Path to source document
+            pipeline_id: Optional pipeline ID for progress tracking
             **metadata: Additional metadata
 
         Returns:
@@ -163,6 +171,7 @@ class ProvenanceTracker:
             module="split",
             submodule="ProvenanceTracker",
             message=f"Tracking provenance for {len(chunks)} chunks",
+            pipeline_id=pipeline_id,
         )
 
         try:
@@ -170,8 +179,11 @@ class ProvenanceTracker:
             parent_chunk_id = None
 
             for i, chunk in enumerate(chunks):
-                self.progress_tracker.update_tracking(
-                    tracking_id, message=f"Tracking chunk {i+1}/{len(chunks)}..."
+                self.progress_tracker.update_progress(
+                    tracking_id,
+                    processed=i + 1,
+                    total=len(chunks),
+                    message=f"Tracking chunk {i+1}/{len(chunks)}...",
                 )
                 provenance_id = self.track_chunk(
                     chunk, source_document, source_path, parent_chunk_id, **metadata

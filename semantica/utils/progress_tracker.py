@@ -77,6 +77,8 @@ class ProgressItem:
     total_items: Optional[int] = None  # Total items to process
     processed_items: Optional[int] = None  # Items processed so far
     estimated_remaining: Optional[float] = None  # Estimated remaining time in seconds
+    pipeline_id: Optional[str] = None  # Pipeline ID this item belongs to
+    pipeline_order: Optional[int] = None  # Order of this module in the pipeline
 
 
 class ProgressDisplay(ABC):
@@ -232,78 +234,130 @@ class ConsoleProgressDisplay(ProgressDisplay):
             return
 
         with self.lock:
-            # Create unique key for this item
-            key = f"{item.module}:{item.submodule}"
-            if item.file:
-                key = f"{item.file}:{key}"
-
-            # Build progress line
-            parts = []
-
-            # Semantica branding with action
-            if self.use_emoji:
-                parts.append("🧠")
-
-            # Create action message based on module (now includes custom message)
-            action_msg = self._get_action_message(item.module, item.message)
-            parts.append(action_msg)
-
-            # Progress bar and percentage
-            if item.progress_percentage is not None:
-                pct = item.progress_percentage
-                bar_width = 15
-                filled = int(bar_width * pct / 100)
-                bar = "█" * filled + "░" * (bar_width - filled)
-                parts.append(f"|{bar}| {pct:.1f}%")
-
-            # Count information [done/total]
-            if item.processed_items is not None and item.total_items is not None:
-                parts.append(f"[{item.processed_items}/{item.total_items}]")
-
-            # Status and Module emojis
-            if self.use_emoji:
-                status_emoji = self._get_status_emoji(item.status)
-                module_emoji = self._get_emoji_for_module(item.module or "")
-                parts.append(f"{status_emoji}{module_emoji}")
-
-            # ETA and Rate
-            metrics = []
-            if item.estimated_remaining is not None and item.estimated_remaining > 0:
-                if item.estimated_remaining < 60:
-                    metrics.append(f"ETA: {item.estimated_remaining:.1f}s")
-                elif item.estimated_remaining < 3600:
-                    metrics.append(f"ETA: {item.estimated_remaining/60:.1f}m")
-                else:
-                    metrics.append(f"ETA: {item.estimated_remaining/3600:.1f}h")
+            # If item is part of a pipeline, get all pipeline items for display
+            pipeline_items = []
+            if item.pipeline_id:
+                # Get tracker instance to access pipeline items
+                # Use the singleton instance directly
+                tracker = ProgressTracker.get_instance()
+                pipeline_items = tracker.get_pipeline_items(item.pipeline_id)
             
-            if item.start_time and item.processed_items is not None and item.processed_items > 0:
-                elapsed = time.time() - item.start_time
-                if elapsed > 0:
-                    rate = item.processed_items / elapsed
-                    metrics.append(f"{rate:.1f}/s")
-            
-            if metrics:
-                parts.append(f"({' | '.join(metrics)})")
-            
-            # Elapsed time if no progress info
-            if item.start_time and item.progress_percentage is None:
-                elapsed = time.time() - item.start_time
-                parts.append(f"({elapsed:.1f}s)")
-
-            line = " ".join(parts)
-            self.current_lines[key] = line
-
-            # Print all current lines
-            # For multiple lines, we combine them to avoid console scrolling issues
-            sys.stdout.write("\r" + " " * 120 + "\r")
-            if len(self.current_lines) == 1:
-                sys.stdout.write(line)
+            # If we have pipeline items, show all of them
+            if pipeline_items:
+                # Clear and show all pipeline items
+                sys.stdout.write("\r" + " " * 150 + "\r")
+                
+                # Show header if first time
+                if not hasattr(self, '_pipeline_header_shown'):
+                    if self.use_emoji:
+                        sys.stdout.write("🧠 Semantica - 📊 Current Progress\n")
+                    else:
+                        sys.stdout.write("Semantica - Current Progress\n")
+                    sys.stdout.write("=" * 150 + "\n")
+                    self._pipeline_header_shown = True
+                
+                # Display all pipeline items
+                for pipeline_item in pipeline_items:
+                    self._display_item_line(pipeline_item)
+                    sys.stdout.write("\n")
+                
+                sys.stdout.flush()
             else:
-                # Combine multiple active lines onto one or two lines to be safe
-                lines_list = list(self.current_lines.values())
-                sys.stdout.write(" | ".join(lines_list[-2:]))
-            
-            sys.stdout.flush()
+                # Original single-item display
+                self._display_item_line(item)
+                sys.stdout.flush()
+    
+    def _display_item_line(self, item: ProgressItem) -> None:
+        """Display a single progress item line."""
+        # Create unique key for this item
+        key = f"{item.module}:{item.submodule}"
+        if item.file:
+            key = f"{item.file}:{key}"
+
+        # Build progress line
+        parts = []
+
+        # Status emoji
+        if self.use_emoji:
+            status_emoji = self._get_status_emoji(item.status)
+            parts.append(status_emoji)
+
+        # Create action message based on module
+        action_msg = self._get_action_message(item.module, item.message)
+        parts.append(action_msg)
+
+        # Module and Submodule
+        if self.use_emoji:
+            module_emoji = self._get_emoji_for_module(item.module or "")
+            parts.append(f"{module_emoji} {item.module or 'N/A'}")
+        else:
+            parts.append(f"{item.module or 'N/A'}")
+        parts.append(f"{item.submodule or 'N/A'}")
+
+        # Progress bar and percentage
+        if item.progress_percentage is not None:
+            pct = item.progress_percentage
+            bar_width = 15
+            filled = int(bar_width * pct / 100)
+            bar = "█" * filled + "░" * (bar_width - filled)
+            parts.append(f"|{bar}| {pct:.1f}%")
+        else:
+            parts.append("|" + "░" * 15 + "| 0.0%")
+
+        # ETA
+        if item.estimated_remaining is not None and item.estimated_remaining > 0:
+            if item.estimated_remaining < 60:
+                parts.append(f"ETA: {item.estimated_remaining:.1f}s")
+            elif item.estimated_remaining < 3600:
+                parts.append(f"ETA: {item.estimated_remaining/60:.1f}m")
+            else:
+                parts.append(f"ETA: {item.estimated_remaining/3600:.1f}h")
+        else:
+            parts.append("ETA: -")
+
+        # Rate
+        if item.start_time and item.processed_items is not None and item.processed_items > 0:
+            elapsed = time.time() - item.start_time
+            if elapsed > 0:
+                rate = item.processed_items / elapsed
+                parts.append(f"Rate: {rate:.1f}/s")
+        else:
+            parts.append("Rate: -")
+
+        # Time
+        if item.start_time:
+            if item.end_time:
+                elapsed = item.end_time - item.start_time
+                parts.append(f"Time: {elapsed:.2f}s")
+            else:
+                elapsed = time.time() - item.start_time
+                parts.append(f"Time: {elapsed:.2f}s")
+        else:
+            parts.append("Time: -")
+
+        # Extraction counts (if available)
+        if item.metadata.get('extraction_counts'):
+            counts = item.metadata['extraction_counts']
+            count_parts = []
+            if 'tables' in counts:
+                count_parts.append(f"{counts['tables']} tables")
+            if 'images' in counts:
+                count_parts.append(f"{counts['images']} images")
+            if 'pages' in counts:
+                count_parts.append(f"{counts['pages']} pages")
+            if count_parts:
+                extracted = ", ".join(count_parts)
+                # Add Docling indicator if core dependency is docling
+                if item.metadata.get('core_dependency') == 'docling':
+                    parts.append(f"Extracted (Docling): {extracted}")
+                else:
+                    parts.append(f"Extracted: {extracted}")
+        else:
+            parts.append("Extracted: -")
+
+        line = " ".join(parts)
+        self.current_lines[key] = line
+        sys.stdout.write(line)
 
     def show_summary(self, items: List[ProgressItem]) -> None:
         """Show final summary."""
@@ -482,12 +536,52 @@ class JupyterProgressDisplay(ProgressDisplay):
         # Current status
         html_parts.append("<h4>🧠 Semantica - 📊 Current Progress</h4>")
         html_parts.append("<table style='width: 100%; border-collapse: collapse;'>")
+        
+        # Check if any item is part of a pipeline
+        pipeline_id = None
+        pipeline_items = []
+        for item in items:
+            if item.pipeline_id:
+                pipeline_id = item.pipeline_id
+                break
+        
+        # If pipeline context exists, get all pipeline items
+        if pipeline_id:
+            tracker = ProgressTracker.get_instance()
+            pipeline_items = tracker.get_pipeline_items(pipeline_id)
+            # Also include expected modules that haven't started yet
+            if pipeline_id in tracker.pipeline_contexts:
+                expected_modules = tracker.pipeline_contexts[pipeline_id]
+                module_order = tracker.pipeline_module_order.get(pipeline_id, {})
+                # Create pending items for modules not yet started
+                existing_modules = {item.module for item in pipeline_items if item.module}
+                for module in expected_modules:
+                    if module not in existing_modules:
+                        pending_item = ProgressItem(
+                            module=module,
+                            submodule="Pending",
+                            status="pending",
+                            progress_percentage=0.0,
+                            pipeline_id=pipeline_id,
+                            pipeline_order=module_order.get(module, 999)
+                        )
+                        pipeline_items.append(pending_item)
+                # Sort by pipeline order
+                pipeline_items.sort(key=lambda x: (x.pipeline_order if x.pipeline_order is not None else 999, x.module or ""))
+        
+        # Use pipeline items if available, otherwise use regular items
+        display_items = pipeline_items if pipeline_items else items[-10:]
+        
+        # Determine column header based on whether we have Docling items
+        has_docling = any(item.metadata.get('core_dependency') == 'docling' for item in display_items)
+        extracted_header = "Extracted (Docling)" if has_docling else "Extracted"
+        
         html_parts.append(
-            "<tr><th>Status</th><th>Action</th><th>Module</th><th>Submodule</th><th>Progress</th><th>ETA</th><th>Rate</th><th>Time</th></tr>"
+            f"<tr><th>Status</th><th>Action</th><th>Module</th><th>Submodule</th><th>Progress</th><th>ETA</th><th>Rate</th><th>Time</th><th>{extracted_header}</th></tr>"
         )
 
-        # Show last 10 items
-        for item in items[-10:]:
+        # Show pipeline items or last 10 items
+        for item in display_items:
             status_emoji = self._get_status_emoji(item.status)
             module_emoji = self._get_emoji_for_module(item.module or "")
             action_msg = self._get_action_message(item.module, item.message)
@@ -523,8 +617,32 @@ class JupyterProgressDisplay(ProgressDisplay):
                     elapsed = f"{(item.end_time - item.start_time):.2f}s"
                 else:
                     elapsed = f"{(time.time() - item.start_time):.2f}s"
+            else:
+                elapsed = "-"
 
             file_name = Path(item.file).name if item.file else "-"
+            
+            # Extraction counts
+            extracted_str = "-"
+            if item.metadata.get('extraction_counts'):
+                counts = item.metadata['extraction_counts']
+                count_parts = []
+                if 'tables' in counts:
+                    count_parts.append(f"{counts['tables']} tables")
+                if 'images' in counts:
+                    count_parts.append(f"{counts['images']} images")
+                if 'pages' in counts:
+                    count_parts.append(f"{counts['pages']} pages")
+                if count_parts:
+                    extracted_str = ", ".join(count_parts)
+            elif item.status == "pending":
+                extracted_str = "-"
+            elif item.status == "running" and item.module == "parse":
+                # Show progress message for running parse operations
+                if "Docling" in item.message or item.metadata.get('core_dependency') == 'docling':
+                    extracted_str = "Converting with Docling..."
+                else:
+                    extracted_str = "-"
 
             html_parts.append(
                 f"<tr>"
@@ -536,6 +654,7 @@ class JupyterProgressDisplay(ProgressDisplay):
                 f"<td>{eta_str}</td>"
                 f"<td>{rate_str}</td>"
                 f"<td>{elapsed}</td>"
+                f"<td>{extracted_str}</td>"
                 f"</tr>"
             )
 
@@ -562,9 +681,35 @@ class JupyterProgressDisplay(ProgressDisplay):
         else:
             self.items.append(item)
 
+        # If item is part of a pipeline, get all pipeline items for display
+        display_items = self.items
+        if item.pipeline_id:
+            tracker = ProgressTracker.get_instance()
+            pipeline_items = tracker.get_pipeline_items(item.pipeline_id)
+            # Also include expected modules that haven't started yet
+            if item.pipeline_id in tracker.pipeline_contexts:
+                expected_modules = tracker.pipeline_contexts[item.pipeline_id]
+                module_order = tracker.pipeline_module_order.get(item.pipeline_id, {})
+                # Create pending items for modules not yet started
+                existing_modules = {item.module for item in pipeline_items if item.module}
+                for module in expected_modules:
+                    if module not in existing_modules:
+                        pending_item = ProgressItem(
+                            module=module,
+                            submodule="Pending",
+                            status="pending",
+                            progress_percentage=0.0,
+                            pipeline_id=item.pipeline_id,
+                            pipeline_order=module_order.get(module, 999)
+                        )
+                        pipeline_items.append(pending_item)
+                # Sort by pipeline order
+                pipeline_items.sort(key=lambda x: (x.pipeline_order if x.pipeline_order is not None else 999, x.module or ""))
+                display_items = pipeline_items
+
         # Update display - always update immediately in Jupyter/Colab
         if IPYTHON_AVAILABLE:
-            html = self._build_html(self.items)
+            html = self._build_html(display_items)
             try:
                 # Check if we're in Google Colab (Colab sometimes needs fresh displays)
                 is_colab = False
@@ -901,6 +1046,11 @@ class ProgressTracker:
         self.items: List[ProgressItem] = []
         self.active_items: Dict[str, ProgressItem] = {}
         self.lock = threading.Lock()
+        
+        # Pipeline context tracking
+        self.pipeline_contexts: Dict[str, List[str]] = {}  # pipeline_id -> list of module names
+        self.pipeline_items: Dict[str, Dict[str, ProgressItem]] = {}  # pipeline_id -> {tracking_id: item}
+        self.pipeline_module_order: Dict[str, Dict[str, int]] = {}  # pipeline_id -> {module: order}
 
     def _detect_jupyter(self) -> bool:
         """Detect if running in Jupyter notebook or Google Colab."""
@@ -962,12 +1112,86 @@ class ProgressTracker:
             cls._instance.enabled = True
         return cls._instance
 
+    def register_pipeline_modules(
+        self, pipeline_id: str, module_list: List[str], module_order: Optional[Dict[str, int]] = None
+    ) -> None:
+        """
+        Register modules that belong to a pipeline.
+
+        Args:
+            pipeline_id: Unique pipeline identifier
+            module_list: List of module names in the pipeline
+            module_order: Optional dict mapping module names to their order in pipeline
+        """
+        if not self.enabled:
+            return
+
+        with self.lock:
+            self.pipeline_contexts[pipeline_id] = module_list
+            if module_order:
+                self.pipeline_module_order[pipeline_id] = module_order
+            else:
+                # Auto-generate order if not provided
+                self.pipeline_module_order[pipeline_id] = {
+                    module: idx for idx, module in enumerate(module_list)
+                }
+            # Initialize pipeline items dict
+            if pipeline_id not in self.pipeline_items:
+                self.pipeline_items[pipeline_id] = {}
+
+    def get_pipeline_items(self, pipeline_id: str) -> List[ProgressItem]:
+        """
+        Get all items for a pipeline (completed + active).
+
+        Args:
+            pipeline_id: Pipeline identifier
+
+        Returns:
+            List of ProgressItem objects for the pipeline, ordered by pipeline_order
+        """
+        if not self.enabled or pipeline_id not in self.pipeline_contexts:
+            return []
+
+        with self.lock:
+            items = []
+            # Get items from pipeline_items (completed)
+            if pipeline_id in self.pipeline_items:
+                items.extend(self.pipeline_items[pipeline_id].values())
+            
+            # Get active items that belong to this pipeline
+            for tracking_id, item in self.active_items.items():
+                if item.pipeline_id == pipeline_id:
+                    items.append(item)
+            
+            # Sort by pipeline_order
+            items.sort(key=lambda x: (x.pipeline_order if x.pipeline_order is not None else 999, x.module or ""))
+            return items
+
+    def clear_pipeline_context(self, pipeline_id: str) -> None:
+        """
+        Clear pipeline context when pipeline completes.
+
+        Args:
+            pipeline_id: Pipeline identifier to clear
+        """
+        if not self.enabled:
+            return
+
+        with self.lock:
+            if pipeline_id in self.pipeline_contexts:
+                del self.pipeline_contexts[pipeline_id]
+            if pipeline_id in self.pipeline_items:
+                del self.pipeline_items[pipeline_id]
+            if pipeline_id in self.pipeline_module_order:
+                del self.pipeline_module_order[pipeline_id]
+
     def start_tracking(
         self,
         file: Optional[str] = None,
         module: Optional[str] = None,
         submodule: Optional[str] = None,
         message: str = "",
+        pipeline_id: Optional[str] = None,
     ) -> str:
         """
         Start tracking a progress item.
@@ -1004,6 +1228,17 @@ class ProgressTracker:
         # Create tracking ID
         tracking_id = f"{module}:{submodule}:{file or ''}"
 
+        # Determine pipeline_id and pipeline_order if module is part of a pipeline
+        pipeline_order = None
+        if pipeline_id is None and module:
+            # Try to find pipeline_id from existing contexts
+            for pid, modules in self.pipeline_contexts.items():
+                if module in modules:
+                    pipeline_id = pid
+                    if pid in self.pipeline_module_order:
+                        pipeline_order = self.pipeline_module_order[pid].get(module)
+                    break
+
         with self.lock:
             item = ProgressItem(
                 file=file,
@@ -1013,9 +1248,17 @@ class ProgressTracker:
                 start_time=time.time(),
                 message=message,
                 emoji=self._get_emoji_for_module(module or ""),
+                pipeline_id=pipeline_id,
+                pipeline_order=pipeline_order,
             )
 
             self.active_items[tracking_id] = item
+            
+            # If part of pipeline, also store in pipeline_items
+            if pipeline_id:
+                if pipeline_id not in self.pipeline_items:
+                    self.pipeline_items[pipeline_id] = {}
+                self.pipeline_items[pipeline_id][tracking_id] = item
 
             # Update displays
             for display in self.displays:
@@ -1057,9 +1300,19 @@ class ProgressTracker:
                     # Reset progress fields on completion
                     item.progress_percentage = 100.0 if status == "completed" else None
                     item.estimated_remaining = 0.0 if status == "completed" else None
-                    # Move to completed items
-                    self.items.append(item)
-                    del self.active_items[tracking_id]
+                    
+                    # If part of an active pipeline, keep it in pipeline_items instead of removing
+                    if item.pipeline_id and item.pipeline_id in self.pipeline_contexts:
+                        # Keep in pipeline_items for visibility
+                        if item.pipeline_id not in self.pipeline_items:
+                            self.pipeline_items[item.pipeline_id] = {}
+                        self.pipeline_items[item.pipeline_id][tracking_id] = item
+                        # Remove from active_items but keep in pipeline_items
+                        del self.active_items[tracking_id]
+                    else:
+                        # Not part of pipeline, move to completed items as before
+                        self.items.append(item)
+                        del self.active_items[tracking_id]
 
                 # Update displays
                 for display in self.displays:
@@ -1157,7 +1410,7 @@ class ProgressTracker:
         return max(0.0, eta_seconds)
 
     def stop_tracking(
-        self, tracking_id: str, status: str = "completed", message: str = ""
+        self, tracking_id: str, status: str = "completed", message: str = "", metadata: Optional[Dict[str, Any]] = None
     ) -> None:
         """
         Stop tracking an item.
@@ -1166,7 +1419,22 @@ class ProgressTracker:
             tracking_id: Tracking ID from start_tracking
             status: Final status (completed, failed)
             message: Final message
+            metadata: Optional metadata to store (e.g., extraction_counts, core_dependency)
         """
+        with self.lock:
+            # Update metadata if provided
+            if tracking_id in self.active_items:
+                item = self.active_items[tracking_id]
+                if metadata:
+                    item.metadata.update(metadata)
+            # Also check pipeline_items
+            for pipeline_id, items in self.pipeline_items.items():
+                if tracking_id in items:
+                    item = items[tracking_id]
+                    if metadata:
+                        item.metadata.update(metadata)
+                    break
+        
         self.update_tracking(tracking_id, status=status, message=message)
 
     def _get_emoji_for_module(self, module: str) -> str:

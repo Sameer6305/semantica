@@ -84,12 +84,13 @@ class PDFParser:
         if not self.progress_tracker.enabled:
             self.progress_tracker.enabled = True
 
-    def parse(self, file_path: Union[str, Path], **options) -> Dict[str, Any]:
+    def parse(self, file_path: Union[str, Path], pipeline_id: Optional[str] = None, **options) -> Dict[str, Any]:
         """
         Parse PDF document.
 
         Args:
             file_path: Path to PDF file
+            pipeline_id: Optional pipeline ID for progress tracking
             **options: Parsing options:
                 - extract_text: Whether to extract text (default: True)
                 - extract_tables: Whether to extract tables (default: True)
@@ -107,6 +108,7 @@ class PDFParser:
             module="parse",
             submodule="PDFParser",
             message=f"PDF: {file_path.name}",
+            pipeline_id=pipeline_id,
         )
 
         try:
