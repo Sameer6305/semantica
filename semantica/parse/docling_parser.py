@@ -32,6 +32,7 @@ Author: Semantica Contributors
 License: MIT
 """
 
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -137,6 +138,14 @@ class DoclingParser:
                 else:
                     raise ImportError("Docling is not installed")
 
+            # Stage 1: Initialization (0-10%)
+            self.progress_tracker.update_progress(
+                tracking_id,
+                processed=1,
+                total=10,
+                message="Initializing Docling converter..."
+            )
+
             # Lazy initialization of converter
             if self._converter is None:
                 self._converter = DocumentConverter(
@@ -148,17 +157,43 @@ class DoclingParser:
             # Determine export format
             export_format = options.get("export_format", self.export_format)
 
-            self.progress_tracker.update_tracking(
-                tracking_id, message=f"Converting document with Docling..."
+            # Stage 2: Document conversion (10-70%) - This is the longest step
+            # Note: This is a blocking operation, but we'll update progress after it completes
+            self.progress_tracker.update_progress(
+                tracking_id,
+                processed=2,
+                total=10,
+                message=f"Converting document with Docling (this may take a while for large PDFs)..."
             )
 
-            # Convert document using Docling
+            # Convert document using Docling (blocking operation)
+            # Store start time for ETA calculation
+            conversion_start = time.time()
             result = self._converter.convert(str(file_path))
+            conversion_elapsed = time.time() - conversion_start
+            
+            # Stage 3: Document conversion complete (70%)
+            # Update progress immediately after conversion completes with timing info
+            self.progress_tracker.update_progress(
+                tracking_id,
+                processed=7,
+                total=10,
+                message=f"Document conversion complete ({conversion_elapsed:.1f}s), extracting content..."
+            )
 
             # Extract content based on export format
             extract_text = options.get("extract_text", True)
             extract_tables = options.get("extract_tables", True)
             extract_images = options.get("extract_images", False)
+
+            # Stage 4: Text extraction (70-80%)
+            if extract_text:
+                self.progress_tracker.update_progress(
+                    tracking_id,
+                    processed=8,
+                    total=10,
+                    message=f"Extracting text content ({export_format} format)..."
+                )
 
             # Get document content
             if export_format == "markdown":
@@ -172,20 +207,44 @@ class DoclingParser:
             else:
                 full_text = result.document.export_to_markdown()
 
-            # Extract metadata
+            # Stage 5: Metadata extraction (80-85%)
+            self.progress_tracker.update_progress(
+                tracking_id,
+                processed=8,
+                total=10,
+                message="Extracting document metadata..."
+            )
             metadata = self._extract_metadata(result, file_path)
 
-            # Extract tables
+            # Stage 6: Table extraction (85-95%)
             tables = []
             if extract_tables:
+                self.progress_tracker.update_progress(
+                    tracking_id,
+                    processed=9,
+                    total=10,
+                    message="Extracting tables from document..."
+                )
                 tables = self._extract_tables(result, export_format)
 
-            # Extract pages (for PDF-like structure)
+            # Stage 7: Page extraction (95-98%)
+            self.progress_tracker.update_progress(
+                tracking_id,
+                processed=9,
+                total=10,
+                message="Extracting page structure..."
+            )
             pages = self._extract_pages(result, options)
 
-            # Extract images if requested
+            # Stage 8: Image extraction (98-100%)
             images = []
             if extract_images:
+                self.progress_tracker.update_progress(
+                    tracking_id,
+                    processed=9,
+                    total=10,
+                    message="Extracting images from document..."
+                )
                 images = self._extract_images(result)
 
             self.progress_tracker.stop_tracking(
