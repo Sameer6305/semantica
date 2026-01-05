@@ -36,32 +36,44 @@ See the [Installation Guide](installation.md) for detailed instructions.
 
 Building a knowledge graph involves these key steps:
 
-1. **Ingest** your documents using `` `FileIngestor` ``
-2. **Parse** documents to extract text using `` `DocumentParser` ``
-3. **Extract** entities and relationships using `` `NERExtractor` `` and `` `RelationExtractor` ``
-4. **Build** the graph using `` `GraphBuilder` ``
-5. **Generate** embeddings (optional) using `` `TextEmbedder` ``
+1. **Ingest** your documents using `FileIngestor`
+2. **Parse** documents to extract text using `DocumentParser` or `DoclingParser` (for enhanced layout support)
+3. **Extract** entities and relationships using `NERExtractor` and `RelationExtractor`
+4. **Build** the graph using `GraphBuilder`
+5. **Generate** embeddings (optional) using `TextEmbedder`
 
 **Quick Example:**
 ```python
 from semantica.ingest import FileIngestor
-from semantica.parse import DocumentParser
+from semantica.parse import DocumentParser, DoclingParser
 from semantica.semantic_extract import NERExtractor, RelationExtractor
 from semantica.kg import GraphBuilder
 
-# Build your first knowledge graph
+# 1. Ingest document
 ingestor = FileIngestor()
-parser = DocumentParser()
-ner = NERExtractor()
-rel_extractor = RelationExtractor()
-builder = GraphBuilder()
+sources = ingestor.ingest("data/sample.pdf")
 
-# Process document and build graph
-doc = ingestor.ingest_file("document.pdf")
-parsed = parser.parse_document("document.pdf")
-entities = ner.extract_entities(parsed.get("full_text", ""))
-relationships = rel_extractor.extract_relations(parsed.get("full_text", ""), entities=entities)
-kg = builder.build_graph(entities=entities, relationships=relationships)
+# 2. Parse (choose your parser)
+# Option A: Standard parser
+parser = DocumentParser()
+parsed_content = parser.parse(sources[0])
+
+# Option B: Enhanced Docling parser (recommended for complex tables)
+# docling_parser = DoclingParser()
+# parsed_content = docling_parser.parse(sources[0])
+
+# 3. Extract entities and relations
+ner = NERExtractor()
+entities = ner.extract(parsed_content)
+
+relations = RelationExtractor()
+relationships = relations.extract(parsed_content, entities=entities)
+
+# 4. Build graph
+builder = GraphBuilder()
+graph = builder.build(entities=entities, relationships=relationships)
+
+print(f"Built knowledge graph with {len(graph.nodes)} nodes and {len(graph.edges)} edges")
 ```
 
 **For complete step-by-step examples with detailed explanations, see:**

@@ -28,6 +28,14 @@ pip install semantica
 
 This installs Semantica with all core dependencies.
 
+### GitHub Workaround
+
+If you encounter issues with the PyPI version, you can install directly from the main branch:
+
+```bash
+pip install git+https://github.com/Hawksight-AI/semantica.git@main
+```
+
 !!! tip "Virtual Environment"
     We recommend installing Semantica in a virtual environment to avoid dependency conflicts. Use `python -m venv venv` to create one, then activate it before installing.
 
@@ -36,12 +44,15 @@ This installs Semantica with all core dependencies.
 Verify that Semantica is installed correctly:
 
 ```bash
-python -c "import semantica; print(semantica.__version__)"
+python -c "from semantica.parse import DoclingParser; DoclingParser(); print('✓ Semantica ready')"
 ```
+
+!!! info "Windows PyTorch Note"
+    If you encounter PyTorch DLL errors on Windows, ensure you have the [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe) installed. This is a common environment-specific issue with PyTorch on Windows and not a bug in Semantica.
 
 Expected output:
 ```
-0.1.0
+✓ Semantica ready
 ```
 
 You can also check the installation:

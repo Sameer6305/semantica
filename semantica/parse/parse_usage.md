@@ -146,6 +146,83 @@ text_doc = doc_parser.parse_document("document.txt")
 print(f"Text: {text_doc.get('text', '')}")
 ```
 
+### Docling Parsing (Enhanced Layout & Tables)
+
+`DoclingParser` is a specialized parser that provides superior extraction for complex documents with nested tables, multi-column layouts, and varied structures. It is recommended for production-grade document processing.
+
+#### Features
+- **Multi-format Support**: PDF, DOCX, PPTX, XLSX, HTML, and images.
+- **Superior Table Extraction**: Advanced layout analysis for nested and complex tables.
+- **OCR Support**: Built-in support for scanned documents and images.
+- **Multiple Export Formats**: Export to Markdown, HTML, or JSON.
+
+#### Basic Usage
+
+```python
+from semantica.parse import DoclingParser
+
+# Initialize DoclingParser
+# Requires 'docling' package: pip install docling
+parser = DoclingParser()
+
+# 1. Parse document
+result = parser.parse("complex_invoice.pdf")
+
+# 2. Extract structured content
+# result contains the full Docling document object if available
+print(f"Extracted Text (Markdown): {result.markdown}")
+
+# 3. Access extracted tables with high accuracy
+for i, table in enumerate(result.tables):
+    print(f"Table {i+1} headers: {table.headers}")
+    print(f"Table {i+1} row count: {len(table.rows)}")
+
+# 4. Extract metadata
+metadata = result.metadata
+print(f"Title: {metadata.title}")
+print(f"Page Count: {metadata.page_count}")
+```
+
+#### Advanced Configuration
+
+You can customize the parser with various options:
+
+```python
+from semantica.parse import DoclingParser
+
+# Initialize with custom export format and OCR enabled
+parser = DoclingParser(
+    export_format="html",  # Options: "markdown", "html", "json"
+    enable_ocr=True        # Enable OCR for scanned documents
+)
+
+# Parse with specific export format
+result = parser.parse("scanned_document.pdf")
+print(f"HTML Content: {result.html}")
+
+# Batch processing
+results = parser.parse_batch(["doc1.pdf", "doc2.docx"])
+```
+
+#### Direct Extraction Methods
+
+For simple use cases, use direct extraction methods:
+
+```python
+from semantica.parse import DoclingParser
+
+parser = DoclingParser()
+
+# Extract only text (as markdown)
+markdown_text = parser.extract_text("report.pdf")
+
+# Extract only tables
+tables = parser.extract_tables("data_sheet.pdf")
+
+# Extract metadata
+metadata = parser.extract_metadata("document.pdf")
+```
+
 ## Web Content Parsing
 
 ### HTML Content Parsing

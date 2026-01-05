@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-01-05
+
+### Added
+- Exported `DoclingParser` and `DoclingMetadata` from `semantica.parse` for easier access.
+- Added comprehensive `DoclingParser` usage examples to README and documentation.
+- Added Windows-specific troubleshooting note for PyTorch DLL issues.
+
+### Fixed
+- Fixed `DoclingParser` import/export issues across platforms (Windows, Linux, Google Colab).
+- Improved error messaging when optional `docling` dependency is missing.
+- Fixed versioning inconsistencies across the framework.
+
 ## [0.1.0] - 2025-12-31
 
 ### Added

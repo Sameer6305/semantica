@@ -9,7 +9,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Define versions
         var versions = [
-            { name: "0.1.0", url: "#", current: true }
+            { name: "0.1.1", url: "#", current: true },
+            { name: "0.1.0", url: "#", current: false }
         ];
 
         // Create the scrollable list

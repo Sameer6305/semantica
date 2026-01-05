@@ -184,11 +184,17 @@ pip install semantica
 # Or install with optional dependencies
 pip install semantica[all]
 
+# GitHub Workaround (if PyPI version has issues)
+pip install git+https://github.com/Hawksight-AI/semantica.git@main
+
 # Verify installation
-python -c "import semantica; print(semantica.__version__)"
+python -c "from semantica.parse import DoclingParser; DoclingParser(); print('✓ Semantica ready')"
 ```
 
 **Current Version:** [![PyPI version](https://badge.fury.io/py/semantica.svg)](https://pypi.org/project/semantica/) • [View on PyPI](https://pypi.org/project/semantica/)
+
+!!! info "Windows PyTorch Note"
+    If you encounter PyTorch DLL errors on Windows, ensure you have the [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe) installed. This is a common environment-specific issue with PyTorch on Windows and not a bug in Semantica.
 
 
 
@@ -254,13 +260,19 @@ print(f" Ingested {len(sources)} sources")
 > **Multi-format parsing** • **Text normalization** • **Intelligent chunking**
 
 ```python
-from semantica.parse import DocumentParser
+from semantica.parse import DocumentParser, DoclingParser
 from semantica.normalize import TextNormalizer
 from semantica.split import TextSplitter
 
-# Parse documents
+# Standard parsing
 parser = DocumentParser()
 parsed = parser.parse("document.pdf", format="auto")
+
+# Enhanced parsing with Docling (recommended for complex layouts/tables)
+# Requires: pip install docling
+docling_parser = DoclingParser()
+docling_result = docling_parser.parse("complex_table.pdf")
+print(f"Extracted {len(docling_result.tables)} tables")
 
 # Normalize text
 normalizer = TextNormalizer()

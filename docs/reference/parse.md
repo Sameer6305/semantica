@@ -87,6 +87,7 @@ The **Parse Module** extracts structured content from raw files and data sources
 
 ### Document Parsing
 - **PDF**: `pdfplumber` for precise layout preservation, table extraction, and image handling. Fallback to `PyPDF2`.
+- **Docling**: `docling` integration for advanced document structure understanding and high-accuracy table extraction across PDF, DOCX, PPTX, XLSX, and HTML.
 - **Office (DOCX/PPTX/XLSX)**: XML-based parsing of OpenXML formats to extract text, styles, and properties.
 - **OCR**: Tesseract-based optical character recognition for image-based PDFs and image files.
 
@@ -126,6 +127,43 @@ parser = DocumentParser()
 doc = parser.parse_document("report.pdf")
 print(doc.get("metadata", {}).get("title"))
 print(doc.get("full_text", "")[:100])
+```
+
+### DoclingParser
+
+Specialized parser using Docling for enhanced layout understanding and table extraction. It is independent of `DocumentParser` and optimized for complex document structures.
+
+**Methods:**
+
+| Method | Description |
+|--------|-------------|
+| `` `parse(path)` `` | Full parse including text, tables, and metadata |
+| `` `parse_batch(paths)` `` | Parse multiple documents in parallel |
+| `` `extract_text(path)` `` | Extract clean text in Markdown/HTML/JSON format |
+| `` `extract_tables(path)` `` | High-accuracy table extraction |
+| `` `extract_metadata(path)` `` | Extract document properties |
+
+**Configuration:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `export_format` | `str` | `"markdown"` | Output format: `"markdown"`, `"html"`, `"json"` |
+| `enable_ocr` | `bool` | `False` | Enable OCR for scanned documents |
+
+**Example:**
+
+```python
+from semantica.parse import DoclingParser
+
+parser = DoclingParser()
+result = parser.parse("complex_table.pdf")
+
+# Access high-accuracy tables
+for table in result.tables:
+    print(table.headers)
+    
+# Get markdown representation
+print(result.markdown)
 ```
 
 ### WebParser
