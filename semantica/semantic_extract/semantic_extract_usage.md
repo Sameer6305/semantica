@@ -78,9 +78,15 @@ extractor = NERExtractor(method="huggingface")
 entities = extractor.extract(text, model="dslim/bert-base-NER")
 print(f"HuggingFace method: {len(entities)} entities")
 
-# LLM-based extraction
+# LLM-based extraction with advanced options
 extractor = NERExtractor(method="llm")
-entities = extractor.extract(text, provider="openai", model="gpt-4")
+entities = extractor.extract(
+    text, 
+    provider="openai", 
+    model="gpt-4",
+    silent_fail=False,      # Raise ProcessingError on failure (default)
+    max_text_length=4000     # Auto-chunking for long text
+)
 print(f"LLM method: {len(entities)} entities")
 ```
 
@@ -174,9 +180,14 @@ relations = extractor.extract(text, entities=entities)
 extractor = RelationExtractor(method="huggingface")
 relations = extractor.extract(text, entities=entities, model="microsoft/DialoGPT-medium")
 
-# LLM-based
+# LLM-based relation extraction
 extractor = RelationExtractor(method="llm")
-relations = extractor.extract(text, entities=entities, provider="openai")
+relations = extractor.extract(
+    text, 
+    entities=entities, 
+    provider="openai",
+    silent_fail=True  # Return empty list if extraction fails
+)
 ```
 
 ### Relation Types
@@ -232,9 +243,14 @@ triplets = extractor.extract_triplets(text)
 extractor = TripletExtractor(method="huggingface")
 triplets = extractor.extract_triplets(text, model="t5-base")
 
-# LLM-based
+# LLM-based triplet extraction
 extractor = TripletExtractor(method="llm")
-triplets = extractor.extract_triplets(text, provider="openai", model="gpt-4")
+triplets = extractor.extract_triplets(
+    text, 
+    provider="openai", 
+    model="gpt-4",
+    max_text_length=2000  # Force chunking for long text
+)
 ```
 
 ### RDF Serialization

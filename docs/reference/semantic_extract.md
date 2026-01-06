@@ -184,6 +184,8 @@ Core entity extraction implementation used by notebooks and lower-level integrat
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `method` | str or list | `"ml"` | Method(s): "ml", "llm", "pattern", "regex", "huggingface" |
+| `silent_fail` | bool | `False` | Return empty list on error instead of raising (LLM only) |
+| `max_text_length` | int | `None` | Max text length for auto-chunking (LLM only) |
 | `**config` | dict | `{}` | Method-specific config (e.g., `model`, `provider`) |
 
 **Methods:**
@@ -337,6 +339,8 @@ Extracts RDF triplets (Subject-Predicate-Object).
 | `include_temporal` | bool | `False` | Include time information |
 | `include_provenance` | bool | `False` | Track source sentences |
 | `method` | str | `"pattern"` | Extraction method ("pattern", "rules", "huggingface", "llm") |
+| `silent_fail` | bool | `False` | Return empty list on error instead of raising (LLM only) |
+| `max_text_length` | int | `None` | Max text length for auto-chunking (LLM only) |
 
 **Methods:**
 

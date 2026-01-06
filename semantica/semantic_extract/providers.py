@@ -160,7 +160,6 @@ class BaseProvider:
                                 candidate = candidate[:-3].strip()
                             
                             # Simple attempt to close unclosed structures
-                            # This is very basic and might not work for complex cases
                             open_braces = candidate.count("{") - candidate.count("}")
                             open_brackets = candidate.count("[") - candidate.count("]")
                             
@@ -173,9 +172,44 @@ class BaseProvider:
                             try:
                                 return json.loads(fix_json(fixed_candidate))
                             except json.JSONDecodeError as e:
-                                raise ProcessingError(f"Failed to parse extracted JSON: {e}\nRaw snippet: {candidate[:50]}...")
+                                raise ProcessingError(f"Failed to parse JSON from LLM response after cleaning: {e}")
             
-            raise ProcessingError(f"No JSON structure found in response. Raw response: {text[:100]}...")
+            raise ProcessingError(f"No valid JSON structure found in response. Preview: {text[:100]}...")
+
+    def generate_structured(self, prompt: str, max_retries: int = 3, **kwargs) -> Union[dict, list]:
+        """Generate structured output with retry logic."""
+        last_error = None
+        import time
+        
+        for attempt in range(max_retries):
+            try:
+                # Add explicit JSON instruction if not present
+                structured_prompt = prompt
+                if "JSON" not in prompt:
+                    structured_prompt = f"{prompt}\n\nReturn the response as valid JSON only."
+                
+                content = self.generate(structured_prompt, **kwargs)
+                result = self._parse_json(content)
+                
+                # Basic validation: ensure it's not empty if we expect data
+                if not result and attempt < max_retries - 1:
+                    self.logger.warning(f"Empty structured response (attempt {attempt + 1}/{max_retries}). Retrying...")
+                    continue
+                    
+                return result
+                
+            except (ProcessingError, Exception) as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 2 # Simple backoff
+                    self.logger.warning(f"Extraction error (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                else:
+                    self.logger.error(f"Structured generation failed after {max_retries} attempts: {e}")
+        
+        if last_error:
+            raise ProcessingError(f"Failed to generate structured output: {last_error}")
+        return []
 
 class OpenAIProvider(BaseProvider):
     """OpenAI provider implementation."""
@@ -313,13 +347,52 @@ class GroqProvider(BaseProvider):
         try:
             from groq import Groq
 
-            if self.api_key:
-                self.client = Groq(api_key=self.api_key)
-        except (ImportError, OSError):
+            if not self.api_key:
+                # We don't raise here yet to allow is_available() to return False gracefully
+                self.logger.debug("Groq API key missing during initialization")
+                return
+
+            self.client = Groq(api_key=self.api_key)
+            
+            # Test connection with a minimal prompt
+            # Only do this if we have a key and client
+            # self._test_connection()
+        except ImportError:
             self.client = None
             self.logger.warning(
                 "groq library not installed. Install with: pip install semantica[llm-groq]"
             )
+        except Exception as e:
+            self.client = None
+            self.logger.error(f"Failed to initialize Groq client: {e}")
+
+    def is_available(self) -> bool:
+        """Check if provider is available and return diagnostic info."""
+        if self.client is None:
+            if not self.api_key:
+                return False  # Missing API key
+            try:
+                from groq import Groq
+            except ImportError:
+                return False  # Library not installed
+            return False
+            
+        return True
+
+    def _test_connection(self):
+        """Internal method to verify connection."""
+        if not self.client:
+            return
+        try:
+            # We use a very low limit to just test availability
+            self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": "ping"}],
+                max_tokens=1
+            )
+            self.logger.debug("Groq connection test successful")
+        except Exception as e:
+            self.logger.warning(f"Groq connection test failed: {e}")
 
     def is_available(self) -> bool:
         """Check if provider is available."""

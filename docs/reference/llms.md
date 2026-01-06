@@ -14,7 +14,7 @@ The LLM Providers module provides:
 - **Easy Provider Switching**: Change providers without code changes
 - **Multiple Model Support**: Access to 100+ LLMs through LiteLLM
 - **GraphRAG Integration**: Seamless integration with GraphRAG reasoning features
-- **Structured Output**: Generate structured data from LLM responses
+- **Structured Output**: Generate structured data with robust JSON parsing and automatic retries (3 attempts).
 
 ### Why Use the LLM Providers Module?
 
@@ -236,6 +236,18 @@ except ProcessingError as e:
 ```
 
 If a provider is not available (library not installed, API key missing), a `ProcessingError` is raised with a helpful message.
+
+### Built-in Retries
+The `generate_structured` method includes built-in retry logic for all providers:
+- **Attempts**: 3
+- **Wait Time**: 1 second base with exponential backoff
+- **Triggers**: Network errors, rate limits, and malformed JSON responses.
+
+### Robust JSON Parsing
+`BaseProvider` uses an enhanced `_parse_json` method that can handle:
+- Markdown code blocks (e.g., ```json ... ```)
+- Extra text before or after the JSON object
+- Common LLM formatting inconsistencies.
 
 ## Examples
 

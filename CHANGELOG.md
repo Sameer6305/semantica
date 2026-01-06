@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Semantic Extract Improvements**:
+    - Introduced `auto-chunking` for long text processing in LLM extraction methods (`extract_entities_llm`, `extract_relations_llm`, `extract_triplets_llm`).
+    - Added `silent_fail` parameter to LLM extraction methods for configurable error handling.
+    - Implemented robust JSON parsing and automatic retry logic (3 attempts with exponential backoff) in `BaseProvider` for all LLM providers.
+    - Enhanced `GroqProvider` with better diagnostics and connectivity testing.
+    - Added comprehensive entity, relation, and triplet deduplication for chunked extraction.
+
+### Fixed
+- Fixed a bug in `TripletExtractor` where the `validate_triplets` method was shadowed by an internal attribute.
+- Fixed incorrect `TextSplitter` import path in the `semantic_extract.methods` module.
+
 ## [0.1.1] - 2026-01-05
 
 ### Added

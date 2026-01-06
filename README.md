@@ -116,7 +116,7 @@ Semantica operates through three integrated layers that transform raw data into 
 
 **Universal Data Ingestion** — Handles multiple formats (PDF, DOCX, HTML, JSON, CSV, databases, APIs, streams) with unified pipeline, no custom parsers needed.
 
-**Automated Semantic Extraction** — NER, relationship extraction, and triplet generation with LLM enhancement discovers entities and relationships automatically.
+**Automated Semantic Extraction** — NER, relationship extraction, and triplet generation with LLM enhancement. Includes **auto-chunking** for long documents and **robust error handling** with automatic retry logic.
 
 **Knowledge Graph Construction** — Production-ready graphs with entity resolution, temporal support, and graph analytics. Queryable knowledge ready for AI applications.
 
@@ -135,7 +135,7 @@ Semantica operates through three integrated layers that transform raw data into 
 | **Feature Category** | **Capabilities** | **Key Benefits** |
 |:---------------------|:-----------------|:------------------|
 | **Data Ingestion** | Multiple formats (PDF, DOCX, HTML, JSON, CSV, databases, APIs, streams, archives) | Universal ingestion, no custom parsers needed |
-| **Semantic Extraction** | NER, relationship extraction, triplet generation, LLM enhancement | Automated discovery of entities and relationships |
+| **Semantic Extraction** | NER, relations, triplets, LLM enhancement, **auto-chunking** | Automated discovery with robust error handling |
 | **Knowledge Graphs** | Entity resolution, temporal support, graph analytics, query interface | Production-ready, queryable knowledge structures |
 | **Ontology Generation** | 6-stage LLM pipeline, OWL generation, HermiT/Pellet validation | Automated ontology creation from documents |
 | **GraphRAG** | Hybrid vector + graph retrieval, multi-hop reasoning, LLM-generated responses | 91% accuracy, 30% improvement over vector-only, reasoning traces |

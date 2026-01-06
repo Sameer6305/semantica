@@ -141,7 +141,7 @@ class TripletExtractor:
         # Method configuration
         self.method = method if isinstance(method, list) else [method]
         self.min_confidence = self.config.get("min_confidence", 0.5)
-        self.validate_triplets = self.config.get("validate", True)
+        self._should_validate = self.config.get("validate", True)
 
         self.triplet_validator = TripletValidator(**self.config.get("validator", {}))
         self.rdf_serializer = RDFSerializer(**self.config.get("serializer", {}))
@@ -275,7 +275,7 @@ class TripletExtractor:
                         # If not using ensemble, return first successful result
                         if len(methods) == 1:
                             result = filtered
-                            if options.get("validate", self.validate_triplets):
+                            if options.get("validate", self._should_validate):
                                 result = self.triplet_validator.validate_triplets(result)
                             self.progress_tracker.stop_tracking(
                                 tracking_id,
@@ -309,7 +309,7 @@ class TripletExtractor:
                     triplets.append(triplet)
 
             # Validate triplets
-            if options.get("validate", self.validate_triplets):
+            if options.get("validate", self._should_validate):
                 self.progress_tracker.update_tracking(
                     tracking_id, message="Validating triplets..."
                 )
@@ -340,14 +340,18 @@ class TripletExtractor:
 
     def validate_triplets(self, triplets: List[Triplet], **criteria) -> List[Triplet]:
         """
-        Validate triplet quality and consistency.
+        Validate triplet quality and consistency using the internal validator.
 
         Args:
-            triplets: List of triplets
-            **criteria: Validation criteria
+            triplets: List of triplets to validate
+            **criteria: Validation criteria (e.g., min_confidence=0.5)
 
         Returns:
-            list: Validated triplets
+            List[Triplet]: List of validated triplets that meet the criteria
+            
+        Example:
+            >>> extractor = TripletExtractor()
+            >>> validated = extractor.validate_triplets(triplets, min_confidence=0.8)
         """
         return self.triplet_validator.validate_triplets(triplets, **criteria)
 
