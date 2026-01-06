@@ -213,6 +213,8 @@ These modules form the intelligence core—extracting meaning, building relation
 - Multi-language support
 - Semantic network extraction
 - Coreference resolution
+- **Auto-chunking**: Automatic text splitting for long documents
+- **Robust Error Handling**: Standardized LLM provider diagnostics and retry logic
 
 **Components:**
 

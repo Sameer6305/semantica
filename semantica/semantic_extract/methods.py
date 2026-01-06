@@ -305,13 +305,36 @@ def extract_entities_huggingface(
 
 
 def extract_entities_llm(
-    text: str, provider: str = "openai", model: Optional[str] = None, **kwargs
+    text: str,
+    provider: str = "openai",
+    model: Optional[str] = None,
+    silent_fail: bool = False,
+    max_text_length: Optional[int] = None,
+    **kwargs,
 ) -> List[Entity]:
-    """LLM-based entity extraction."""
+    """
+    LLM-based entity extraction.
+    
+    Args:
+        text: Input text
+        provider: LLM provider
+        model: LLM model
+        silent_fail: If True, return empty list on error. If False (default), raise exception.
+        max_text_length: Maximum text length before auto-chunking. None = provider default.
+        **kwargs: Additional options
+    """
     # Support llm_model parameter to disambiguate from ML model
     if "llm_model" in kwargs:
         model = kwargs.pop("llm_model")
     
+    # 1. PRE-EXTRACTION VALIDATION
+    if not text or not text.strip():
+        error_msg = "Text is empty or whitespace only"
+        logger.error(error_msg)
+        if not silent_fail:
+            raise ProcessingError(error_msg)
+        return []
+
     # Pass api_key if provided in kwargs (needed for all providers)
     provider_kwargs = kwargs.copy()
     if "api_key" not in provider_kwargs:
@@ -322,10 +345,43 @@ def extract_entities_llm(
         if api_key:
             provider_kwargs["api_key"] = api_key
 
-    llm = create_provider(provider, model=model, **provider_kwargs)
+    # 2. PROVIDER VALIDATION
+    try:
+        llm = create_provider(provider, model=model, **provider_kwargs)
+        if not llm.is_available():
+            error_msg = f"{provider} provider not available. Check API key and dependencies."
+            logger.error(error_msg)
+            if not silent_fail:
+                raise ProcessingError(error_msg)
+            return []
+    except Exception as e:
+        error_msg = f"Failed to create {provider} provider: {e}"
+        logger.error(error_msg)
+        if not silent_fail:
+            raise ProcessingError(error_msg) from e
+        return []
 
-    if not llm.is_available():
-        raise ProcessingError(f"{provider} provider not available")
+    # 3. TEXT LENGTH CHECK AND CHUNKING
+    if max_text_length is None:
+        # Provider-specific defaults
+        max_text_length = {
+            "groq": 8000,
+            "openai": 4000,
+            "gemini": 16000,
+            "anthropic": 16000,
+            "deepseek": 16000,
+        }.get(provider.lower(), 4000)
+    
+    if len(text) > max_text_length:
+        logger.info(f"Text length ({len(text)}) exceeds limit ({max_text_length}). Chunking...")
+        return _extract_entities_chunked(
+            text, 
+            provider=provider, 
+            model=model, 
+            silent_fail=silent_fail,
+            max_text_length=max_text_length,
+            **kwargs
+        )
 
     # Use custom entity types if provided, otherwise use defaults
     entity_types = kwargs.get("entity_types")
@@ -350,46 +406,122 @@ Do not include any conversational filler, explanations, or markdown formatting o
 Text: {text}"""
 
     try:
+        # 4. EXTRACTION WITH RETRY (handled by generate_structured)
         result = llm.generate_structured(prompt)
-        entities = []
-
-        if isinstance(result, list):
-            for item in result:
-                entities.append(
-                    Entity(
-                        text=item.get("text", ""),
-                        label=item.get("label", "UNKNOWN"),
-                        start_char=item.get("start", 0),
-                        end_char=item.get("end", 0),
-                        confidence=item.get("confidence", 0.9),
-                        metadata={
-                            "provider": provider,
-                            "model": model,
-                            "extraction_method": "llm",
-                        },
-                    )
-                )
-        elif isinstance(result, dict) and "entities" in result:
-            for item in result["entities"]:
-                entities.append(
-                    Entity(
-                        text=item.get("text", ""),
-                        label=item.get("label", "UNKNOWN"),
-                        start_char=item.get("start", 0),
-                        end_char=item.get("end", 0),
-                        confidence=item.get("confidence", 0.9),
-                        metadata={
-                            "provider": provider,
-                            "model": model,
-                            "extraction_method": "llm",
-                        },
-                    )
-                )
-
+        entities = _parse_entity_result(result, provider, model)
+        
+        if not entities:
+            logger.warning(f"No entities extracted using {provider}/{model} from text preview: {text[:100]}...")
+            
+        logger.info(f"Successfully extracted {len(entities)} entities using {provider}/{model}")
         return entities
+        
     except Exception as e:
-        logger.error(f"LLM entity extraction failed: {e}")
+        error_msg = f"LLM entity extraction failed ({provider}/{model}): {e}"
+        logger.error(error_msg, exc_info=True)
+        if not silent_fail:
+            if isinstance(e, ProcessingError):
+                raise
+            raise ProcessingError(error_msg) from e
         return []
+
+
+def _parse_entity_result(result: Any, provider: str, model: Optional[str]) -> List[Entity]:
+    """Helper to parse raw LLM result into Entity objects."""
+    entities = []
+    items = []
+    
+    if isinstance(result, list):
+        items = result
+    elif isinstance(result, dict):
+        # Handle cases where LLM wraps the list in a key
+        for key in ["entities", "data", "results"]:
+            if key in result and isinstance(result[key], list):
+                items = result[key]
+                break
+        if not items and "text" in result: # Single object instead of list
+            items = [result]
+
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+            
+        text = item.get("text", "")
+        if not text:
+            continue
+            
+        entities.append(
+            Entity(
+                text=text,
+                label=item.get("label", "UNKNOWN"),
+                start_char=item.get("start", 0),
+                end_char=item.get("end", 0),
+                confidence=item.get("confidence", 0.9),
+                metadata={
+                    "provider": provider,
+                    "model": model,
+                    "extraction_method": "llm",
+                },
+            )
+        )
+    return entities
+
+
+def _extract_entities_chunked(
+    text: str,
+    provider: str,
+    model: Optional[str],
+    silent_fail: bool,
+    max_text_length: int,
+    **kwargs
+) -> List[Entity]:
+    """Internal helper to extract entities from long text by chunking."""
+    from ..split import TextSplitter
+    
+    splitter = TextSplitter(
+        method="recursive",
+        chunk_size=max_text_length,
+        chunk_overlap=int(max_text_length * 0.1) # 10% overlap
+    )
+    chunks = splitter.split(text)
+    
+    all_entities = []
+    for i, chunk in enumerate(chunks):
+        logger.debug(f"Extracting entities from chunk {i+1}/{len(chunks)}")
+        # We recursively call extract_entities_llm with the chunk
+        # but ensure we don't trigger re-chunking by setting max_text_length large
+        chunk_entities = extract_entities_llm(
+            chunk.text,
+            provider=provider,
+            model=model,
+            silent_fail=False, # We want to know if a chunk fails
+            max_text_length=len(chunk.text) + 1,
+            **kwargs
+        )
+        
+        # Adjust entity positions to account for chunk offset
+        for entity in chunk_entities:
+            entity.start_char += chunk.start_index
+            entity.end_char += chunk.start_index
+            
+        all_entities.extend(chunk_entities)
+        
+    return _deduplicate_entities(all_entities)
+
+
+def _deduplicate_entities(entities: List[Entity]) -> List[Entity]:
+    """Remove duplicate entities, keeping those with higher confidence or more metadata."""
+    if not entities:
+        return []
+        
+    # Sort by text, start_char, and confidence
+    unique_entities = {}
+    for ent in entities:
+        key = (ent.text.lower(), ent.start_char, ent.end_char, ent.label)
+        if key not in unique_entities or ent.confidence > unique_entities[key].confidence:
+            unique_entities[key] = ent
+            
+    return sorted(list(unique_entities.values()), key=lambda e: e.start_char)
 
 
 # ============================================================================
@@ -748,27 +880,82 @@ def extract_relations_llm(
     entities: List[Entity],
     provider: str = "openai",
     model: Optional[str] = None,
+    silent_fail: bool = False,
+    max_text_length: Optional[int] = None,
     **kwargs,
 ) -> List[Relation]:
-    """LLM-based relation extraction."""
+    """
+    LLM-based relation extraction.
+    
+    Args:
+        text: Input text
+        entities: Pre-extracted entities
+        provider: LLM provider
+        model: LLM model
+        silent_fail: If True, return empty list on error. If False (default), raise exception.
+        max_text_length: Maximum text length before auto-chunking. None = provider default.
+        **kwargs: Additional options
+    """
     # Support llm_model parameter to disambiguate from ML model
     if "llm_model" in kwargs:
         model = kwargs.pop("llm_model")
     
-    # Pass api_key if provided in kwargs (needed for all providers)
+    # 1. PRE-EXTRACTION VALIDATION
+    if not text or not text.strip():
+        error_msg = "Text is empty or whitespace only"
+        logger.error(error_msg)
+        if not silent_fail:
+            raise ProcessingError(error_msg)
+        return []
+
+    if not entities:
+        error_msg = "No entities provided for relation extraction. Relations require existing entities."
+        logger.error(error_msg)
+        if not silent_fail:
+            raise ProcessingError(error_msg)
+        return []
+
+    # Pass api_key if provided in kwargs
     provider_kwargs = kwargs.copy()
     if "api_key" not in provider_kwargs:
-        # Try to get from environment as fallback for all providers
         import os
         env_key = f"{provider.upper()}_API_KEY"
         api_key = os.getenv(env_key)
         if api_key:
             provider_kwargs["api_key"] = api_key
 
-    llm = create_provider(provider, model=model, **provider_kwargs)
+    # 2. PROVIDER VALIDATION
+    try:
+        llm = create_provider(provider, model=model, **provider_kwargs)
+        if not llm.is_available():
+            error_msg = f"{provider} provider not available for relation extraction."
+            logger.error(error_msg)
+            if not silent_fail:
+                raise ProcessingError(error_msg)
+            return []
+    except Exception as e:
+        error_msg = f"Failed to create {provider} provider for relations: {e}"
+        logger.error(error_msg)
+        if not silent_fail:
+            raise ProcessingError(error_msg) from e
+        return []
 
-    if not llm.is_available():
-        raise ProcessingError(f"{provider} provider not available")
+    # 3. TEXT LENGTH CHECK AND CHUNKING
+    if max_text_length is None:
+        max_text_length = {
+            "groq": 8000,
+            "openai": 4000,
+            "gemini": 16000,
+            "anthropic": 16000,
+            "deepseek": 16000,
+        }.get(provider.lower(), 4000)
+    
+    if len(text) > max_text_length:
+        logger.info(f"Text length ({len(text)}) exceeds limit for relations. Chunking...")
+        return _extract_relations_chunked(
+            text, entities, provider=provider, model=model, 
+            silent_fail=silent_fail, max_text_length=max_text_length, **kwargs
+        )
 
     entities_str = ", ".join([f"{e.text} ({e.label})" for e in entities])
     
@@ -794,53 +981,147 @@ Return JSON format: [{{"subject": "...", "predicate": "...", "object": "...", "c
 Extract all meaningful relationships between the entities, using the most appropriate relation type for each relationship."""
 
     try:
+        # 4. EXTRACTION WITH RETRY
         result = llm.generate_structured(prompt)
-        relations = []
-
-        if isinstance(result, list):
-            for item in result:
-                # Find matching entities
-                subject_text = item.get("subject", "")
-                object_text = item.get("object", "")
-                
-                # Ensure subject_text and object_text are strings
-                if not isinstance(subject_text, str):
-                    subject_text = str(subject_text) if subject_text else ""
-                if not isinstance(object_text, str):
-                    object_text = str(object_text) if object_text else ""
-                
-                # Skip if either is empty
-                if not subject_text or not object_text:
-                    continue
-
-                subject_entity = next(
-                    (e for e in entities if e.text.lower() == subject_text.lower()),
-                    None,
-                )
-                object_entity = next(
-                    (e for e in entities if e.text.lower() == object_text.lower()), None
-                )
-
-                if subject_entity and object_entity:
-                    relations.append(
-                        Relation(
-                            subject=subject_entity,
-                            predicate=item.get("predicate", "related_to"),
-                            object=object_entity,
-                            confidence=item.get("confidence", 0.9),
-                            context=text,
-                            metadata={
-                                "provider": provider,
-                                "model": model,
-                                "extraction_method": "llm",
-                            },
-                        )
-                    )
-
+        relations = _parse_relation_result(result, entities, text, provider, model)
+        
+        logger.info(f"Successfully extracted {len(relations)} relations using {provider}/{model}")
         return relations
+        
     except Exception as e:
-        logger.error(f"LLM relation extraction failed: {e}")
+        error_msg = f"LLM relation extraction failed ({provider}/{model}): {e}"
+        logger.error(error_msg, exc_info=True)
+        if not silent_fail:
+            if isinstance(e, ProcessingError):
+                raise
+            raise ProcessingError(error_msg) from e
         return []
+
+
+def _parse_relation_result(
+    result: Any, 
+    entities: List[Entity], 
+    text: str,
+    provider: str, 
+    model: Optional[str]
+) -> List[Relation]:
+    """Helper to parse raw LLM result into Relation objects."""
+    relations = []
+    items = []
+    
+    if isinstance(result, list):
+        items = result
+    elif isinstance(result, dict):
+        for key in ["relations", "data", "results"]:
+            if key in result and isinstance(result[key], list):
+                items = result[key]
+                break
+        if not items and "subject" in result:
+            items = [result]
+
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+            
+        subject_text = item.get("subject", "")
+        object_text = item.get("object", "")
+        
+        if not subject_text or not object_text:
+            continue
+            
+        # Ensure they are strings
+        subject_text = str(subject_text)
+        object_text = str(object_text)
+
+        # Find matching entities
+        subject_entity = next(
+            (e for e in entities if e.text.lower() == subject_text.lower()),
+            None,
+        )
+        object_entity = next(
+            (e for e in entities if e.text.lower() == object_text.lower()), None
+        )
+
+        if subject_entity and object_entity:
+            relations.append(
+                Relation(
+                    subject=subject_entity,
+                    predicate=item.get("predicate", "related_to"),
+                    object=object_entity,
+                    confidence=item.get("confidence", 0.9),
+                    context=text,
+                    metadata={
+                        "provider": provider,
+                        "model": model,
+                        "extraction_method": "llm",
+                    },
+                )
+            )
+    return relations
+
+
+def _extract_relations_chunked(
+    text: str,
+    entities: List[Entity],
+    provider: str,
+    model: Optional[str],
+    silent_fail: bool,
+    max_text_length: int,
+    **kwargs
+) -> List[Relation]:
+    """Internal helper to extract relations from long text by chunking."""
+    from ..split import TextSplitter
+    
+    splitter = TextSplitter(
+        method="recursive",
+        chunk_size=max_text_length,
+        chunk_overlap=int(max_text_length * 0.1)
+    )
+    chunks = splitter.split(text)
+    
+    all_relations = []
+    for i, chunk in enumerate(chunks):
+        # Only include entities that appear in this chunk (or close to it)
+        chunk_entities = [
+            e for e in entities 
+            if e.start_char >= chunk.start_index - 100 and e.end_char <= chunk.end_index + 100
+        ]
+        
+        if not chunk_entities:
+            continue
+            
+        logger.debug(f"Extracting relations from chunk {i+1}/{len(chunks)} with {len(chunk_entities)} entities")
+        
+        chunk_rels = extract_relations_llm(
+            chunk.text,
+            entities=chunk_entities,
+            provider=provider,
+            model=model,
+            silent_fail=False,
+            max_text_length=len(chunk.text) + 1,
+            **kwargs
+        )
+        all_relations.extend(chunk_rels)
+        
+    return _deduplicate_relations(all_relations)
+
+
+def _deduplicate_relations(relations: List[Relation]) -> List[Relation]:
+    """Remove duplicate relations."""
+    if not relations:
+        return []
+        
+    unique_rels = {}
+    for rel in relations:
+        key = (
+            rel.subject.text.lower(), 
+            rel.predicate.lower(), 
+            rel.object.text.lower()
+        )
+        if key not in unique_rels or rel.confidence > unique_rels[key].confidence:
+            unique_rels[key] = rel
+            
+    return list(unique_rels.values())
 
 
 # ============================================================================
@@ -965,27 +1246,76 @@ def extract_triplets_llm(
     relations: Optional[List[Relation]] = None,
     provider: str = "openai",
     model: Optional[str] = None,
+    silent_fail: bool = False,
+    max_text_length: Optional[int] = None,
     **kwargs,
 ) -> List[Triplet]:
-    """LLM-based triplet extraction."""
+    """
+    LLM-based triplet extraction.
+    
+    Args:
+        text: Input text
+        entities: Pre-extracted entities (optional)
+        relations: Pre-extracted relations (optional)
+        provider: LLM provider
+        model: LLM model
+        silent_fail: If True, return empty list on error. If False (default), raise exception.
+        max_text_length: Maximum text length before auto-chunking. None = provider default.
+        **kwargs: Additional options
+    """
     # Support llm_model parameter to disambiguate from ML model
     if "llm_model" in kwargs:
         model = kwargs.pop("llm_model")
     
-    # Pass api_key if provided in kwargs (needed for all providers)
+    # 1. PRE-EXTRACTION VALIDATION
+    if not text or not text.strip():
+        error_msg = "Text is empty or whitespace only"
+        logger.error(error_msg)
+        if not silent_fail:
+            raise ProcessingError(error_msg)
+        return []
+
+    # Pass api_key if provided in kwargs
     provider_kwargs = kwargs.copy()
     if "api_key" not in provider_kwargs:
-        # Try to get from environment as fallback for all providers
         import os
         env_key = f"{provider.upper()}_API_KEY"
         api_key = os.getenv(env_key)
         if api_key:
             provider_kwargs["api_key"] = api_key
 
-    llm = create_provider(provider, model=model, **provider_kwargs)
+    # 2. PROVIDER VALIDATION
+    try:
+        llm = create_provider(provider, model=model, **provider_kwargs)
+        if not llm.is_available():
+            error_msg = f"{provider} provider not available for triplet extraction."
+            logger.error(error_msg)
+            if not silent_fail:
+                raise ProcessingError(error_msg)
+            return []
+    except Exception as e:
+        error_msg = f"Failed to create {provider} provider for triplets: {e}"
+        logger.error(error_msg)
+        if not silent_fail:
+            raise ProcessingError(error_msg) from e
+        return []
 
-    if not llm.is_available():
-        raise ProcessingError(f"{provider} provider not available")
+    # 3. TEXT LENGTH CHECK AND CHUNKING
+    if max_text_length is None:
+        max_text_length = {
+            "groq": 8000,
+            "openai": 4000,
+            "gemini": 16000,
+            "anthropic": 16000,
+            "deepseek": 16000,
+        }.get(provider.lower(), 4000)
+    
+    if len(text) > max_text_length:
+        logger.info(f"Text length ({len(text)}) exceeds limit for triplets. Chunking...")
+        return _extract_triplets_chunked(
+            text, provider=provider, model=model, 
+            silent_fail=silent_fail, max_text_length=max_text_length, **kwargs
+        )
 
     prompt = f"""Extract RDF triplets (subject-predicate-object) from the following text.
 
@@ -994,29 +1324,112 @@ Text: {text}
 Return JSON format: [{{"subject": "...", "predicate": "...", "object": "...", "confidence": 0.9}}]"""
 
     try:
+        # 4. EXTRACTION WITH RETRY
         result = llm.generate_structured(prompt)
-        triplets = []
-
-        if isinstance(result, list):
-            for item in result:
-                triplets.append(
-                    Triplet(
-                        subject=item.get("subject", ""),
-                        predicate=item.get("predicate", ""),
-                        object=item.get("object", ""),
-                        confidence=item.get("confidence", 0.9),
-                        metadata={
-                            "provider": provider,
-                            "model": model,
-                            "extraction_method": "llm",
-                        },
-                    )
-                )
-
+        triplets = _parse_triplet_result(result, provider, model)
+        
+        logger.info(f"Successfully extracted {len(triplets)} triplets using {provider}/{model}")
         return triplets
+        
     except Exception as e:
-        logger.error(f"LLM triplet extraction failed: {e}")
+        error_msg = f"LLM triplet extraction failed ({provider}/{model}): {e}"
+        logger.error(error_msg, exc_info=True)
+        if not silent_fail:
+            if isinstance(e, ProcessingError):
+                raise
+            raise ProcessingError(error_msg) from e
         return []
+
+
+def _parse_triplet_result(result: Any, provider: str, model: Optional[str]) -> List[Triplet]:
+    """Helper to parse raw LLM result into Triplet objects."""
+    triplets = []
+    items = []
+    
+    if isinstance(result, list):
+        items = result
+    elif isinstance(result, dict):
+        for key in ["triplets", "data", "results"]:
+            if key in result and isinstance(result[key], list):
+                items = result[key]
+                break
+        if not items and "subject" in result:
+            items = [result]
+
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+            
+        subject = item.get("subject", "")
+        predicate = item.get("predicate", "")
+        obj = item.get("object", "")
+        
+        if not subject or not predicate or not obj:
+            continue
+            
+        triplets.append(
+            Triplet(
+                subject=str(subject),
+                predicate=str(predicate),
+                object=str(obj),
+                confidence=item.get("confidence", 0.9),
+                metadata={
+                    "provider": provider,
+                    "model": model,
+                    "extraction_method": "llm",
+                },
+            )
+        )
+    return triplets
+
+
+def _extract_triplets_chunked(
+    text: str,
+    provider: str,
+    model: Optional[str],
+    silent_fail: bool,
+    max_text_length: int,
+    **kwargs
+) -> List[Triplet]:
+    """Internal helper to extract triplets from long text by chunking."""
+    from ..split import TextSplitter
+    
+    splitter = TextSplitter(
+        method="recursive",
+        chunk_size=max_text_length,
+        chunk_overlap=int(max_text_length * 0.1)
+    )
+    chunks = splitter.split(text)
+    
+    all_triplets = []
+    for i, chunk in enumerate(chunks):
+        logger.debug(f"Extracting triplets from chunk {i+1}/{len(chunks)}")
+        
+        chunk_triplets = extract_triplets_llm(
+            chunk.text,
+            provider=provider,
+            model=model,
+            silent_fail=False,
+            max_text_length=len(chunk.text) + 1,
+            **kwargs
+        )
+        all_triplets.extend(chunk_triplets)
+        
+    return _deduplicate_triplets(all_triplets)
+
+
+def _deduplicate_triplets(triplets: List[Triplet]) -> List[Triplet]:
+    """Remove duplicate triplets."""
+    if not triplets:
+        return []
+        
+    unique_triplets = {}
+    for t in triplets:
+        key = (t.subject.lower(), t.predicate.lower(), t.object.lower())
+        if key not in unique_triplets or t.confidence > unique_triplets[key].confidence:
+            unique_triplets[key] = t
+            
+    return list(unique_triplets.values())
 
 
 # ============================================================================
