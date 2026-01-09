@@ -89,6 +89,7 @@ class GraphBuilder:
         self.track_history = track_history
         self.version_snapshots = version_snapshots
         self.graph_store = graph_store
+        self.config = kwargs  # Store additional config for extractors
 
         # Initialize logging
         from ..utils.logging import get_logger
@@ -130,6 +131,11 @@ class GraphBuilder:
 
     def _process_item(self, item: Any, all_entities: List[Any], all_relationships: List[Any], **options):
         """Helper to process a single item and add to entities or relationships list."""
+        if isinstance(item, str):
+            # Treat string as text for extraction
+            self._extract_from_text(item, all_entities, all_relationships, **options)
+            return
+
         if hasattr(item, "text") and (hasattr(item, "label") or hasattr(item, "type")):
             # It's likely an Entity object
             entity_dict = {
@@ -209,29 +215,67 @@ class GraphBuilder:
                 # If still nothing found and has 'text', try extraction
                 if not found_something and "text" in item:
                     text = item["text"]
-                    # Perform extraction if requested or if it's the only way
-                    if options.get("extract", True):
-                        from ..semantic_extract.ner_extractor import NERExtractor
-                        from ..semantic_extract.triplet_extractor import TripletExtractor
-                        
-                        ner_method = options.get("ner_method", "ml")
-                        triplet_method = options.get("triplet_method", "pattern")
-                        
-                        ner = NERExtractor(method=ner_method)
-                        entities = ner.extract_entities(text)
-                        for ent in entities:
-                            self._process_item(ent, all_entities, all_relationships, **options)
-                        
-                        # Only try triplets if specifically requested or if method provided
-                        if "triplet_method" in options or options.get("extract_relations", False):
-                            triplet = TripletExtractor(method=triplet_method)
-                            relations = triplet.extract_triplets(text)
-                            for rel in relations:
-                                self._process_item(rel, all_entities, all_relationships, **options)
-                        found_something = True
+                    self._extract_from_text(text, all_entities, all_relationships, **options)
+                    found_something = True
         else:
             # Unknown type
             pass
+
+    def _extract_from_text(self, text: str, all_entities: List[Any], all_relationships: List[Any], **options):
+        """Helper to extract knowledge from text using configured methods."""
+        if not options.get("extract", True):
+            return
+
+        from ..semantic_extract.ner_extractor import NERExtractor
+        from ..semantic_extract.relation_extractor import RelationExtractor
+        from ..semantic_extract.triplet_extractor import TripletExtractor
+        
+        # Default to LLM methods as per requirement
+        ner_method = options.get("ner_method", "llm")
+        relation_method = options.get("relation_method", "llm")
+        triplet_method = options.get("triplet_method", "llm")
+        
+        self.logger.info(f"Extracting knowledge from text ({len(text)} chars) using {ner_method}...")
+        
+        # 1. Extract Entities
+        ner = NERExtractor(method=ner_method, **self.config)
+        try:
+            entities = ner.extract_entities(text, **options)
+            extracted_count = len(entities)
+            self._extraction_stats["extracted_entities"] += extracted_count
+            self.logger.info(f"Extracted {extracted_count} entities")
+            for ent in entities:
+                self._process_item(ent, all_entities, all_relationships, **options)
+        except Exception as e:
+            self.logger.error(f"Entity extraction failed: {e}")
+            entities = []
+        
+        # 2. Extract Relations (if requested)
+        if options.get("extract_relations", True):
+            rel_extractor = RelationExtractor(method=relation_method, **self.config)
+            try:
+                # Pass entities if available to help relation extraction
+                relations = rel_extractor.extract_relations(text, entities=entities, **options)
+                extracted_count = len(relations)
+                self._extraction_stats["extracted_relations"] += extracted_count
+                self.logger.info(f"Extracted {extracted_count} relationships")
+                for rel in relations:
+                    self._process_item(rel, all_entities, all_relationships, **options)
+            except Exception as e:
+                self.logger.error(f"Relation extraction failed: {e}")
+
+        # 3. Extract Triplets (if requested)
+        if options.get("extract_triplets", True):
+            trip_extractor = TripletExtractor(method=triplet_method, **self.config)
+            try:
+                triplets = trip_extractor.extract_triplets(text, entities=entities, **options)
+                extracted_count = len(triplets)
+                self._extraction_stats["extracted_triplets"] += extracted_count
+                self.logger.info(f"Extracted {extracted_count} triplets")
+                for trip in triplets:
+                    self._process_item(trip, all_entities, all_relationships, **options)
+            except Exception as e:
+                self.logger.error(f"Triplet extraction failed: {e}")
 
     def build(
         self,
@@ -305,6 +349,14 @@ class GraphBuilder:
 
         # Track graph building
         build_start_time = time.time()
+        
+        # Initialize extraction statistics for traceability
+        self._extraction_stats = {
+            "extracted_entities": 0,
+            "extracted_relations": 0,
+            "extracted_triplets": 0
+        }
+        
         tracking_id = self.progress_tracker.start_tracking(
             module="kg",
             submodule="GraphBuilder",
@@ -514,7 +566,7 @@ class GraphBuilder:
                 resolution_start = time.time()
                 resolved_entities = resolver_to_use.resolve_entities(all_entities)
                 resolution_time = time.time() - resolution_start
-                print(f"✅ Resolved to {len(resolved_entities)} unique entities ({resolution_time:.2f}s)")
+                print(f"[DONE] Resolved to {len(resolved_entities)} unique entities ({resolution_time:.2f}s)")
                 self.logger.info(
                     f"Entity resolution complete: {len(all_entities)} -> {len(resolved_entities)} unique entities"
                 )
@@ -534,7 +586,7 @@ class GraphBuilder:
                 },
             }
             structure_time = time.time() - structure_start
-            print(f"✅ Graph structure built ({structure_time:.2f}s)")
+            print(f"[DONE] Graph structure built ({structure_time:.2f}s)")
 
             # Persist to GraphStore if available
             if self.graph_store:
@@ -567,7 +619,7 @@ class GraphBuilder:
                 edge_time = time.time() - edge_start
                 total_store_time = time.time() - store_start
                 print(f"  Added {edge_count} edges ({edge_time:.2f}s)")
-                print(f"✅ GraphStore persistence complete ({total_store_time:.2f}s total)")
+                print(f"[DONE] GraphStore persistence complete ({total_store_time:.2f}s total)")
                 self.logger.info(f"Persisted {node_count} nodes and {edge_count} edges")
 
             # Detect and resolve conflicts if conflict detector is available
@@ -604,7 +656,14 @@ class GraphBuilder:
             
             # Print final summary with timing
             print(f"\n{'='*60}")
-            print(f"✅ Knowledge Graph Build Complete")
+            print(f"[INFO] Extraction Statistics")
+            print(f"   Extracted Entities: {self._extraction_stats['extracted_entities']}")
+            print(f"   Extracted Relationships: {self._extraction_stats['extracted_relations']}")
+            print(f"   Extracted Triplets: {self._extraction_stats['extracted_triplets']}")
+            print(f"{'='*60}")
+
+            print(f"\n{'='*60}")
+            print(f"[DONE] Knowledge Graph Build Complete")
             print(f"   Entities: {len(resolved_entities)}")
             print(f"   Relationships: {len(all_relationships)}")
             print(f"   Total time: {total_build_time:.2f}s")

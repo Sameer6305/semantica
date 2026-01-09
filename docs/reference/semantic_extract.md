@@ -253,7 +253,7 @@ entities = ner.extract_entities(text)
 # Basic relation extraction
 rel_extractor = RelationExtractor()
 relations = rel_extractor.extract(text, entities=entities)
-# [Relation(source="Elon Musk", target="SpaceX", type="founded")]
+# [Relation(subject="Elon Musk", predicate="founded", object="SpaceX")]
 
 # With configuration
 rel_extractor = RelationExtractor(

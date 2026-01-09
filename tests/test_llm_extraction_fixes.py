@@ -34,7 +34,7 @@ class TestLLMExtractionFixes(unittest.TestCase):
         """Test that methods raise ProcessingError by default on failure."""
         mock_llm = MagicMock()
         mock_llm.is_available.return_value = True
-        mock_llm.generate_structured.side_effect = ProcessingError("LLM Error")
+        mock_llm.generate_typed.side_effect = ProcessingError("LLM Error")
         mock_create.return_value = mock_llm
 
         try:
@@ -48,7 +48,7 @@ class TestLLMExtractionFixes(unittest.TestCase):
         """Test that silent_fail=True returns empty list instead of raising."""
         mock_llm = MagicMock()
         mock_llm.is_available.return_value = True
-        mock_llm.generate_structured.side_effect = Exception("LLM Error")
+        mock_llm.generate_typed.side_effect = Exception("LLM Error")
         mock_create.return_value = mock_llm
 
         entities = extract_entities_llm("test text", provider="openai", silent_fail=True)
@@ -83,7 +83,7 @@ class TestLLMExtractionFixes(unittest.TestCase):
         """Test that long text triggers chunking."""
         mock_llm = MagicMock()
         mock_llm.is_available.return_value = True
-        mock_llm.generate_structured.return_value = []
+        mock_llm.generate_typed.return_value = MagicMock(entities=[]) # Mock response
         mock_create.return_value = mock_llm
 
         long_text = "This is a long text that should be chunked into multiple pieces."

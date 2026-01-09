@@ -116,6 +116,12 @@ from .registry import method_registry
 from .relation_extractor import Relation
 from .triplet_extractor import Triplet
 
+try:
+    from .schemas import EntitiesResponse, RelationsResponse, TripletsResponse
+    SCHEMAS_AVAILABLE = True
+except ImportError:
+    SCHEMAS_AVAILABLE = False
+
 logger = get_logger("methods")
 
 # Try to import spaCy
@@ -310,6 +316,7 @@ def extract_entities_llm(
     model: Optional[str] = None,
     silent_fail: bool = False,
     max_text_length: Optional[int] = None,
+    structured_output_mode: str = "typed",
     **kwargs,
 ) -> List[Entity]:
     """
@@ -394,26 +401,36 @@ If an entity doesn't fit any of the preferred types, use the most appropriate ty
         entity_types_instruction = """Entity types should be one of: PERSON, ORG, GPE, DATE, EVENT, PRODUCT, CONCEPT, or related types.
 Use the most appropriate type for each entity, including variations or synonyms if they better match the context."""
 
-    prompt = f"""Extract named entities from the following text. 
-Return ONLY a valid JSON list of objects with the following structure:
-[
-  {{"text": "entity name", "label": "ENTITY_TYPE", "start": 0, "end": 10, "confidence": 0.9}}
-]
-
-{entity_types_instruction}
-Do not include any conversational filler, explanations, or markdown formatting outside the JSON block.
-
-Text: {text}"""
+    if not SCHEMAS_AVAILABLE:
+        raise ImportError("Pydantic schemas not available. Install pydantic/instructor to use LLM extraction.")
 
     try:
-        # 4. EXTRACTION WITH RETRY (handled by generate_structured)
-        result = llm.generate_structured(prompt)
-        entities = _parse_entity_result(result, provider, model)
+        prompt = f"""Extract named entities from the following text.
+Return the result as a JSON object with an "entities" key containing the list of entities.
+{entity_types_instruction}
+
+Text: {text}"""
         
-        if not entities:
-            logger.warning(f"No entities extracted using {provider}/{model} from text preview: {text[:100]}...")
-            
-        logger.info(f"Successfully extracted {len(entities)} entities using {provider}/{model}")
+        # Use typed generation with Pydantic schema
+        result_obj = llm.generate_typed(prompt, schema=EntitiesResponse)
+        
+        # Convert back to internal Entity format
+        entities = []
+        for e_out in result_obj.entities:
+            entities.append(Entity(
+                text=e_out.text,
+                label=e_out.label,
+                start_char=e_out.start if hasattr(e_out, "start") else 0, # Schema might not force these
+                end_char=e_out.end if hasattr(e_out, "end") else 0,
+                confidence=e_out.confidence,
+                metadata={
+                    "provider": provider, 
+                    "model": model, 
+                    "extraction_method": "llm_typed",
+                }
+            ))
+        
+        logger.info(f"Successfully extracted {len(entities)} entities using {provider}/{model} (typed)")
         return entities
         
     except Exception as e:
@@ -473,6 +490,7 @@ def _extract_entities_chunked(
     model: Optional[str],
     silent_fail: bool,
     max_text_length: int,
+    structured_output_mode: str = "typed",
     **kwargs
 ) -> List[Entity]:
     """Internal helper to extract entities from long text by chunking."""
@@ -496,6 +514,7 @@ def _extract_entities_chunked(
             model=model,
             silent_fail=False, # We want to know if a chunk fails
             max_text_length=len(chunk.text) + 1,
+            structured_output_mode=structured_output_mode,
             **kwargs
         )
         
@@ -882,6 +901,7 @@ def extract_relations_llm(
     model: Optional[str] = None,
     silent_fail: bool = False,
     max_text_length: Optional[int] = None,
+    structured_output_mode: str = "typed",
     **kwargs,
 ) -> List[Relation]:
     """
@@ -954,7 +974,8 @@ def extract_relations_llm(
         logger.info(f"Text length ({len(text)}) exceeds limit for relations. Chunking...")
         return _extract_relations_chunked(
             text, entities, provider=provider, model=model, 
-            silent_fail=silent_fail, max_text_length=max_text_length, **kwargs
+            silent_fail=silent_fail, max_text_length=max_text_length, 
+            **kwargs
         )
 
     entities_str = ", ".join([f"{e.text} ({e.label})" for e in entities])
@@ -972,20 +993,48 @@ If a relation doesn't fit any of the preferred types, use the most appropriate t
 Extract meaningful relationships between entities. Use appropriate relation types that accurately describe how entities are connected.
 Common relation types include: related_to, part_of, located_in, created_by, uses, depends_on, interacts_with, and similar variations."""
     
+    if not SCHEMAS_AVAILABLE:
+        raise ImportError("Pydantic schemas not available. Install pydantic/instructor to use LLM extraction.")
+
     prompt = f"""Extract relations between entities from the following text.
+Return the result as a JSON object with a "relations" key containing the list of relations.
+Each relation must have 'subject', 'predicate', and 'object' fields.
 
 Text: {text}
-Entities: {entities_str}{relation_types_instruction}
-
-Return JSON format: [{{"subject": "...", "predicate": "...", "object": "...", "confidence": 0.9}}]
-Extract all meaningful relationships between the entities, using the most appropriate relation type for each relationship."""
+Entities: {entities_str}{relation_types_instruction}"""
 
     try:
-        # 4. EXTRACTION WITH RETRY
-        result = llm.generate_structured(prompt)
-        relations = _parse_relation_result(result, entities, text, provider, model)
+        # Use typed generation with Pydantic schema
+        result_obj = llm.generate_typed(prompt, schema=RelationsResponse)
         
-        logger.info(f"Successfully extracted {len(relations)} relations using {provider}/{model}")
+        # Convert back to internal Relation format
+        relations = []
+        for r_out in result_obj.relations:
+            # Find matching entities
+            subject_entity = next(
+                (e for e in entities if e.text.lower() == r_out.subject.lower()),
+                None,
+            )
+            object_entity = next(
+                (e for e in entities if e.text.lower() == r_out.object.lower()), 
+                None
+            )
+            
+            if subject_entity and object_entity:
+                relations.append(Relation(
+                    subject=subject_entity,
+                    predicate=r_out.predicate,
+                    object=object_entity,
+                    confidence=r_out.confidence,
+                    context=text, # Simplified context
+                    metadata={
+                        "provider": provider, 
+                        "model": model, 
+                        "extraction_method": "llm_typed"
+                    }
+                ))
+        
+        logger.info(f"Successfully extracted {len(relations)} relations using {provider}/{model} (typed)")
         return relations
         
     except Exception as e:
@@ -1067,6 +1116,7 @@ def _extract_relations_chunked(
     model: Optional[str],
     silent_fail: bool,
     max_text_length: int,
+    structured_output_mode: str = "typed",
     **kwargs
 ) -> List[Relation]:
     """Internal helper to extract relations from long text by chunking."""
@@ -1099,6 +1149,7 @@ def _extract_relations_chunked(
             model=model,
             silent_fail=False,
             max_text_length=len(chunk.text) + 1,
+            structured_output_mode=structured_output_mode,
             **kwargs
         )
         all_relations.extend(chunk_rels)
@@ -1248,6 +1299,7 @@ def extract_triplets_llm(
     model: Optional[str] = None,
     silent_fail: bool = False,
     max_text_length: Optional[int] = None,
+    structured_output_mode: str = "typed",
     **kwargs,
 ) -> List[Triplet]:
     """
@@ -1314,21 +1366,38 @@ def extract_triplets_llm(
         logger.info(f"Text length ({len(text)}) exceeds limit for triplets. Chunking...")
         return _extract_triplets_chunked(
             text, provider=provider, model=model, 
-            silent_fail=silent_fail, max_text_length=max_text_length, **kwargs
+            silent_fail=silent_fail, max_text_length=max_text_length, 
+            **kwargs
         )
+    
+    if not SCHEMAS_AVAILABLE:
+        raise ImportError("Pydantic schemas not available. Install pydantic/instructor to use LLM extraction.")
 
     prompt = f"""Extract RDF triplets (subject-predicate-object) from the following text.
+Return the result as a JSON object with a "triplets" key containing the list of triplets.
 
-Text: {text}
-
-Return JSON format: [{{"subject": "...", "predicate": "...", "object": "...", "confidence": 0.9}}]"""
+Text: {text}"""
 
     try:
-        # 4. EXTRACTION WITH RETRY
-        result = llm.generate_structured(prompt)
-        triplets = _parse_triplet_result(result, provider, model)
+        # Use typed generation with Pydantic schema
+        result_obj = llm.generate_typed(prompt, schema=TripletsResponse)
         
-        logger.info(f"Successfully extracted {len(triplets)} triplets using {provider}/{model}")
+        # Convert back to internal Triplet format
+        triplets = []
+        for t_out in result_obj.triplets:
+            triplets.append(Triplet(
+                subject=t_out.subject,
+                predicate=t_out.predicate,
+                object=t_out.object,
+                confidence=t_out.confidence,
+                metadata={
+                    "provider": provider, 
+                    "model": model, 
+                    "extraction_method": "llm_typed"
+                }
+            ))
+        
+        logger.info(f"Successfully extracted {len(triplets)} triplets using {provider}/{model} (typed)")
         return triplets
         
     except Exception as e:
@@ -1389,6 +1458,7 @@ def _extract_triplets_chunked(
     model: Optional[str],
     silent_fail: bool,
     max_text_length: int,
+    structured_output_mode: str = "typed",
     **kwargs
 ) -> List[Triplet]:
     """Internal helper to extract triplets from long text by chunking."""
@@ -1411,6 +1481,7 @@ def _extract_triplets_chunked(
             model=model,
             silent_fail=False,
             max_text_length=len(chunk.text) + 1,
+            structured_output_mode=structured_output_mode,
             **kwargs
         )
         all_triplets.extend(chunk_triplets)

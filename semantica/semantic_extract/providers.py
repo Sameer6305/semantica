@@ -71,7 +71,19 @@ License: MIT
 
 import json
 import os
-from typing import Any, Dict, List, Optional, Union
+import time
+from typing import Any, Dict, List, Optional, Union, Type
+
+try:
+    from pydantic import BaseModel, ValidationError
+except ImportError:
+    BaseModel = Any
+    ValidationError = Exception
+
+try:
+    import instructor
+except ImportError:
+    instructor = None
 
 from ..utils.exceptions import ProcessingError
 from ..utils.logging import get_logger
@@ -211,6 +223,141 @@ class BaseProvider:
             raise ProcessingError(f"Failed to generate structured output: {last_error}")
         return []
 
+    def generate_typed(
+        self, 
+        prompt: str, 
+        schema: Type[BaseModel], 
+        max_retries: int = 3, 
+        **kwargs
+    ) -> BaseModel:
+        """
+        Generate structured output validated against a Pydantic schema.
+        Uses instructor if available and supported for the provider, otherwise falls back to a repair loop.
+        """
+        provider_name = self.__class__.__name__
+        
+        # Try using instructor first if available
+        if instructor:
+            try:
+                client = None
+                mode = instructor.Mode.TOOLS  # Default mode
+                
+                if provider_name == "OpenAIProvider" and self.client:
+                    client = instructor.from_openai(self.client)
+                elif provider_name == "AnthropicProvider" and self.client:
+                    client = instructor.from_anthropic(self.client)
+                elif provider_name == "GeminiProvider" and self.client:
+                    client = instructor.from_gemini(
+                        self.client, 
+                        mode=instructor.Mode.GEMINI_JSON
+                    )
+                elif provider_name == "GroqProvider" and self.client:
+                    # Groq is OpenAI-compatible but works best with JSON mode
+                    client = instructor.from_openai(self.client, mode=instructor.Mode.JSON)
+                elif provider_name == "OllamaProvider":
+                    # Create OpenAI-compatible client for Ollama
+                    try:
+                        from openai import OpenAI
+                        # Ollama typically runs on localhost:11434/v1
+                        base_url = getattr(self, "base_url", "http://localhost:11434")
+                        if not base_url.endswith("/v1"):
+                            base_url = f"{base_url.rstrip('/')}/v1"
+                        
+                        ollama_client = OpenAI(
+                            base_url=base_url,
+                            api_key="ollama", # required but unused
+                        )
+                        client = instructor.from_openai(ollama_client, mode=instructor.Mode.JSON)
+                    except ImportError:
+                        pass
+                elif provider_name == "DeepSeekProvider" and self.client:
+                    # DeepSeek is OpenAI compatible
+                    # We need to wrap the underlying client if it exposes the OpenAI interface
+                    # or create a new OpenAI client if self.client is a deepseek.Client (which might be just a wrapper)
+                    # Assuming deepseek.Client is compatible or we can use OpenAI client
+                    try:
+                        # DeepSeek usually works with standard OpenAI client
+                        # If self.client is deepseek.Client, check if we can wrap it
+                        # Otherwise create a new OpenAI client
+                        from openai import OpenAI
+                        if isinstance(self.client, OpenAI):
+                             client = instructor.from_openai(self.client, mode=instructor.Mode.JSON)
+                        else:
+                             # Try creating fresh client
+                             ds_client = OpenAI(
+                                 api_key=self.api_key, 
+                                 base_url="https://api.deepseek.com"
+                             )
+                             client = instructor.from_openai(ds_client, mode=instructor.Mode.JSON)
+                    except Exception:
+                        pass
+
+                if client:
+                    # Map generate arguments to client arguments
+                    # Instructor standardizes on chat.completions.create for OpenAI/Groq/Anthropic/Gemini
+                    
+                    response = client.chat.completions.create(
+                        model=kwargs.get("model", self.model),
+                        messages=[{"role": "user", "content": prompt}],
+                        response_model=schema,
+                        max_retries=max_retries,
+                        temperature=kwargs.get("temperature", 0.1), # Low temp for structured
+                    )
+                    return response
+            except Exception as e:
+                self.logger.warning(f"Instructor generation failed ({e}), falling back to manual repair loop.")
+
+        # Fallback: Manual repair loop
+        last_error = None
+        current_prompt = prompt
+        
+        for attempt in range(max_retries):
+            try:
+                # 1. Generate JSON
+                # We use generate_structured to get the dict/list
+                json_result = self.generate_structured(current_prompt, max_retries=1, **kwargs)
+                
+                # 2. Validate with Schema
+                # If the result is a list and schema expects a wrapper, or vice versa, we might need adjustment
+                # But we assume the prompt asks for the correct structure matching the schema.
+                
+                # Special handling if schema is a wrapper but result is a list
+                if isinstance(json_result, list) and hasattr(schema, "entities") and "entities" in schema.model_fields:
+                     # Auto-wrap for entities
+                     json_result = {"entities": json_result}
+                elif isinstance(json_result, list) and hasattr(schema, "relations") and "relations" in schema.model_fields:
+                     json_result = {"relations": json_result}
+                elif isinstance(json_result, list) and hasattr(schema, "triplets") and "triplets" in schema.model_fields:
+                     json_result = {"triplets": json_result}
+
+                validated = schema.model_validate(json_result)
+                return validated
+                
+            except ValidationError as e:
+                last_error = e
+                error_summary = str(e)
+                # Simplify error summary for the LLM
+                # (You could parse e.errors() for a better message)
+                
+                if attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 1
+                    self.logger.warning(f"Schema validation failed (attempt {attempt + 1}): {e}. Retrying with error feedback...")
+                    
+                    # Update prompt with error info
+                    current_prompt = f"{prompt}\n\nPrevious response was invalid JSON or didn't match schema:\n{error_summary}\n\nPlease fix the errors and return valid JSON matching the schema."
+                    time.sleep(wait_time)
+                else:
+                    self.logger.error(f"Typed generation failed validation: {e}")
+            
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                     time.sleep(1)
+                else:
+                    self.logger.error(f"Typed generation failed: {e}")
+
+        raise ProcessingError(f"Failed to generate typed output after {max_retries} attempts: {last_error}")
+
 class OpenAIProvider(BaseProvider):
     """OpenAI provider implementation."""
 
@@ -333,7 +480,7 @@ class GroqProvider(BaseProvider):
     """Groq provider implementation."""
 
     def __init__(
-        self, api_key: Optional[str] = None, model: str = "llama2-70b-4096", **kwargs
+        self, api_key: Optional[str] = None, model: str = "llama-3.3-70b-versatile", **kwargs
     ):
         """Initialize Groq provider."""
         super().__init__(**kwargs)
