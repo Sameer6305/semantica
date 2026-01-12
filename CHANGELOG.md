@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **LLM Output Stability (Bug #176)**:
+    - Fixed incomplete JSON output issues by correctly propagating `max_tokens` parameter in `extract_relations_llm`.
+    - Implemented automatic error handling that halves chunk sizes and retries when LLM context or output limits are exceeded.
+    - Fixed `AttributeError` in provider integration by ensuring consistent parameter passing via `**kwargs`.
+- **Constraint Relaxations**:
+    - Removed hardcoded `max_length` constraints from `Entity`, `Relation`, and `Triplet` classes to support long-form semantic extraction (e.g., long descriptions or names).
+
+### Changed
+- **Chunking Defaults**:
+    - Increased default `max_text_length` for auto-chunking to **64,000 characters** (from 32k/16k) for OpenAI, Anthropic, Gemini, Groq, and DeepSeek providers.
+    - Unified chunking logic across `extract_entities_llm`, `extract_relations_llm`, and `extract_triplets_llm`.
+- **Groq Support**:
+    - Standardized Groq provider defaults to use `llama-3.3-70b-versatile` with a 64k context window.
+    - Added native support for `max_tokens` and `max_completion_tokens` to prevent output truncation.
+
+### Added
+- **Testing**:
+    - Added `tests/reproduce_issue_176.py` to validate `max_tokens` propagation and chunking behavior across all extractors.
+
+
 ## [0.2.0] - 2026-01-10
 
 ### Added

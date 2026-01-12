@@ -318,6 +318,11 @@ class BaseProvider:
                         "temperature": kwargs.get("temperature", 0.1), # Low temp for structured
                     }
                     
+                    # Pass through other common parameters
+                    for param in ["max_tokens", "max_completion_tokens", "top_p", "frequency_penalty", "presence_penalty", "seed", "stop", "logit_bias", "user", "top_k"]:
+                        if param in kwargs:
+                            create_kwargs[param] = kwargs[param]
+
                     # Add provider-specific params
                     if provider_name == "GroqProvider":
                         create_kwargs["response_format"] = {"type": "json_object"}
@@ -464,11 +469,24 @@ class OpenAIProvider(BaseProvider):
                 "OpenAI client not initialized. Set OPENAI_API_KEY or pass api_key."
             )
 
-        response = self.client.chat.completions.create(
-            model=kwargs.get("model", self.model),
-            messages=[{"role": "user", "content": prompt}],
-            temperature=kwargs.get("temperature", 0.3),
-        )
+        create_kwargs = {
+            "model": kwargs.get("model", self.model),
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": kwargs.get("temperature", 0.3),
+        }
+        
+        # Support max_tokens and max_completion_tokens (for o1 models)
+        if "max_completion_tokens" in kwargs:
+            create_kwargs["max_completion_tokens"] = kwargs["max_completion_tokens"]
+        elif "max_tokens" in kwargs:
+            create_kwargs["max_tokens"] = kwargs["max_tokens"]
+            
+        # Pass through other common parameters
+        for param in ["top_p", "frequency_penalty", "presence_penalty", "seed", "stop", "logit_bias", "user"]:
+            if param in kwargs:
+                create_kwargs[param] = kwargs[param]
+            
+        response = self.client.chat.completions.create(**create_kwargs)
         return response.choices[0].message.content
 
     def generate_structured(self, prompt: str, **kwargs) -> dict:
@@ -476,12 +494,25 @@ class OpenAIProvider(BaseProvider):
         if not self.client:
             raise ProcessingError("OpenAI client not initialized.")
 
-        response = self.client.chat.completions.create(
-            model=kwargs.get("model", self.model),
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},
-            temperature=kwargs.get("temperature", 0.3),
-        )
+        create_kwargs = {
+            "model": kwargs.get("model", self.model),
+            "messages": [{"role": "user", "content": prompt}],
+            "response_format": {"type": "json_object"},
+            "temperature": kwargs.get("temperature", 0.3),
+        }
+        
+        # Support max_tokens and max_completion_tokens
+        if "max_completion_tokens" in kwargs:
+            create_kwargs["max_completion_tokens"] = kwargs["max_completion_tokens"]
+        elif "max_tokens" in kwargs:
+            create_kwargs["max_tokens"] = kwargs["max_tokens"]
+
+        # Pass through other common parameters
+        for param in ["top_p", "frequency_penalty", "presence_penalty", "seed", "stop", "logit_bias", "user"]:
+            if param in kwargs:
+                create_kwargs[param] = kwargs[param]
+
+        response = self.client.chat.completions.create(**create_kwargs)
         try:
             return self._parse_json(response.choices[0].message.content)
         except Exception as e:
@@ -526,8 +557,17 @@ class GeminiProvider(BaseProvider):
                 "Gemini client not initialized. Set GEMINI_API_KEY or pass api_key."
             )
 
+        generation_config = {"temperature": kwargs.get("temperature", 0.3)}
+        if "max_tokens" in kwargs:
+            generation_config["max_output_tokens"] = kwargs["max_tokens"]
+            
+        # Pass through other common parameters
+        for param in ["top_p", "top_k", "stop_sequences", "candidate_count"]:
+            if param in kwargs:
+                generation_config[param] = kwargs[param]
+
         response = self.client.generate_content(
-            prompt, generation_config={"temperature": kwargs.get("temperature", 0.3)}
+            prompt, generation_config=generation_config
         )
         return response.text
 
@@ -621,11 +661,24 @@ class GroqProvider(BaseProvider):
                 "Groq client not initialized. Set GROQ_API_KEY or pass api_key."
             )
 
-        response = self.client.chat.completions.create(
-            model=kwargs.get("model", self.model),
-            messages=[{"role": "user", "content": prompt}],
-            temperature=kwargs.get("temperature", 0.3),
-        )
+        create_kwargs = {
+            "model": kwargs.get("model", self.model),
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": kwargs.get("temperature", 0.3),
+        }
+        
+        # Support max_tokens and max_completion_tokens
+        if "max_completion_tokens" in kwargs:
+            create_kwargs["max_completion_tokens"] = kwargs["max_completion_tokens"]
+        elif "max_tokens" in kwargs:
+            create_kwargs["max_tokens"] = kwargs["max_tokens"]
+            
+        # Pass through other common parameters
+        for param in ["top_p", "frequency_penalty", "presence_penalty", "seed", "stop", "user"]:
+            if param in kwargs:
+                create_kwargs[param] = kwargs[param]
+
+        response = self.client.chat.completions.create(**create_kwargs)
         return response.choices[0].message.content
 
     def generate_structured(self, prompt: str, **kwargs) -> dict:
@@ -638,12 +691,25 @@ class GroqProvider(BaseProvider):
         if "json" not in prompt.lower():
             json_prompt = f"{prompt}\n\nReturn the response as valid JSON only."
 
-        response = self.client.chat.completions.create(
-            model=kwargs.get("model", self.model),
-            messages=[{"role": "user", "content": json_prompt}],
-            temperature=kwargs.get("temperature", 0.3),
-            response_format={"type": "json_object"},
-        )
+        create_kwargs = {
+            "model": kwargs.get("model", self.model),
+            "messages": [{"role": "user", "content": json_prompt}],
+            "temperature": kwargs.get("temperature", 0.3),
+            "response_format": {"type": "json_object"},
+        }
+        
+        # Support max_tokens and max_completion_tokens
+        if "max_completion_tokens" in kwargs:
+            create_kwargs["max_completion_tokens"] = kwargs["max_completion_tokens"]
+        elif "max_tokens" in kwargs:
+            create_kwargs["max_tokens"] = kwargs["max_tokens"]
+            
+        # Pass through other common parameters
+        for param in ["top_p", "frequency_penalty", "presence_penalty", "seed", "stop", "user"]:
+            if param in kwargs:
+                create_kwargs[param] = kwargs[param]
+
+        response = self.client.chat.completions.create(**create_kwargs)
         try:
             return self._parse_json(response.choices[0].message.content)
         except Exception as e:
@@ -690,11 +756,23 @@ class AnthropicProvider(BaseProvider):
                 "Anthropic client not initialized. Set ANTHROPIC_API_KEY or pass api_key."
             )
 
-        response = self.client.messages.create(
-            model=kwargs.get("model", self.model),
-            max_tokens=kwargs.get("max_tokens", 4096),
-            messages=[{"role": "user", "content": prompt}],
-        )
+        # Anthropic requires max_tokens. 
+        # We rely on kwargs, but fallback to 8192 (safe max for newer models) if not provided.
+        max_tokens = kwargs.get("max_tokens", 8192)
+        
+        # Prepare arguments
+        create_kwargs = {
+            "model": kwargs.get("model", self.model),
+            "max_tokens": max_tokens,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        
+        # Pass through other common parameters
+        for param in ["temperature", "top_p", "top_k", "stop_sequences", "system", "metadata"]:
+            if param in kwargs:
+                create_kwargs[param] = kwargs[param]
+
+        response = self.client.messages.create(**create_kwargs)
         return response.content[0].text
 
     def generate_structured(self, prompt: str, **kwargs) -> dict:
@@ -703,11 +781,23 @@ class AnthropicProvider(BaseProvider):
             raise ProcessingError("Anthropic client not initialized.")
 
         json_prompt = f"{prompt}\n\nReturn the response as valid JSON only."
-        response = self.client.messages.create(
-            model=kwargs.get("model", self.model),
-            max_tokens=kwargs.get("max_tokens", 4096),
-            messages=[{"role": "user", "content": json_prompt}],
-        )
+        
+        # Anthropic requires max_tokens. 
+        max_tokens = kwargs.get("max_tokens", 8192)
+        
+        # Prepare arguments
+        create_kwargs = {
+            "model": kwargs.get("model", self.model),
+            "max_tokens": max_tokens,
+            "messages": [{"role": "user", "content": json_prompt}],
+        }
+        
+        # Pass through other common parameters
+        for param in ["temperature", "top_p", "top_k", "stop_sequences", "system", "metadata"]:
+            if param in kwargs:
+                create_kwargs[param] = kwargs[param]
+        
+        response = self.client.messages.create(**create_kwargs)
         try:
             return self._parse_json(response.content[0].text)
         except Exception as e:
@@ -758,10 +848,25 @@ class OllamaProvider(BaseProvider):
                 "Ollama client not initialized. Make sure Ollama is running."
             )
 
+        options = {"temperature": kwargs.get("temperature", 0.3)}
+        
+        if "max_tokens" in kwargs:
+            options["num_predict"] = kwargs["max_tokens"]
+            
+        if "num_ctx" in kwargs:
+            options["num_ctx"] = kwargs["num_ctx"]
+        elif "context_window" in kwargs:
+            options["num_ctx"] = kwargs["context_window"]
+        
+        # Pass through other common options
+        for param in ["top_p", "top_k", "repeat_penalty", "seed"]:
+            if param in kwargs:
+                options[param] = kwargs[param]
+
         response = self.client.generate(
             model=kwargs.get("model", self.model),
             prompt=prompt,
-            options={"temperature": kwargs.get("temperature", 0.3)},
+            options=options,
         )
         return response.get("response", "")
 
@@ -771,10 +876,26 @@ class OllamaProvider(BaseProvider):
             raise ProcessingError("Ollama client not initialized.")
 
         json_prompt = f"{prompt}\n\nReturn the response as valid JSON only."
+        
+        options = {"temperature": kwargs.get("temperature", 0.3)}
+        
+        if "max_tokens" in kwargs:
+            options["num_predict"] = kwargs["max_tokens"]
+            
+        if "num_ctx" in kwargs:
+            options["num_ctx"] = kwargs["num_ctx"]
+        elif "context_window" in kwargs:
+            options["num_ctx"] = kwargs["context_window"]
+
+        # Pass through other common options
+        for param in ["top_p", "top_k", "repeat_penalty", "seed"]:
+            if param in kwargs:
+                options[param] = kwargs[param]
+
         response = self.client.generate(
             model=kwargs.get("model", self.model),
             prompt=json_prompt,
-            options={"temperature": kwargs.get("temperature", 0.3)},
+            options=options,
         )
         try:
             return self._parse_json(response.get("response", "{}"))
@@ -808,11 +929,16 @@ class DeepSeekProvider(BaseProvider):
     def generate(self, prompt: str, **kwargs) -> str:
         if not self.client:
             raise ProcessingError("DeepSeek client not initialized. Set DEEPSEEK_API_KEY or pass api_key.")
-        response = self.client.chat.completions.create(
-            model=kwargs.get("model", self.model),
-            messages=[{"role": "user", "content": prompt}],
-            temperature=kwargs.get("temperature", 0.3),
-        )
+            
+        create_kwargs = {
+            "model": kwargs.get("model", self.model),
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": kwargs.get("temperature", 0.3),
+        }
+        if "max_tokens" in kwargs:
+            create_kwargs["max_tokens"] = kwargs["max_tokens"]
+
+        response = self.client.chat.completions.create(**create_kwargs)
         return response.choices[0].message.content
     def generate_structured(self, prompt: str, **kwargs) -> Union[dict, list]:
         """Generate structured output."""
@@ -879,11 +1005,27 @@ class HuggingFaceLLMProvider(BaseProvider):
             raise ProcessingError("HuggingFace model not initialized.")
 
         inputs = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
+        
+        # Use max_new_tokens if available, otherwise fallback to max_length with a safe default
+        generate_kwargs = {
+            "temperature": kwargs.get("temperature", 0.7),
+            "do_sample": True,
+        }
+        
+        if "max_new_tokens" in kwargs:
+            generate_kwargs["max_new_tokens"] = kwargs["max_new_tokens"]
+        elif "max_tokens" in kwargs:
+            generate_kwargs["max_new_tokens"] = kwargs["max_tokens"]
+            
+        # Support legacy max_length if explicitly provided
+        if "max_length" in kwargs:
+            generate_kwargs["max_length"] = kwargs["max_length"]
+            # Remove max_new_tokens if max_length is set to avoid conflict
+            generate_kwargs.pop("max_new_tokens", None)
+
         outputs = self.model.generate(
             inputs,
-            max_length=kwargs.get("max_length", 100),
-            temperature=kwargs.get("temperature", 0.7),
-            do_sample=True,
+            **generate_kwargs
         )
         generated_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         # Remove the original prompt from the response
@@ -1007,16 +1149,33 @@ class HuggingFaceModelLoader:
         # This would need to be customized based on the model architecture
         return model(text)
 
-    def extract_triplets(self, model, text: str) -> List[Dict]:
+    def extract_triplets(self, model, text: str, **kwargs) -> List[Dict]:
         """Extract triplets using loaded model."""
         tokenizer = model["tokenizer"]
         model_obj = model["model"]
         device = model["device"]
 
+        # Use kwargs for max_length, default to 512 for input and 128 for output if not specified
+        max_input_length = kwargs.get("max_input_length", 512)
+        max_length = kwargs.get("max_length", 128)
+        
+        # Allow max_new_tokens as well
+        generate_kwargs = {"max_length": max_length}
+        if "max_new_tokens" in kwargs:
+            generate_kwargs["max_new_tokens"] = kwargs["max_new_tokens"]
+            # If max_new_tokens is set, we might want to remove max_length or ensure they don't conflict
+            # For Seq2Seq, max_length usually refers to the total length of the target sequence
+            
+        # Pass other generation args
+        for param in ["num_beams", "temperature", "top_p", "top_k", "do_sample"]:
+            if param in kwargs:
+                generate_kwargs[param] = kwargs[param]
+
         inputs = tokenizer(
-            text, return_tensors="pt", truncation=True, max_length=512
+            text, return_tensors="pt", truncation=True, max_length=max_input_length
         ).to(device)
-        outputs = model_obj.generate(**inputs, max_length=128)
+        
+        outputs = model_obj.generate(**inputs, **generate_kwargs)
         decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
         # Parse decoded output (format depends on model)

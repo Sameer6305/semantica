@@ -185,7 +185,8 @@ Core entity extraction implementation used by notebooks and lower-level integrat
 |-----------|------|---------|-------------|
 | `method` | str or list | `"ml"` | Method(s): "ml", "llm", "pattern", "regex", "huggingface" |
 | `silent_fail` | bool | `False` | Return empty list on error instead of raising (LLM only) |
-| `max_text_length` | int | `None` | Max text length for auto-chunking (LLM only) |
+| `max_text_length` | int | `64000` | Max text length for auto-chunking (LLM only) |
+| `max_tokens` | int | `None` | Max output tokens for LLM generation |
 | `**config` | dict | `{}` | Method-specific config (e.g., `model`, `provider`) |
 
 **Methods:**
@@ -204,11 +205,12 @@ from semantica.semantic_extract import NERExtractor
 extractor = NERExtractor(method="ml", model="en_core_web_trf")
 entities = extractor.extract("Elon Musk leads SpaceX.")
 
-# 2. LLM (OpenAI/Gemini/etc)
+# 2. LLM (OpenAI/Gemini/Groq/etc)
 extractor = NERExtractor(
     method="llm", 
-    provider="openai", 
-    model="gpt-4",
+    provider="groq", 
+    model="llama-3.3-70b-versatile",
+    max_tokens=2048, # Increased output limit
     temperature=0.0
 )
 
@@ -340,7 +342,8 @@ Extracts RDF triplets (Subject-Predicate-Object).
 | `include_provenance` | bool | `False` | Track source sentences |
 | `method` | str | `"pattern"` | Extraction method ("pattern", "rules", "huggingface", "llm") |
 | `silent_fail` | bool | `False` | Return empty list on error instead of raising (LLM only) |
-| `max_text_length` | int | `None` | Max text length for auto-chunking (LLM only) |
+| `max_text_length` | int | `64000` | Max text length for auto-chunking (LLM only) |
+| `max_tokens` | int | `None` | Max output tokens for LLM generation |
 
 **Methods:**
 

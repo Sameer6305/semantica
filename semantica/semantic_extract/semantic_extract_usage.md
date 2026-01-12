@@ -120,9 +120,22 @@ entities = extractor.extract(
     provider="openai", 
     model="gpt-4",
     silent_fail=False,      # Raise ProcessingError on failure (default)
-    max_text_length=4000     # Auto-chunking for long text
+    max_text_length=4000,   # Auto-chunking for long text (default: 64k for major providers)
+    max_tokens=4096,        # Explicitly control generation output length
+    temperature=0.0
 )
 print(f"LLM method: {len(entities)} entities")
+
+# Groq extraction with long context support
+# Groq defaults to 64k chunking limit for models like llama-3.3-70b
+groq_extractor = NERExtractor(method="llm")
+groq_entities = groq_extractor.extract(
+    text,
+    provider="groq",
+    model="llama-3.3-70b-versatile",
+    max_tokens=8000 # Passed directly to Groq API
+)
+print(f"Groq method: {len(groq_entities)} entities")
 ```
 
 ### Using NERExtractor Directly
@@ -221,6 +234,8 @@ relations = extractor.extract(
     text, 
     entities=entities, 
     provider="openai",
+    model="gpt-4",
+    max_tokens=2048, # Increased output limit for many relations
     silent_fail=True  # Return empty list if extraction fails
 )
 ```
@@ -284,7 +299,8 @@ triplets = extractor.extract_triplets(
     text, 
     provider="openai", 
     model="gpt-4",
-    max_text_length=2000  # Force chunking for long text
+    max_text_length=64000, # Large default chunk size supported
+    max_tokens=4096 # Ensure enough tokens for all triplets
 )
 ```
 

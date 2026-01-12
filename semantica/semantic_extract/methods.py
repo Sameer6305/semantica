@@ -642,12 +642,12 @@ def extract_entities_llm(
     if max_text_length is None:
         # Provider-specific defaults
         max_text_length = {
-            "groq": 8000,
-            "openai": 4000,
-            "gemini": 16000,
-            "anthropic": 16000,
-            "deepseek": 16000,
-        }.get(provider.lower(), 4000)
+            "groq": 64000,
+            "openai": 64000,
+            "gemini": 64000,
+            "anthropic": 64000,
+            "deepseek": 64000,
+        }.get(provider.lower(), 32000)
     
     if len(text) > max_text_length:
         logger.info(f"Text length ({len(text)}) exceeds limit ({max_text_length}). Chunking...")
@@ -701,7 +701,7 @@ Text to extract from:
 {text}"""
         
         # Use typed generation with Pydantic schema
-        result_obj = llm.generate_typed(prompt, schema=EntitiesResponse)
+        result_obj = llm.generate_typed(prompt, schema=EntitiesResponse, **kwargs)
         
         # Convert back to internal Entity format
         entities = []
@@ -723,6 +723,25 @@ Text to extract from:
         return entities
         
     except Exception as e:
+        # Check for length/token limit errors
+        error_msg_str = str(e).lower()
+        if "length" in error_msg_str or "max_tokens" in error_msg_str:
+            logger.warning(f"LLM output truncated due to length limit. Reducing chunk size and retrying... ({e})")
+            
+            # Determine new chunk size (halve it)
+            current_max = max_text_length or len(text)
+            new_max = current_max // 2
+            
+            if new_max > 100: # Minimum viable chunk size check
+                return _extract_entities_chunked(
+                    text, 
+                    provider=provider, 
+                    model=model, 
+                    silent_fail=silent_fail, 
+                    max_text_length=new_max,
+                    **kwargs
+                )
+
         error_msg = f"LLM entity extraction failed ({provider}/{model}): {e}"
         logger.error(error_msg, exc_info=True)
         if not silent_fail:
@@ -1350,13 +1369,14 @@ def extract_relations_llm(
 
     # 3. TEXT LENGTH CHECK AND CHUNKING
     if max_text_length is None:
+        # Default limits for chunking only - NOT for LLM generation
         max_text_length = {
-            "groq": 8000,
-            "openai": 4000,
-            "gemini": 16000,
-            "anthropic": 16000,
-            "deepseek": 16000,
-        }.get(provider.lower(), 4000)
+            "groq": 64000,
+            "openai": 64000,
+            "gemini": 64000,
+            "anthropic": 64000,
+            "deepseek": 64000,
+        }.get(provider.lower(), 32000)
     
     if len(text) > max_text_length:
         logger.info(f"Text length ({len(text)}) exceeds limit for relations. Chunking...")
@@ -1408,7 +1428,8 @@ Entities found in text: {entities_str}"""
 
     try:
         # Use typed generation with Pydantic schema
-        result_obj = llm.generate_typed(prompt, schema=RelationsResponse)
+        # Pass kwargs to allow max_tokens and other parameters to be used
+        result_obj = llm.generate_typed(prompt, schema=RelationsResponse, **kwargs)
         
         # Convert back to internal Relation format
         relations = []
@@ -1441,6 +1462,23 @@ Entities found in text: {entities_str}"""
         return relations
         
     except Exception as e:
+        # Check for length/token limit errors
+        error_msg_str = str(e).lower()
+        if "length" in error_msg_str or "max_tokens" in error_msg_str:
+            logger.warning(f"LLM output truncated due to length limit. Reducing chunk size and retrying... ({e})")
+            
+            # Determine new chunk size (halve it)
+            current_max = max_text_length or len(text)
+            new_max = current_max // 2
+            
+            if new_max > 100: # Minimum viable chunk size check
+                return _extract_relations_chunked(
+                    text, entities, provider=provider, model=model,
+                    silent_fail=silent_fail, max_text_length=new_max,
+                    structured_output_mode=structured_output_mode,
+                    **kwargs
+                )
+
         error_msg = f"LLM relation extraction failed ({provider}/{model}): {e}"
         logger.error(error_msg, exc_info=True)
         if not silent_fail:
@@ -1666,7 +1704,7 @@ def extract_triplets_huggingface(
     """HuggingFace triplet extraction."""
     loader = HuggingFaceModelLoader(device=device)
     model_obj = loader.load_triplet_model(model)
-    results = loader.extract_triplets(model_obj, text)
+    results = loader.extract_triplets(model_obj, text, **kwargs)
 
     triplets = []
     for result in results:
@@ -1742,13 +1780,14 @@ def extract_triplets_llm(
 
     # 3. TEXT LENGTH CHECK AND CHUNKING
     if max_text_length is None:
+        # Default limits for chunking only - NOT for LLM generation
         max_text_length = {
-            "groq": 8000,
-            "openai": 4000,
-            "gemini": 16000,
-            "anthropic": 16000,
-            "deepseek": 16000,
-        }.get(provider.lower(), 4000)
+            "groq": 64000,
+            "openai": 64000,
+            "gemini": 64000,
+            "anthropic": 64000,
+            "deepseek": 64000,
+        }.get(provider.lower(), 32000)
     
     if len(text) > max_text_length:
         logger.info(f"Text length ({len(text)}) exceeds limit for triplets. Chunking...")
@@ -1797,7 +1836,7 @@ Text to extract from:
 
     try:
         # Use typed generation with Pydantic schema
-        result_obj = llm.generate_typed(prompt, schema=TripletsResponse)
+        result_obj = llm.generate_typed(prompt, schema=TripletsResponse, **kwargs)
         
         # Convert back to internal Triplet format
         triplets = []
@@ -1818,6 +1857,22 @@ Text to extract from:
         return triplets
         
     except Exception as e:
+        # Check for length/token limit errors
+        error_msg_str = str(e).lower()
+        if "length" in error_msg_str or "max_tokens" in error_msg_str:
+            logger.warning(f"LLM output truncated due to length limit. Reducing chunk size and retrying... ({e})")
+            
+            # Determine new chunk size (halve it)
+            current_max = max_text_length or len(text)
+            new_max = current_max // 2
+            
+            if new_max > 100: # Minimum viable chunk size check
+                return _extract_triplets_chunked(
+                    text, provider=provider, model=model, 
+                    silent_fail=silent_fail, max_text_length=new_max, 
+                    **kwargs
+                )
+
         error_msg = f"LLM triplet extraction failed ({provider}/{model}): {e}"
         logger.error(error_msg, exc_info=True)
         if not silent_fail:
