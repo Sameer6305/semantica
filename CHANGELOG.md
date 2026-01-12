@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-01-12
+
 ### Fixed
 - **LLM Output Stability (Bug #176)**:
     - Fixed incomplete JSON output issues by correctly propagating `max_tokens` parameter in `extract_relations_llm`.
