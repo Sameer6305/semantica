@@ -28,7 +28,7 @@
 
 *The missing fabric between raw data and AI engineering. A comprehensive open-source framework for building semantic layers and knowledge engineering systems that transform unstructured data into AI-ready knowledge — powering Knowledge Graph-Powered RAG (GraphRAG), AI Agents, Multi-Agent Systems, and AI applications with structured semantic knowledge.*
 
-**100% Open Source** • **MIT Licensed** • **Latest Version: 0.2.1** • **Production Ready** • **Community Driven**
+**100% Open Source** • **MIT Licensed** • **Latest Version: 0.2.2** • **Production Ready** • **Community Driven**
 
 [**Discord**](https://discord.gg/pMHguUzG)
 

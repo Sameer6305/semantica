@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [0.2.2] - 2026-01-15
+
 ### Added
 - **Parallel Extraction Engine**:
     - Implemented high-throughput parallel batch processing across all core extractors (`NERExtractor`, `RelationExtractor`, `TripletExtractor`, `EventDetector`, `SemanticNetworkExtractor`) using `concurrent.futures.ThreadPoolExecutor`.

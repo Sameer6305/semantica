@@ -26,10 +26,10 @@ Before releasing, ensure:
 
 The project uses GitHub Actions for automated releases to PyPI.
 
-1. **Tag the commit**: Create a new git tag for the version (e.g., `v0.2.1`).
+1. **Tag the commit**: Create a new git tag for the version (e.g., `v0.2.2`).
    ```bash
-   git tag -a v0.2.1 -m "Release v0.2.1"
-   git push origin v0.2.1
+   git tag -a v0.2.2 -m "Release v0.2.2"
+   git push origin v0.2.2
    ```
 2. **GitHub Action**: The `Release` workflow will automatically trigger, build the package, create a GitHub Release, and publish to PyPI using Trusted Publishing.
 
