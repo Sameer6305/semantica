@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **LLM Relation Extraction Parsing**:
+    - Fixed relation extraction returning zero relations despite successful API calls to Groq and other providers
+    - Normalized typed responses from instructor/OpenAI/Groq to consistent dict format before parsing
+    - Added structured JSON fallback when typed generation yields zero relations to avoid silent empty outputs
+    - Removed acceptance of extra kwargs (`max_tokens`, `max_entities_prompt`) from relation extraction internals
+    - Filtered kwargs passed to provider LLM calls to only `temperature` and `verbose`
+- **API Parameter Handling**:
+    - Limited kwargs forwarded in chunked extraction helper to prevent parameter leakage
+    - Ensured minimal, safe parameters are passed to provider calls
+
+### Added
+- **Comprehensive Test Suite**:
+    - Added unit tests (`tests/test_relations_llm.py`) with mocked LLM provider covering both typed and structured response paths
+    - Added integration tests (`tests/integration/test_relations_groq.py`) for real Groq API calls with environment variable API key
+    - Tests validate relation extraction completion and result parsing across different response formats
+
+### Changed
+- **Relation Extraction API**:
+    - Simplified parameter interface by removing unused kwargs that were previously ignored
+    - Improved error handling and verbose logging for debugging relation extraction issues
+    - Enhanced robustness of post-response parsing across different LLM providers
+
 
 ## [0.2.2] - 2026-01-15
 
