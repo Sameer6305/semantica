@@ -461,19 +461,27 @@ class TripletExtractor:
                         method_options["model"] = all_options.get(
                             "llm_model", all_options.get("model")
                         )
-                        # Pass api_key if provided (needed for all providers)
-                        if "api_key" in all_options:
-                            # Only pass if truthy to allow fallback
-                            if all_options["api_key"]:
-                                method_options["api_key"] = all_options["api_key"]
-                        if "api_key" not in method_options:
-                            # Try to get from environment as fallback
+                        # Ensure api_key is populated: check explicitly provided or fallback to env
+                        current_key = method_options.get("api_key")
+                        if not current_key:
+                            # Not found or empty/None, try environment
                             import os
-                            provider = method_options.get("provider", "openai")
-                            env_key = f"{provider.upper()}_API_KEY"
+                            provider_name = method_options.get("provider", "openai")
+                            env_key = f"{provider_name.upper()}_API_KEY"
                             api_key = os.getenv(env_key)
                             if api_key:
                                 method_options["api_key"] = api_key
+
+                    # Print progress if verbose mode is enabled (only for LLM method to avoid spam)
+                    verbose_mode = options.get("verbose", False) or self.config.get("verbose", False)
+                    if verbose_mode and method_name == "llm":
+                        import sys
+                        print(f"    [TripletExtractor] Processing with {method_name}...", flush=True, file=sys.stdout)
+                        if "api_key" in method_options:
+                             masked = method_options["api_key"][:4] + "..." if method_options["api_key"] else "None"
+                             print(f"    [TripletExtractor Debug] api_key present: {masked}", flush=True, file=sys.stdout)
+                        else:
+                             print(f"    [TripletExtractor Debug] api_key NOT present", flush=True, file=sys.stdout)
 
                     triplets = method_func(
                         text,
@@ -481,6 +489,11 @@ class TripletExtractor:
                         relations=relations,
                         **method_options,
                     )
+
+                    # Print result count if verbose (only for LLM method)
+                    if verbose_mode and method_name == "llm" and len(triplets) > 0:
+                        import sys
+                        print(f"    [TripletExtractor] Extracted {len(triplets)} triplets", flush=True, file=sys.stdout)
 
                     # Apply weighted scoring if triplet_types are provided
                     if triplet_types:
@@ -517,6 +530,12 @@ class TripletExtractor:
 
                 except Exception as e:
                     self.logger.warning(f"Method {method_name} failed: {e}")
+                    verbose_mode = options.get("verbose", False) or self.config.get("verbose", False)
+                    if verbose_mode:
+                        import sys
+                        print(f"    [TripletExtractor] ERROR: Method {method_name} failed: {e}", flush=True, file=sys.stderr)
+                        import traceback
+                        traceback.print_exc(file=sys.stderr)
                     continue
 
             # Use first successful method or fallback to relation conversion

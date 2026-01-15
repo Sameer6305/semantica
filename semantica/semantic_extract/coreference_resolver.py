@@ -240,6 +240,12 @@ class CoreferenceResolver:
             self.progress_tracker.stop_tracking(
                 tracking_id, status="failed", message=str(e)
             )
+            verbose_mode = options.get("verbose", False) or self.config.get("verbose", False)
+            if verbose_mode:
+                import sys
+                print(f"    [CoreferenceResolver] ERROR: Resolution failed: {e}", flush=True, file=sys.stderr)
+                import traceback
+                traceback.print_exc(file=sys.stderr)
             raise
 
     def resolve(

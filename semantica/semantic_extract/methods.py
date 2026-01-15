@@ -786,7 +786,7 @@ def extract_entities_llm(
 
     # Pass api_key if provided in kwargs (needed for all providers)
     provider_kwargs = kwargs.copy()
-    if "api_key" not in provider_kwargs:
+    if "api_key" not in provider_kwargs or not provider_kwargs["api_key"]:
         # Try to get from environment as fallback for all providers
         import os
         env_key = f"{provider.upper()}_API_KEY"

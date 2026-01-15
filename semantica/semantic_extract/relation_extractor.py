@@ -419,16 +419,13 @@ class RelationExtractor:
                         method_options["model"] = all_options.get(
                             "llm_model", all_options.get("model")
                         )
-                        # Pass api_key if provided (needed for all providers)
-                        if "api_key" in all_options:
-                            # Only pass if truthy to allow fallback
-                            if all_options["api_key"]:
-                                method_options["api_key"] = all_options["api_key"]
-                        elif "api_key" not in method_options:
-                            # Try to get from environment as fallback
+                        # Ensure api_key is populated: check explicitly provided or fallback to env
+                        current_key = method_options.get("api_key")
+                        if not current_key:
+                            # Not found or empty/None, try environment
                             import os
-                            provider = method_options.get("provider", "openai")
-                            env_key = f"{provider.upper()}_API_KEY"
+                            provider_name = method_options.get("provider", "openai")
+                            env_key = f"{provider_name.upper()}_API_KEY"
                             api_key = os.getenv(env_key)
                             if api_key:
                                 method_options["api_key"] = api_key
@@ -490,6 +487,11 @@ class RelationExtractor:
 
                 except Exception as e:
                     self.logger.warning(f"Method {method_name} failed: {e}")
+                    if verbose_mode:
+                        import sys
+                        print(f"    [RelationExtractor] ERROR: Method {method_name} failed: {e}", flush=True, file=sys.stderr)
+                        import traceback
+                        traceback.print_exc(file=sys.stderr)
                     continue
 
             # Use first successful method or combine
