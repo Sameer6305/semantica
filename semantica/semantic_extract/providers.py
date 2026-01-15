@@ -243,68 +243,136 @@ class BaseProvider:
                 mode = instructor.Mode.TOOLS  # Default mode
                 
                 if provider_name == "OpenAIProvider" and self.client:
-                    client = instructor.from_openai(self.client)
-                elif provider_name == "AnthropicProvider" and self.client:
-                    client = instructor.from_anthropic(self.client)
-                elif provider_name == "GeminiProvider" and self.client:
-                    client = instructor.from_gemini(
-                        self.client, 
-                        mode=instructor.Mode.GEMINI_JSON
-                    )
-                elif provider_name == "GroqProvider" and self.client:
-                    # Try using from_groq if available (newer instructor versions)
-                    if hasattr(instructor, "from_groq"):
-                        client = instructor.from_groq(self.client, mode=instructor.Mode.JSON)
+                    if hasattr(instructor, "from_provider"):
+                        try:
+                            client = instructor.from_provider(
+                                provider=f"openai/{kwargs.get('model', self.model)}", 
+                                api_key=self.api_key
+                            )
+                        except Exception:
+                            client = instructor.from_openai(self.client)
                     else:
-                        # Fallback: Create OpenAI client pointing to Groq
-                        # This avoids the "Client should be an instance of openai.OpenAI" warning
+                        client = instructor.from_openai(self.client)
+                elif provider_name == "AnthropicProvider" and self.client:
+                    if hasattr(instructor, "from_provider"):
+                        try:
+                            client = instructor.from_provider(
+                                provider=f"anthropic/{kwargs.get('model', self.model)}", 
+                                api_key=self.api_key
+                            )
+                        except Exception:
+                            client = instructor.from_anthropic(self.client)
+                    else:
+                        client = instructor.from_anthropic(self.client)
+                elif provider_name == "GeminiProvider" and self.client:
+                    if hasattr(instructor, "from_provider"):
+                        try:
+                            client = instructor.from_provider(
+                                provider=f"gemini/{kwargs.get('model', self.model)}", 
+                                api_key=self.api_key
+                            )
+                        except Exception:
+                            client = instructor.from_gemini(
+                                self.client, 
+                                mode=instructor.Mode.GEMINI_JSON
+                            )
+                    else:
+                        client = instructor.from_gemini(
+                            self.client, 
+                            mode=instructor.Mode.GEMINI_JSON
+                        )
+                elif provider_name == "GroqProvider" and self.client:
+                    # Try using from_provider which is recommended for Groq in latest instructor
+                    if hasattr(instructor, "from_provider"):
+                        try:
+                            client = instructor.from_provider(
+                                provider=f"groq/{kwargs.get('model', self.model)}", 
+                                api_key=self.api_key
+                            )
+                        except Exception:
+                            client = None
+
+                    if not client:
+                        # Try using from_groq if available (newer instructor versions)
+                        if hasattr(instructor, "from_groq"):
+                            client = instructor.from_groq(self.client, mode=instructor.Mode.JSON)
+                        else:
+                            # Fallback: Create OpenAI client pointing to Groq
+                            # This avoids the "Client should be an instance of openai.OpenAI" warning
+                            try:
+                                from openai import OpenAI
+                                # Fix: Use self.api_key instead of self.client.api_key
+                                groq_client = OpenAI(
+                                    base_url="https://api.groq.com/openai/v1",
+                                    api_key=self.api_key,
+                                )
+                                client = instructor.from_openai(groq_client, mode=instructor.Mode.JSON)
+                            except Exception:
+                                # Last resort: try passing the groq client directly
+                                client = instructor.from_openai(self.client, mode=instructor.Mode.JSON)
+                elif provider_name == "OllamaProvider":
+                    # Try from_provider for Ollama if available
+                    if hasattr(instructor, "from_provider"):
+                        try:
+                            client = instructor.from_provider(
+                                provider=f"ollama/{kwargs.get('model', self.model)}",
+                            )
+                        except Exception:
+                            client = None
+                    
+                    if not client:
+                        # Create OpenAI-compatible client for Ollama
                         try:
                             from openai import OpenAI
-                            groq_client = OpenAI(
-                                base_url="https://api.groq.com/openai/v1",
-                                api_key=self.client.api_key,
+                            # Ollama typically runs on localhost:11434/v1
+                            base_url = getattr(self, "base_url", "http://localhost:11434")
+                            if not base_url.endswith("/v1"):
+                                base_url = f"{base_url.rstrip('/')}/v1"
+                            
+                            ollama_client = OpenAI(
+                                base_url=base_url,
+                                api_key="ollama", # required but unused
                             )
-                            client = instructor.from_openai(groq_client, mode=instructor.Mode.JSON)
-                        except Exception:
-                            # Last resort: try passing the groq client directly
-                            client = instructor.from_openai(self.client, mode=instructor.Mode.JSON)
-                elif provider_name == "OllamaProvider":
-                    # Create OpenAI-compatible client for Ollama
-                    try:
-                        from openai import OpenAI
-                        # Ollama typically runs on localhost:11434/v1
-                        base_url = getattr(self, "base_url", "http://localhost:11434")
-                        if not base_url.endswith("/v1"):
-                            base_url = f"{base_url.rstrip('/')}/v1"
-                        
-                        ollama_client = OpenAI(
-                            base_url=base_url,
-                            api_key="ollama", # required but unused
-                        )
-                        client = instructor.from_openai(ollama_client, mode=instructor.Mode.JSON)
-                    except ImportError:
-                        pass
+                            client = instructor.from_openai(ollama_client, mode=instructor.Mode.JSON)
+                        except ImportError:
+                            pass
                 elif provider_name == "DeepSeekProvider" and self.client:
-                    # DeepSeek is OpenAI compatible
-                    # We need to wrap the underlying client if it exposes the OpenAI interface
-                    # or create a new OpenAI client if self.client is a deepseek.Client (which might be just a wrapper)
-                    # Assuming deepseek.Client is compatible or we can use OpenAI client
-                    try:
-                        # DeepSeek usually works with standard OpenAI client
-                        # If self.client is deepseek.Client, check if we can wrap it
-                        # Otherwise create a new OpenAI client
-                        from openai import OpenAI
-                        if isinstance(self.client, OpenAI):
-                             client = instructor.from_openai(self.client, mode=instructor.Mode.JSON)
-                        else:
-                             # Try creating fresh client
-                             ds_client = OpenAI(
-                                 api_key=self.api_key, 
-                                 base_url="https://api.deepseek.com"
-                             )
-                             client = instructor.from_openai(ds_client, mode=instructor.Mode.JSON)
-                    except Exception:
-                        pass
+                    # Try from_provider for DeepSeek
+                    if hasattr(instructor, "from_provider"):
+                        try:
+                            client = instructor.from_provider(
+                                provider=f"deepseek/{kwargs.get('model', self.model)}",
+                                api_key=self.api_key
+                            )
+                        except Exception:
+                            client = None
+
+                    if not client:
+                        # DeepSeek is OpenAI compatible
+                        try:
+                            from openai import OpenAI
+                            if isinstance(self.client, OpenAI):
+                                 client = instructor.from_openai(self.client, mode=instructor.Mode.JSON)
+                            else:
+                                 # Try creating fresh client
+                                 ds_client = OpenAI(
+                                     api_key=self.api_key, 
+                                     base_url="https://api.deepseek.com"
+                                 )
+                                 client = instructor.from_openai(ds_client, mode=instructor.Mode.JSON)
+                        except Exception:
+                            pass
+
+                # Global LiteLLM support - if litellm is passed in kwargs or config
+                if not client and (kwargs.get("litellm") or self.config.get("litellm")):
+                    if hasattr(instructor, "from_provider"):
+                        try:
+                            # Format for litellm in instructor is litellm/model_name
+                            provider_model = kwargs.get("model", self.model)
+                            litellm_provider = f"litellm/{provider_model}"
+                            client = instructor.from_provider(litellm_provider, api_key=self.api_key)
+                        except Exception:
+                            pass
 
                 if client:
                     # Map generate arguments to client arguments
