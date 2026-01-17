@@ -34,6 +34,7 @@ License: MIT
 """
 
 import inspect
+import os
 import sys
 import threading
 import time
@@ -45,6 +46,13 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from .logging import get_logger
+
+DISABLE_JUPYTER_PROGRESS = os.getenv("SEMANTICA_DISABLE_JUPYTER_PROGRESS", "").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
 
 # Try to import IPython for Jupyter support
 try:
@@ -1017,6 +1025,7 @@ class ProgressTracker:
 
         # Detect environment - will be checked dynamically
         self.is_jupyter = self._detect_jupyter()
+        self.disable_jupyter_progress = DISABLE_JUPYTER_PROGRESS
 
         # Create displays
         self.displays: List[ProgressDisplay] = []
@@ -1024,7 +1033,7 @@ class ProgressTracker:
         # Always try Jupyter first if available, fallback to console
         if IPYTHON_AVAILABLE:
             # Try to detect Jupyter - if available, use it
-            if self.is_jupyter:
+            if self.is_jupyter and not self.disable_jupyter_progress:
                 self.displays.append(JupyterProgressDisplay(use_emoji=use_emoji))
             # Also add console as fallback for immediate feedback
             self.displays.append(
@@ -1213,7 +1222,11 @@ class ProgressTracker:
         if IPYTHON_AVAILABLE and not self.is_jupyter:
             self.is_jupyter = self._detect_jupyter()
             # If Jupyter is now detected and we don't have a Jupyter display, add it
-            if self.is_jupyter and not any(isinstance(d, JupyterProgressDisplay) for d in self.displays):
+            if (
+                self.is_jupyter
+                and not self.disable_jupyter_progress
+                and not any(isinstance(d, JupyterProgressDisplay) for d in self.displays)
+            ):
                 # Insert Jupyter display at the beginning for priority
                 self.displays.insert(0, JupyterProgressDisplay(use_emoji=self.use_emoji))
 
@@ -1341,7 +1354,11 @@ class ProgressTracker:
         if IPYTHON_AVAILABLE and not self.is_jupyter:
             self.is_jupyter = self._detect_jupyter()
             # If Jupyter is now detected and we don't have a Jupyter display, add it
-            if self.is_jupyter and not any(isinstance(d, JupyterProgressDisplay) for d in self.displays):
+            if (
+                self.is_jupyter
+                and not self.disable_jupyter_progress
+                and not any(isinstance(d, JupyterProgressDisplay) for d in self.displays)
+            ):
                 # Insert Jupyter display at the beginning for priority
                 self.displays.insert(0, JupyterProgressDisplay(use_emoji=self.use_emoji))
 
@@ -1526,7 +1543,11 @@ def get_progress_tracker() -> ProgressTracker:
     if IPYTHON_AVAILABLE and not _global_tracker.is_jupyter:
         _global_tracker.is_jupyter = _global_tracker._detect_jupyter()
         # If Jupyter is now detected and we don't have a Jupyter display, add it
-        if _global_tracker.is_jupyter and not any(isinstance(d, JupyterProgressDisplay) for d in _global_tracker.displays):
+        if (
+            _global_tracker.is_jupyter
+            and not _global_tracker.disable_jupyter_progress
+            and not any(isinstance(d, JupyterProgressDisplay) for d in _global_tracker.displays)
+        ):
             # Insert Jupyter display at the beginning for priority
             _global_tracker.displays.insert(0, JupyterProgressDisplay(use_emoji=_global_tracker.use_emoji))
     
