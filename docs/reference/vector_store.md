@@ -112,6 +112,8 @@ The main facade for all vector operations.
 | Method | Description |
 |--------|-------------|
 | `store_vectors(vectors, metadata)` | Store embeddings |
+| `add_documents(documents, metadata, batch_size, parallel)` | **(New)** Store documents with automatic embedding generation and parallelization |
+| `embed_batch(texts)` | **(New)** Generate embeddings for a batch of texts |
 | `search(query, k)` | Semantic search |
 | `delete(ids)` | Remove vectors |
 
@@ -120,13 +122,22 @@ The main facade for all vector operations.
 ```python
 from semantica.vector_store import VectorStore
 
-# Initialize (defaults to FAISS)
+# Initialize (defaults to FAISS, parallel enabled by default with 6 workers)
 store = VectorStore(backend="faiss", dimension=1536)
 
-# Store
+# 1. Store pre-computed vectors
 ids = store.store_vectors(
     vectors=[[0.1, 0.2, ...], ...],
     metadata=[{"text": "Hello"}, ...]
+)
+
+# 2. Store raw documents (High Performance)
+# Automatically handles embedding generation in parallel batches (uses default 6 workers)
+ids = store.add_documents(
+    documents=["Doc 1", "Doc 2", ...],
+    metadata=[{"id": 1}, {"id": 2}, ...],
+    batch_size=32,
+    parallel=True
 )
 
 # Search
@@ -771,6 +782,7 @@ print(f"Context: {context}")
 ---
 
 ## See Also
+- [High-Performance Usage Guide](../vector_store_usage.md) - **(New)** Parallel ingestion and batching guide
 - [Embeddings Module](embeddings.md) - Generates the vectors
 - [Context Module](context.md) - Uses vector store for memory
 - [Ingest Module](ingest.md) - Source of data

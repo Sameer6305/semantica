@@ -38,6 +38,7 @@ License: MIT
 """
 
 from typing import Any, Dict, List, Optional, Tuple, Union
+import concurrent.futures
 
 import numpy as np
 
@@ -61,7 +62,7 @@ class VectorStore:
 
     SUPPORTED_BACKENDS = {"faiss", "weaviate", "qdrant", "milvus", "inmemory"}
 
-    def __init__(self, backend="faiss", config=None, **kwargs):
+    def __init__(self, backend="faiss", config=None, max_workers: int = 6, **kwargs):
         """Initialize vector store."""
         if backend.lower() not in self.SUPPORTED_BACKENDS:
             raise ValueError(
@@ -72,6 +73,7 @@ class VectorStore:
         self.logger = get_logger("vector_store")
         self.config = config or {}
         self.config.update(kwargs)
+        self.max_workers = max_workers
         self.progress_tracker = get_progress_tracker()
         # Ensure progress tracker is enabled
         if not self.progress_tracker.enabled:
@@ -126,6 +128,141 @@ class VectorStore:
         # to prevent crashes, but logging warning.
         self.logger.warning("Using random fallback embedding")
         return np.random.rand(self.dimension).astype(np.float32)
+
+    def embed_batch(self, texts: List[str]) -> List[np.ndarray]:
+        """
+        Generate embeddings for a list of texts using the internal embedder.
+        
+        Args:
+            texts: List of texts to embed
+            
+        Returns:
+            List of numpy arrays
+        """
+        if self.embedder:
+            try:
+                # generate_embeddings handles list input
+                embeddings = self.embedder.generate_embeddings(texts)
+                # Ensure it returns a list of arrays (it returns 2D array or list)
+                if isinstance(embeddings, np.ndarray):
+                    return list(embeddings)
+                return embeddings
+            except Exception as e:
+                self.logger.warning(f"Batch embedding generation failed: {e}")
+        
+        # Fallback
+        self.logger.warning("Using random fallback embeddings for batch")
+        return [np.random.rand(self.dimension).astype(np.float32) for _ in texts]
+
+    def add_documents(
+        self,
+        documents: List[str],
+        metadata: Optional[List[Dict[str, Any]]] = None,
+        batch_size: int = 32,
+        parallel: bool = True,
+        **options,
+    ) -> List[str]:
+        """
+        Add multiple documents to the store with parallel embedding generation.
+        
+        Args:
+            documents: List of document texts
+            metadata: List of metadata dictionaries
+            batch_size: Number of documents to process in one batch
+            parallel: Whether to use parallel processing for embeddings
+            **options: Additional options
+            
+        Returns:
+            List[str]: Vector IDs
+        """
+        if not documents:
+            return []
+            
+        num_docs = len(documents)
+        metadata = metadata or [{} for _ in range(num_docs)]
+        
+        if len(metadata) != num_docs:
+            raise ValueError("Metadata list length must match documents length")
+            
+        all_vectors = [None] * num_docs
+        
+        # Helper for processing a batch
+        def process_batch(start_idx: int, end_idx: int):
+            batch_texts = documents[start_idx:end_idx]
+            batch_embeddings = self.embed_batch(batch_texts)
+            return start_idx, batch_embeddings
+
+        # Calculate batches
+        batches = []
+        for i in range(0, num_docs, batch_size):
+            batches.append((i, min(i + batch_size, num_docs)))
+            
+        tracking_id = self.progress_tracker.start_tracking(
+            module="vector_store",
+            submodule="VectorStore",
+            message=f"Processing {num_docs} documents (parallel={parallel})",
+        )
+
+        try:
+            if parallel and self.max_workers > 1:
+                self.progress_tracker.update_tracking(
+                    tracking_id, message=f"Embedding with {self.max_workers} workers..."
+                )
+                with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                    futures = [
+                        executor.submit(process_batch, start, end)
+                        for start, end in batches
+                    ]
+                    
+                    completed = 0
+                    for future in concurrent.futures.as_completed(futures):
+                        start_idx, embeddings = future.result()
+                        # Place results in correct order
+                        for i, emb in enumerate(embeddings):
+                            all_vectors[start_idx + i] = emb
+                        
+                        completed += 1
+                        if completed % 5 == 0:  # Update progress periodically
+                            self.progress_tracker.update_tracking(
+                                tracking_id, 
+                                message=f"Embedded batch {completed}/{len(batches)}"
+                            )
+            else:
+                # Sequential processing
+                self.progress_tracker.update_tracking(
+                    tracking_id, message="Embedding sequentially..."
+                )
+                for i, (start, end) in enumerate(batches):
+                    _, embeddings = process_batch(start, end)
+                    for j, emb in enumerate(embeddings):
+                        all_vectors[start + j] = emb
+                    
+                    if i % 5 == 0:
+                        self.progress_tracker.update_tracking(
+                            tracking_id, 
+                            message=f"Embedded batch {i+1}/{len(batches)}"
+                        )
+                        
+            # Verify all embeddings generated
+            if any(v is None for v in all_vectors):
+                raise ProcessingError("Failed to generate all embeddings")
+                
+            # Store all vectors in one go
+            self.progress_tracker.update_tracking(tracking_id, message="Storing vectors...")
+            vector_ids = self.store_vectors(all_vectors, metadata=metadata, **options)
+            
+            self.progress_tracker.stop_tracking(
+                tracking_id,
+                status="completed",
+                message=f"Added {len(vector_ids)} documents",
+            )
+            return vector_ids
+            
+        except Exception as e:
+            self.progress_tracker.stop_tracking(
+                tracking_id, status="failed", message=str(e)
+            )
+            raise
 
     def store(
         self,

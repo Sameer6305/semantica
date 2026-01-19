@@ -27,19 +27,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Comprehensive Test Suite**:
-    - Added unit tests (`tests/test_relations_llm.py`) with mocked LLM provider covering both typed and structured response paths
-    - Added integration tests (`tests/integration/test_relations_groq.py`) for real Groq API calls with environment variable API key
-    - Tests validate relation extraction completion and result parsing across different response formats
+-    - Added unit tests (`tests/test_relations_llm.py`) with mocked LLM provider covering both typed and structured response paths
+-    - Added integration tests (`tests/integration/test_relations_groq.py`) for real Groq API calls with environment variable API key
+-    - Tests validate relation extraction completion and result parsing across different response formats
 - **Amazon Neptune Dev Environment**:
-    - Added CloudFormation template (`cookbook/introduction/neptune-setup.yaml`) to provision a dev Neptune cluster with public endpoint and IAM auth enabled
-    - Documented deployment, cost estimates, and IAM User vs IAM Role best practices in `cookbook/introduction/21_Amazon_Neptune_Store.ipynb`
-    - Added `cfn-lint` to `.pre-commit-config.yaml` for validating CloudFormation templates while excluding `neptune-setup.yaml` from generic YAML linters
+-    - Added CloudFormation template (`cookbook/introduction/neptune-setup.yaml`) to provision a dev Neptune cluster with public endpoint and IAM auth enabled
+-    - Documented deployment, cost estimates, and IAM User vs IAM Role best practices in `cookbook/introduction/21_Amazon_Neptune_Store.ipynb`
+-    - Added `cfn-lint` to `.pre-commit-config.yaml` for validating CloudFormation templates while excluding `neptune-setup.yaml` from generic YAML linters
+- **Vector Store High-Performance Ingestion**:
+-    - Added `VectorStore.add_documents` for high-throughput ingestion with automatic embedding generation, batching, and parallel processing
+-    - Added `VectorStore.embed_batch` helper for generating embeddings for lists of texts without immediately storing them
+-    - Enabled default parallel ingestion in `VectorStore` with `max_workers=6` for common workloads
+-    - Added dedicated documentation page `docs/vector_store_usage.md` describing high-performance vector store usage and configuration
+-    - Added `tests/vector_store/test_vector_store_parallel.py` covering parallel vs sequential performance, error handling, and edge cases for `add_documents` and `embed_batch`
 
 ### Changed
 - **Relation Extraction API**:
-    - Simplified parameter interface by removing unused kwargs that were previously ignored
-    - Improved error handling and verbose logging for debugging relation extraction issues
-    - Enhanced robustness of post-response parsing across different LLM providers
+-    - Simplified parameter interface by removing unused kwargs that were previously ignored
+-    - Improved error handling and verbose logging for debugging relation extraction issues
+-    - Enhanced robustness of post-response parsing across different LLM providers
+- **Vector Store Defaults and Examples**:
+-    - Standardized `VectorStore` default concurrency to `max_workers=6` for parallel ingestion
+-    - Updated vector store reference documentation and usage guides to rely on implicit defaults instead of requiring manual `max_workers` configuration in examples
 
 
 ## [0.2.2] - 2026-01-15
