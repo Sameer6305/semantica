@@ -1650,6 +1650,7 @@ def extract_relations_llm(
     silent_fail: bool = False,
     max_text_length: Optional[int] = None,
     structured_output_mode: str = "typed",
+    max_retries: int = 3,
     **kwargs,
 ) -> List[Relation]:
     """
@@ -1662,6 +1663,7 @@ def extract_relations_llm(
         model: LLM model
         silent_fail: If True, return empty list on error. If False (default), raise exception.
         max_text_length: Maximum text length before auto-chunking. None = provider default.
+        max_retries: Maximum number of retries for LLM calls (default: 3)
         **kwargs: Additional options
     """
     # Support llm_model parameter to disambiguate from ML model
@@ -1674,6 +1676,7 @@ def extract_relations_llm(
         "model": model,
         "max_text_length": max_text_length,
         "structured_output_mode": structured_output_mode,
+        "max_retries": max_retries,
         "relation_types": kwargs.get("relation_types"),
         # Include entities hash/str in cache key implicitly via **cache_params
         "entities_hash": hash(tuple(sorted([e.text for e in entities]))) if entities else 0
@@ -1745,6 +1748,7 @@ def extract_relations_llm(
         return _extract_relations_chunked(
             text, entities, provider=provider, model=model, 
             silent_fail=silent_fail, max_text_length=max_text_length, 
+            max_retries=max_retries,
             **kwargs
         )
 
@@ -1816,6 +1820,8 @@ Entities found in text: {entities_str}"""
             call_kwargs["temperature"] = kwargs["temperature"]
         if "verbose" in kwargs:
             call_kwargs["verbose"] = kwargs["verbose"]
+        
+        call_kwargs["max_retries"] = max_retries
 
         result_obj = llm.generate_typed(prompt, schema=RelationsResponse, **call_kwargs)
         if verbose_mode:
@@ -1962,6 +1968,7 @@ def _extract_relations_chunked(
     silent_fail: bool,
     max_text_length: int,
     structured_output_mode: str = "typed",
+    max_retries: int = 3,
     **kwargs
 ) -> List[Relation]:
     """Internal helper to extract relations from long text by chunking."""
@@ -2004,6 +2011,7 @@ def _extract_relations_chunked(
                 silent_fail=False,
                 max_text_length=len(chunk.text) + 1,
                 structured_output_mode=structured_output_mode,
+                max_retries=max_retries,
                 **limited_kwargs
             )
             future_to_chunk[future] = i
@@ -2176,6 +2184,7 @@ def extract_triplets_llm(
     silent_fail: bool = False,
     max_text_length: Optional[int] = None,
     structured_output_mode: str = "typed",
+    max_retries: int = 3,
     **kwargs,
 ) -> List[Triplet]:
     """
@@ -2189,6 +2198,7 @@ def extract_triplets_llm(
         model: LLM model
         silent_fail: If True, return empty list on error. If False (default), raise exception.
         max_text_length: Maximum text length before auto-chunking. None = provider default.
+        max_retries: Maximum number of retries for LLM calls (default: 3)
         **kwargs: Additional options
     """
     # Support llm_model parameter to disambiguate from ML model
@@ -2201,6 +2211,7 @@ def extract_triplets_llm(
         "model": model,
         "max_text_length": max_text_length,
         "structured_output_mode": structured_output_mode,
+        "max_retries": max_retries,
         "triplet_types": kwargs.get("triplet_types"),
         # Include entities/relations hash in cache key implicitly via **cache_params
         "entities_hash": hash(tuple(sorted([e.text for e in entities]))) if entities else 0,
@@ -2266,6 +2277,7 @@ def extract_triplets_llm(
         return _extract_triplets_chunked(
             text, provider=provider, model=model, 
             silent_fail=silent_fail, max_text_length=max_text_length, 
+            max_retries=max_retries,
             **kwargs
         )
     
@@ -2308,7 +2320,9 @@ Text to extract from:
 
     try:
         # Use typed generation with Pydantic schema
-        result_obj = llm.generate_typed(prompt, schema=TripletsResponse, **kwargs)
+        call_kwargs = kwargs.copy()
+        call_kwargs["max_retries"] = max_retries
+        result_obj = llm.generate_typed(prompt, schema=TripletsResponse, **call_kwargs)
         
         # Convert back to internal Triplet format
         triplets = []
