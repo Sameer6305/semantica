@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Configurable LLM Retry Logic**:
+    - Exposed `max_retries` parameter in `NERExtractor`, `RelationExtractor`, `TripletExtractor` and low-level extraction methods (`extract_entities_llm`, `extract_relations_llm`, `extract_triplets_llm`).
+    - Defaults to 3 retries to prevent infinite loops during JSON validation failures or API timeouts.
+    - Propagated retry configuration through chunked processing helpers to ensure consistent behavior for long documents.
+    - Updated `03_Earnings_Call_Analysis.ipynb` to use `max_retries=3` by default.
+
+### Added
 - **Bring Your Own Model (BYOM) Support**:
     - Enabled full support for custom Hugging Face models in `NERExtractor`, `RelationExtractor`, and `TripletExtractor`.
     - Added support for custom tokenizers in `HuggingFaceModelLoader` to handle models with non-standard tokenization requirements.
@@ -24,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Implemented post-processing logic to clean and validate generated triplets.
 
 ### Fixed
+- **LLM Extraction Stability**:
+    - Fixed infinite retry loops in `BaseProvider` by strictly enforcing `max_retries` limit during structured output generation.
+    - Resolved stuck execution in earnings call analysis notebooks when using smaller models (e.g., Llama 3 8B) that frequently produce invalid JSON.
 - **Model Parameter Precedence**:
     - Fixed issue where configuration defaults took precedence over runtime arguments in Hugging Face extractors. Runtime options now correctly override config values.
 - **Import Handling**:
