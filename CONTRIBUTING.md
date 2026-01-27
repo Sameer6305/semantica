@@ -2,6 +2,8 @@
 
 Thank you for your interest in contributing! Every contribution, no matter how small, is valuable. 🎉
 
+⭐ **Give us a Star** • 🍴 **[Fork Semantica](https://github.com/Hawksight-AI/semantica/fork)** • 💬 **Join our [Discord](https://discord.gg/vqRt2qbx)**
+
 > **New to contributing?** Start with a [`good first issue`](https://github.com/Hawksight-AI/semantica/labels/good%20first%20issue) or join our [Discord](https://discord.gg/vqRt2qbx) community.
 
 ---
@@ -9,7 +11,7 @@ Thank you for your interest in contributing! Every contribution, no matter how s
 ## 🚀 Quick Start
 
 1. Find a [`good first issue`](https://github.com/Hawksight-AI/semantica/labels/good%20first%20issue)
-2. Fork & clone the repository
+2. [Fork Semantica](https://github.com/Hawksight-AI/semantica/fork) & clone the repository
 3. Make your changes
 4. Submit a pull request!
 
@@ -132,6 +134,8 @@ Thank you for your interest in contributing! Every contribution, no matter how s
 ## 📋 Getting Started
 
 ### 1. Fork & Clone
+
+First, [fork Semantica](https://github.com/Hawksight-AI/semantica/fork) on GitHub, then:
 
 ```bash
 git clone https://github.com/your-username/semantica.git
@@ -358,3 +362,5 @@ This project follows a [Code of Conduct](CODE_OF_CONDUCT.md). Be respectful and 
 **Thank you for contributing!** 🚀
 
 Every contribution matters - whether it's a single line of code, a typo fix, a helpful answer, or a bug report. We appreciate you! 🙏
+
+⭐ **Give us a Star** • 🍴 **[Fork Semantica](https://github.com/Hawksight-AI/semantica/fork)** • 💬 **Join our [Discord](https://discord.gg/vqRt2qbx)**
