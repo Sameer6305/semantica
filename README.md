@@ -1,6 +1,6 @@
 <div align="center">
+
 <img src="semantica_logo.png" alt="Semantica Logo" width="460"/>
-</div>
 
 # 🧠 Semantica
 ### Open-Source Semantic Layer & Knowledge Engineering Framework
@@ -15,7 +15,10 @@
 
 ### ⭐ Give us a Star • 🍴 Fork us • 💬 Join our Discord
 
-> **Transform Choas into Intelligence. Build AI systems that are explainable and trustworthy — not black boxes.**
+> **Transform Choas into Intelligence. Build AI systems that are explainable, traceable, and trustworthy — not black boxes.**
+
+</div>
+
 
 ---
 
