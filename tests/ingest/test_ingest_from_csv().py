@@ -1,12 +1,8 @@
 import os
 import tempfile
+import pandas as pd
 
 from semantica.ingest.pandas_ingestor import PandasIngestor
-
-
-# -------------------------------------------------------
-# Helper
-# -------------------------------------------------------
 
 def write_temp_csv(content: str, encoding="utf-8"):
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".csv")
@@ -34,6 +30,119 @@ def test_encoding_utf8():
     data = PandasIngestor().from_csv(path)
     assert data.dataframe.iloc[0]["user"] == "李雷"
     os.remove(path)
+ 
+def test_from_csv_detects_tab_delimiter():
+    content = (
+        "user_id\trole\n"
+        "1\tadmin\n"
+        "2\tuser\n"
+    )
+
+    path = write_temp_csv(content)
+
+    ingestor = PandasIngestor()
+    data = ingestor.from_csv(path)
+
+    assert data.row_count == 2
+    assert data.columns == ["user_id", "role"]
+    assert data.dataframe.iloc[0]["role"] == "admin"
+
+    os.remove(path)
+
+
+def test_from_csv_handles_quoted_fields_with_commas():
+    content = (
+        "company,revenue\n"
+        '"Acme, Inc.",100\n'
+        '"Widgets, LLC",200\n'
+    )
+
+    path = write_temp_csv(content)
+
+    ingestor = PandasIngestor()
+    data = ingestor.from_csv(path)
+
+    assert data.row_count == 2
+    assert data.columns == ["company", "revenue"]
+    assert data.dataframe.iloc[0]["company"] == "Acme, Inc."
+    assert int(data.dataframe.iloc[1]["revenue"]) == 200
+
+    os.remove(path)
+
+
+def test_from_csv_handles_multiline_quoted_fields():
+    # Embed actual newlines within quoted fields
+    content = "id,notes\n1,\"line1\nline2\"\n2,\"alpha\nbeta\"\n"
+
+    path = write_temp_csv(content)
+
+    ingestor = PandasIngestor()
+    data = ingestor.from_csv(path)
+
+    assert data.row_count == 2
+    assert "\n" in data.dataframe.iloc[0]["notes"]
+    assert data.dataframe.iloc[1]["notes"].split("\n")[1] == "beta"
+
+    os.remove(path)
+
+
+def test_from_csv_no_header_override():
+    content = (
+        "colA,colB\n"
+        "x,1\n"
+        "y,2\n"
+    )
+
+    path = write_temp_csv(content)
+
+    ingestor = PandasIngestor()
+    data = ingestor.from_csv(path, header=None)
+
+    assert data.row_count == 3
+    assert data.columns == [0, 1]
+    assert list(data.dataframe.iloc[0]) == ["colA", "colB"]
+
+    os.remove(path)
+
+
+def test_from_csv_with_chunksize_concatenates():
+    rows = ["a,b", "1,x", "2,y", "3,z", "4,w"]
+    content = "\n".join(rows) + "\n"
+
+    path = write_temp_csv(content)
+
+    ingestor = PandasIngestor()
+    data = ingestor.from_csv(path, chunksize=2)
+
+    assert data.row_count == 4
+    assert data.metadata.get("chunksize") == 2
+    assert list(data.dataframe["a"]) == [1, 2, 3, 4]
+
+    os.remove(path)
+
+
+def test_from_csv_preserves_nan_values():
+    content = (
+        "name,score\n"
+        "alice,\n"
+        "bob,10\n"
+    )
+
+    path = write_temp_csv(content)
+
+    ingestor = PandasIngestor()
+    data = ingestor.from_csv(path)
+
+    assert data.row_count == 2
+    assert pd.isna(data.dataframe.iloc[0]["score"]) is True
+    assert int(data.dataframe.iloc[1]["score"]) == 10
+
+    os.remove(path)
+
+
+# -------------------------------------------------------
+# Test 2: Delimiter Detection (semicolon separated)
+# -------------------------------------------------------
 
 
 def test_encoding_accented_text():

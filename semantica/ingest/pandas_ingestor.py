@@ -192,11 +192,10 @@ class PandasIngestor:
             self.logger.error(f"Failed to ingest DataFrame: {e}")
             raise ProcessingError(f"Failed to ingest DataFrame: {e}") from e
 
-    
     def from_csv(
         self,
         file_path: Union[str, Path],
-        chunksize: Optional[int] = None ,
+        chunksize: Optional[int] = None,
         **pandas_options,
     ) -> PandasData:
         file_path = Path(file_path)
@@ -212,8 +211,6 @@ class PandasIngestor:
         )
 
         try:
-            import csv
-            import chardet
 
             # ---------- Encoding Detection ----------
             with open(file_path, "rb") as f:
@@ -235,20 +232,38 @@ class PandasIngestor:
                     delimiter = ","
                     quotechar = '"'
 
-            has_header = True   # Always treat first row as header
+                # Header handling: default to True (treat first row as header)
+                # unless user explicitly overrides via pandas_options['header'].
+                has_header = True
+                header_opt = pandas_options.get("header", None)
+                if header_opt is None:
+                    has_header = True
+                elif header_opt == 0 or header_opt == "infer":
+                    has_header = True
+                else:
+                    # Any explicit non-header setting (e.g., None or int>0) implies no header
+                    try:
+                        has_header = False if header_opt is None or int(header_opt) != 0 else True
+                    except Exception:
+                        has_header = False
 
 
             skipped_rows = 0
             dataframes = []
 
             # ---------- CSV Reading (Chunked if needed) ----------
+            # Preserve explicit header setting (including None) if user provided it.
+            has_explicit_header = "header" in pandas_options
+            explicit_header = pandas_options.pop("header", None) if has_explicit_header else None
+            header_arg = explicit_header if has_explicit_header else (0 if has_header else None)
+
             reader = pd.read_csv(
                 file_path,
                 sep=delimiter,
                 encoding=encoding,
                 encoding_errors="replace",
-                quoting=csv.QUOTE_NONE,
-                header=0 if has_header else None,
+                quoting=csv.QUOTE_MINIMAL,
+                header=header_arg,
                 quotechar=quotechar,
                 escapechar="\\",
                 engine="python",
