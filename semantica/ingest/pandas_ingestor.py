@@ -25,6 +25,8 @@ Example Usage:
 """
 
 import json
+import csv
+import chardet
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -190,26 +192,13 @@ class PandasIngestor:
             self.logger.error(f"Failed to ingest DataFrame: {e}")
             raise ProcessingError(f"Failed to ingest DataFrame: {e}") from e
 
+    
     def from_csv(
         self,
         file_path: Union[str, Path],
+        chunksize: Optional[int] = None,
         **pandas_options,
     ) -> PandasData:
-        """
-        Ingest data from CSV file.
-
-        This method reads a CSV file using pandas and ingests it as a DataFrame.
-
-        Args:
-            file_path: Path to CSV file
-            **pandas_options: Additional options passed to pd.read_csv()
-
-        Returns:
-            PandasData: Ingested data object
-
-        Raises:
-            ProcessingError: If CSV reading fails
-        """
         file_path = Path(file_path)
 
         if not file_path.exists():
@@ -223,15 +212,75 @@ class PandasIngestor:
         )
 
         try:
-            # Read CSV with pandas
-            dataframe = pd.read_csv(file_path, **pandas_options)
+            # ---------- Encoding Detection ----------
+            with open(file_path, "rb") as f:
+                raw = f.read(100_000)
+                encoding_info = chardet.detect(raw)
+            encoding = encoding_info.get("encoding") or "utf-8"
 
-            self.progress_tracker.update_tracking(
-                tracking_id, message="CSV read successfully, processing DataFrame..."
+            # ---------- Delimiter & Header Detection ----------
+            with open(file_path, "r", encoding=encoding, errors="replace") as f:
+                sample = f.read(5000)
+                sniffer = csv.Sniffer()
+                dialect = sniffer.sniff(sample, delimiters=[",", ";", "\t", "|"])
+                has_header = sniffer.has_header(sample)
+
+            skipped_rows = 0
+            dataframes = []
+
+            # ---------- CSV Reading (Chunked if needed) ----------
+            reader = pd.read_csv(
+                file_path,
+                sep=dialect.delimiter,
+                encoding=encoding,
+                encoding_errors="replace",
+                quoting=csv.QUOTE_MINIMAL,
+                header=0 if has_header else None,
+                quotechar=dialect.quotechar,
+                escapechar="\\",
+                engine="python",
+                on_bad_lines="warn",
+                chunksize=chunksize,
+                **pandas_options,
             )
 
-            # Ingest the DataFrame
-            return self.ingest_dataframe(dataframe, **pandas_options)
+            if chunksize:
+                for chunk in reader:
+                    dataframes.append(chunk)
+            else:
+                dataframes.append(reader)
+
+            dataframe = pd.concat(dataframes, ignore_index=True)
+
+            self.progress_tracker.update_tracking(
+                tracking_id,
+                message="CSV parsed successfully, ingesting DataFrame...",
+            )
+
+            # ---------- Ingest ----------
+            pandas_data = self.ingest_dataframe(dataframe)
+
+            # ---------- Metadata ----------
+            pandas_data.metadata.update(
+                {
+                    "source": "csv",
+                    "file": str(file_path),
+                    "detected_encoding": encoding,
+                    "encoding_confidence": encoding_info.get("confidence"),
+                    "detected_delimiter": dialect.delimiter,
+                    "header_detected": has_header,
+                    "chunksize": chunksize,
+                    "malformed_rows_skipped": skipped_rows,
+                }
+            )
+
+            self.progress_tracker.stop_tracking(
+                tracking_id,
+                status="completed",
+                message=f"CSV ingestion completed: {pandas_data.row_count} rows",
+            )
+
+            return pandas_data
 
         except Exception as e:
             self.progress_tracker.stop_tracking(
