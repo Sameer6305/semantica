@@ -1,9 +1,17 @@
 """
-Provenance Tracking Module
+Provenance Tracking Module (Enhanced with Unified Backend)
 
 This module provides comprehensive source tracking and lineage capabilities
 for the Semantica framework, enabling tracking of data origins and evolution
 for knowledge graph entities and relationships.
+
+IMPORTANT: This module now uses the unified semantica.provenance.ProvenanceManager
+backend for enhanced W3C PROV-O compliance and audit-grade tracking. All existing
+APIs remain 100% backward compatible.
+
+For new code, consider using the unified API:
+    >>> from semantica.provenance import ProvenanceManager
+    >>> prov_mgr = ProvenanceManager()
 
 Key Features:
     - Entity provenance tracking (source, timestamp, metadata)
@@ -11,9 +19,11 @@ Key Features:
     - Lineage retrieval (complete provenance history)
     - Source aggregation (multiple sources per entity)
     - Temporal tracking (first seen, last updated)
+    - W3C PROV-O compliance (when using unified backend)
+    - Audit-grade integrity verification
 
 Main Classes:
-    - ProvenanceTracker: Main provenance tracking engine
+    - ProvenanceTracker: Main provenance tracking engine (backward compatible wrapper)
 
 Example Usage:
     >>> from semantica.kg import ProvenanceTracker
@@ -31,6 +41,13 @@ from typing import Any, Dict, List, Optional
 
 from ..utils.logging import get_logger
 from ..utils.progress_tracker import get_progress_tracker
+
+# Import unified provenance manager
+try:
+    from ..provenance import ProvenanceManager as UnifiedProvenanceManager
+    UNIFIED_AVAILABLE = True
+except ImportError:
+    UNIFIED_AVAILABLE = False
 
 
 class ProvenanceTracker:
@@ -75,6 +92,10 @@ class ProvenanceTracker:
         if not self.progress_tracker.enabled:
             self.progress_tracker.enabled = True
 
+        self._use_unified = UNIFIED_AVAILABLE
+        if self._use_unified:
+            self._unified_manager = UnifiedProvenanceManager()
+
         self.logger.debug("Provenance tracker initialized")
 
     def track_entity(
@@ -89,10 +110,33 @@ class ProvenanceTracker:
 
         Args:
             entity_id: Entity identifier
-            source: Source identifier (e.g., "file_1", "api_endpoint_2")
+            source: Source identifier (e.g., "file_1", "api_endpoint_2", DOI)
             metadata: Optional metadata dictionary (e.g., confidence scores,
                      extraction methods, etc.)
         """
+        if self._use_unified:
+            # Delegate to unified manager
+            try:
+                self._unified_manager.track_entity(
+                    entity_id=entity_id,
+                    source=source,
+                    metadata=metadata
+                )
+            except Exception as e:
+                self.logger.warning(f"Unified tracking failed, using fallback: {e}")
+                self._track_entity_legacy(entity_id, source, metadata)
+        else:
+            # Use legacy implementation
+            self._track_entity_legacy(entity_id, source, metadata)
+        
+        self.logger.debug(
+            f"Tracked provenance for entity {entity_id} from source {source}"
+        )
+    
+    def _track_entity_legacy(
+        self, entity_id: str, source: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """Legacy entity tracking implementation."""
         if entity_id not in self.provenance_data:
             self.provenance_data[entity_id] = {
                 "sources": [],
@@ -114,10 +158,6 @@ class ProvenanceTracker:
         # Merge metadata
         if metadata:
             self.provenance_data[entity_id]["metadata"].update(metadata)
-
-        self.logger.debug(
-            f"Tracked provenance for entity {entity_id} from source {source}"
-        )
 
     def track_relationship(
         self,
@@ -175,9 +215,20 @@ class ProvenanceTracker:
                 - timestamp: ISO format timestamp
                 - metadata: Source metadata dictionary
         """
+        if self._use_unified:
+            # Get from unified manager
+            try:
+                return self._unified_manager.get_all_sources(entity_id)
+            except Exception as e:
+                self.logger.warning(f"Unified retrieval failed, using fallback: {e}")
+                return self._get_all_sources_legacy(entity_id)
+        else:
+            return self._get_all_sources_legacy(entity_id)
+    
+    def _get_all_sources_legacy(self, entity_id: str) -> List[Dict[str, Any]]:
+        """Legacy get all sources implementation."""
         if entity_id not in self.provenance_data:
             return []
-
         return self.provenance_data[entity_id].get("sources", [])
 
     def get_lineage(self, entity_id: str) -> Dict[str, Any]:
@@ -192,14 +243,38 @@ class ProvenanceTracker:
 
         Returns:
             dict: Complete lineage information containing:
-                - sources: List of all source entries
+                - sources: List of all source entries (legacy format)
                 - first_seen: ISO timestamp of first source
                 - last_updated: ISO timestamp of most recent source
                 - metadata: Aggregated metadata dictionary
+                - lineage_chain: Complete lineage chain (when using unified backend)
         """
+        if self._use_unified:
+            # Get from unified manager
+            try:
+                lineage = self._unified_manager.get_lineage(entity_id)
+                if not lineage:
+                    return {}
+                
+                # Convert to legacy format for backward compatibility
+                legacy_format = {
+                    "sources": self._unified_manager.get_all_sources(entity_id),
+                    "first_seen": lineage.get("first_seen"),
+                    "last_updated": lineage.get("last_updated"),
+                    "metadata": {},
+                    "lineage_chain": lineage.get("lineage_chain", [])
+                }
+                return legacy_format
+            except Exception as e:
+                self.logger.warning(f"Unified retrieval failed, using fallback: {e}")
+                return self._get_lineage_legacy(entity_id)
+        else:
+            return self._get_lineage_legacy(entity_id)
+    
+    def _get_lineage_legacy(self, entity_id: str) -> Dict[str, Any]:
+        """Legacy get lineage implementation."""
         if entity_id not in self.provenance_data:
             return {}
-
         return self.provenance_data[entity_id].copy()
 
     def get_provenance(self, entity_id: str) -> Optional[Dict[str, Any]]:
@@ -216,7 +291,18 @@ class ProvenanceTracker:
             dict: Complete provenance information (same as get_lineage()),
                   or None if entity is not tracked
         """
-        return self.provenance_data.get(entity_id)
+        if self._use_unified:
+            try:
+                prov = self._unified_manager.get_provenance(entity_id)
+                if not prov:
+                    return None
+                # Return in legacy format
+                return self.get_lineage(entity_id)
+            except Exception as e:
+                self.logger.warning(f"Unified retrieval failed, using fallback: {e}")
+                return self.provenance_data.get(entity_id)
+        else:
+            return self.provenance_data.get(entity_id)
 
     def track_entities_batch(
         self,

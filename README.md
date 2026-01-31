@@ -23,7 +23,7 @@
 
 ## 🚀 Why Semantica?
 
-**Semantica** bridges the **semantic gap** between text similarity and true meaning. It's the **semantic intelligence layer** that makes your AI agents auditable, explainable, and compliant.
+**Semantica** bridges the **semantic gap** between text similarity and true meaning. It's the **semantic intelligence layer** that makes your AI agents auditable, explainable, and trustworthy.
 
 Perfect for **high-stakes domains** where mistakes have real consequences.
 
@@ -56,8 +56,8 @@ print(f"Built KG with {len(kg.get('entities', []))} entities")
 | **Trustworthy** | **Explainable** | **Auditable** |
 |:------------------:|:------------------:|:-----------------:|
 | Conflict detection & validation | Transparent reasoning paths | Complete provenance tracking |
-| Rule-based governance | Entity relationships & ontologies | Source-level provenance |
-| Production-grade QA | Multi-hop graph reasoning | Audit-ready compliance |
+| Rule-based governance | Entity relationships & ontologies | W3C PROV-O compliant lineage |
+| Production-grade QA | Multi-hop graph reasoning | Source tracking & integrity verification |
 
 ---
 
@@ -69,19 +69,19 @@ print(f"Built KG with {len(kg.get('entities', []))} entities")
 
 | Feature | Benefit |
 |:--------|:--------|
-| **Auditable** | Complete provenance tracking with full audit trails |
+| **Auditable** | Complete provenance tracking with W3C PROV-O compliance |
 | **Explainable** | Transparent reasoning paths with entity relationships |
-| **Provenance-Aware** | Source-level provenance from documents to responses |
+| **Provenance-Aware** | End-to-end lineage from documents to responses |
 | **Validated** | Built-in conflict detection, deduplication, QA |
 | **Governed** | Rule-based validation and semantic consistency |
-| **Version Control** | Enterprise-grade change management with HIPAA/SOX/FDA compliance |
+| **Version Control** | Enterprise-grade change management with integrity verification |
 
 ### Perfect For High-Stakes Use Cases
 
 | 🏥 **Healthcare** | 💰 **Finance** | ⚖️ **Legal** |
 |:-----------------:|:--------------:|:------------:|
 | Clinical decisions | Fraud detection | Evidence-backed research |
-| Drug interactions | Regulatory compliance | Contract analysis |
+| Drug interactions | Regulatory support | Contract analysis |
 | Patient safety | Risk assessment | Case law reasoning |
 
 | 🔒 **Cybersecurity** | 🏛️ **Government** | 🏭 **Infrastructure** | 🚗 **Autonomous** |
@@ -94,7 +94,7 @@ print(f"Built KG with {len(kg.get('entities', []))} entities")
 - **GraphRAG Systems** — Retrieval with graph reasoning and hybrid search
 - **AI Agents** — Trustworthy, accountable multi-agent systems with semantic memory
 - **Reasoning Models** — Explainable AI decisions with reasoning paths
-- **Enterprise AI** — Governed, auditable platforms for compliance
+- **Enterprise AI** — Governed, auditable platforms that support compliance
 
 ### Integrations
 
@@ -158,11 +158,11 @@ The **semantic gap** is the fundamental disconnect between what AI systems can p
 | Feature | Traditional RAG | Semantica |
 |:--------|:----------------|:----------|
 | **Reasoning** | ❌ Black-box answers | ✅ Explainable reasoning paths |
-| **Provenance** | ❌ No provenance | ✅ Source-level provenance |
+| **Provenance** | ❌ No provenance | ✅ W3C PROV-O compliant lineage tracking |
 | **Search** | ⚠️ Vector similarity only | ✅ Semantic + graph reasoning |
 | **Quality** | ❌ No conflict handling | ✅ Explicit contradiction detection |
 | **Safety** | ⚠️ Unsafe for high-stakes | ✅ Designed for governed environments |
-| **Compliance** | ❌ No audit trails | ✅ Audit-ready provenance |
+| **Compliance** | ❌ No audit trails | ✅ Complete audit trails with integrity verification |
 
 ---
 
@@ -181,9 +181,9 @@ The **semantic gap** is the fundamental disconnect between what AI systems can p
 - 📐 **Ontology Induction** — Automated domain rule generation
 - 🔄 **Deduplication** — Jaro-Winkler similarity, conflict resolution
 - ✅ **Quality Assurance** — Conflict detection, validation
-- 📊 **Provenance Tracking** — Source, time, confidence metadata
+- 📊 **Provenance Tracking** — W3C PROV-O compliant lineage tracking across all modules
 - 🧠 **Reasoning Traces** — Explainable inference paths
-- 🔐 **Change Management** — Version control with audit trails, checksums, HIPAA/SOX/FDA compliance
+- 🔐 **Change Management** — Version control with audit trails, checksums, compliance support
 
 ### 3️⃣ Output Layer — Auditable Knowledge Assets
 - 📊 **Knowledge Graphs** — Queryable, temporal, explainable
@@ -202,9 +202,9 @@ The **semantic gap** is the fundamental disconnect between what AI systems can p
 
 Designed for domains where **mistakes have real consequences** and **every decision must be accountable**:
 
-- **🏥 Healthcare & Life Sciences** — Clinical decision support, drug interaction analysis, medical literature reasoning, patient safety compliance
-- **💰 Finance & Risk** — Fraud detection, regulatory compliance (SOX, GDPR, MiFID II), credit risk assessment, algorithmic trading validation
-- **⚖️ Legal & Compliance** — Evidence-backed legal research, contract analysis, regulatory change management, case law reasoning
+- **🏥 Healthcare & Life Sciences** — Clinical decision support, drug interaction analysis, medical literature reasoning, patient safety tracking
+- **💰 Finance & Risk** — Fraud detection, regulatory support (SOX, GDPR, MiFID II), credit risk assessment, algorithmic trading validation
+- **⚖️ Legal & Compliance** — Evidence-backed legal research, contract analysis, regulatory change tracking, case law reasoning
 - **🔒 Cybersecurity & Intelligence** — Threat attribution, incident response, security audit trails, intelligence analysis
 - **🏛️ Government & Defense** — Governed AI systems, policy decisions, classified information handling, defense intelligence
 - **🏭 Critical Infrastructure** — Power grid management, transportation safety, water treatment, emergency response
@@ -450,7 +450,7 @@ print(f"Classes: {len(custom_ontology.classes)}")
 
 ### Change Management & Version Control
 
-> **Enterprise-Grade Versioning** • Persistent Storage • Audit Trails • HIPAA/SOX/FDA Compliance • SHA-256 Checksums
+> **Version Control for Knowledge Graphs & Ontologies** • **SQLite & In-Memory Storage** • **SHA-256 Integrity Verification**
 
 ```python
 from semantica.change_management import TemporalVersionManager, OntologyVersionManager
@@ -475,15 +475,92 @@ print(f"Entities modified: {diff['summary']['entities_modified']}")
 is_valid = kg_manager.verify_checksum(snapshot)
 ```
 
-**Key Features:**
-- 🔐 **Persistent Storage** — SQLite and in-memory backends
+**What We Provide:**
+- 🔐 **Persistent Storage** — SQLite and in-memory backends implemented
 - 📊 **Detailed Diffs** — Entity-level and relationship-level change tracking
 - ✅ **Data Integrity** — SHA-256 checksums with tamper detection
-- 🏥 **Compliance Ready** — HIPAA, SOX, FDA 21 CFR Part 11 support
-- ⚡ **High Performance** — 17.6ms for 10k entities, 510+ ops/sec concurrent
-- 🧪 **Fully Tested** — 104 tests covering real-world scenarios
+- 📝 **Standardized Metadata** — ChangeLogEntry with author, timestamp, description
+- ⚡ **Performance Tested** — Benchmarked with 10k entities
+- 🧪 **Test Coverage** — 104 tests covering core functionality
+
+**Compliance Note:** Provides technical infrastructure (audit trails, checksums, temporal tracking) that supports compliance efforts for HIPAA, SOX, FDA 21 CFR Part 11. Organizations must implement additional policies and procedures for full regulatory compliance.
 
 [**Documentation: Change Management**](docs/reference/change_management.md) • [**Usage Guide**](semantica/change_management/change_management_usage.md)
+
+### Provenance Tracking — W3C PROV-O Compliant Lineage
+
+> **W3C PROV-O Implementation** • **17 Module Integrations** • **Opt-In Design** • **Zero Breaking Changes**
+
+**⚠️ Compliance Note:** Provides technical infrastructure for provenance tracking that supports compliance efforts. Organizations must implement additional policies, procedures, and controls for full regulatory compliance.
+
+```python
+from semantica.semantic_extract.semantic_extract_provenance import NERExtractorWithProvenance
+from semantica.llms.llms_provenance import GroqLLMWithProvenance
+from semantica.graph_store.graph_store_provenance import GraphStoreWithProvenance
+
+# Enable provenance tracking - just add provenance=True
+ner = NERExtractorWithProvenance(provenance=True)
+entities = ner.extract(
+    text="Apple Inc. was founded by Steve Jobs.",
+    source="biography.pdf"
+)
+
+# Track LLM calls with costs and latency
+llm = GroqLLMWithProvenance(provenance=True, model="llama-3.1-70b")
+response = llm.generate("Summarize the document")
+
+# Store in graph with complete lineage
+graph = GraphStoreWithProvenance(provenance=True)
+graph.add_node(entity, source="biography.pdf")
+
+# Retrieve complete provenance
+lineage = ner._prov_manager.get_lineage("entity_id")
+print(f"Source: {lineage['source']}")
+print(f"Lineage chain: {lineage['lineage_chain']}")
+```
+
+**What We Provide:**
+- ✅ **W3C PROV-O Implementation** — Data schemas implementing prov:Entity, prov:Activity, prov:Agent, prov:wasDerivedFrom
+- ✅ **17 Module Integrations** — Provenance-enabled versions of semantic extract, LLMs, pipeline, context, ingest, embeddings, reasoning, conflicts, deduplication, export, parse, normalize, ontology, visualization, graph/vector/triplet stores
+- ✅ **Opt-In Design** — Zero breaking changes, `provenance=False` by default
+- ✅ **Lineage Tracking** — Document → Chunk → Entity → Relationship → Graph lineage chains
+- ✅ **LLM Tracking** — Token counts, costs, and latency tracking for LLM calls
+- ✅ **Source Tracking Fields** — Document identifiers, page numbers, sections, and quote fields in schemas
+- ✅ **Storage Backends** — InMemoryStorage (fast) and SQLiteStorage (persistent) implemented
+- ✅ **Bridge Axioms** — BridgeAxiom and TranslationChain classes for domain transformations (L1 → L2 → L3)
+- ✅ **Integrity Verification** — SHA-256 checksum computation and verification functions
+- ✅ **No New Dependencies** — Uses Python stdlib only (sqlite3, json, dataclasses)
+
+**Supported Modules:**
+```python
+# Semantic Extract
+from semantica.semantic_extract.semantic_extract_provenance import (
+    NERExtractorWithProvenance, RelationExtractorWithProvenance, EventDetectorWithProvenance
+)
+
+# LLM Providers
+from semantica.llms.llms_provenance import (
+    GroqLLMWithProvenance, OpenAILLMWithProvenance, HuggingFaceLLMWithProvenance
+)
+
+# Storage & Processing
+from semantica.graph_store.graph_store_provenance import GraphStoreWithProvenance
+from semantica.vector_store.vector_store_provenance import VectorStoreWithProvenance
+from semantica.pipeline.pipeline_provenance import PipelineWithProvenance
+
+# ... and 12 more modules
+```
+
+**High-Stakes Use Cases:**
+- 🏥 **Healthcare** — Clinical decision audit trails with source tracking
+- 💰 **Finance** — Fraud detection provenance with complete lineage
+- ⚖️ **Legal** — Evidence chain of custody with temporal tracking
+- 🔒 **Cybersecurity** — Threat attribution with relationship tracking
+- 🏛️ **Government** — Policy decision audit trails with integrity verification
+
+**Note:** Provenance tracking provides the *technical infrastructure* for compliance. Organizations must implement additional policies and procedures to meet specific regulatory requirements (HIPAA, SOX, FDA 21 CFR Part 11, etc.).
+
+[**Documentation: Provenance Tracking**](semantica/provenance/provenance_usage.md)
 
 ### Context Engineering & Memory Systems
 
