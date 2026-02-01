@@ -1411,7 +1411,7 @@ Instructions:
 Answer:"""
 
         try:
-            response = llm_provider.generate(prompt, temperature=0.3)
+            response = llm_provider.generate(prompt)
             return response
         except Exception as e:
             self.logger.warning(f"LLM generation failed: {e}")
