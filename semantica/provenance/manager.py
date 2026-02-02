@@ -100,9 +100,41 @@ class ProvenanceManager:
             ...     metadata={"confidence": 0.92}
             ... )
         """
+        # Validate entity_id
+        if entity_id is None:
+            raise ValueError("entity_id cannot be None")
+        if not isinstance(entity_id, str):
+            raise TypeError(f"entity_id must be a string, got {type(entity_id).__name__}")
+        
+        if not isinstance(entity_id, str):
+            raise TypeError(f"entity_id must be a string, got {type(entity_id).__name__}")
+        
         # Check if entity already exists
         existing = self.storage.retrieve(entity_id)
-        
+        parent_id = kwargs.get("parent_entity_id")
+
+        # If entity exists, preserve history by archiving the old state
+        if existing:
+            # Create a history entry for the previous state
+            # Use timestamp or counter for uniqueness
+            import copy
+            history_entry = copy.deepcopy(existing)
+            history_id = f"{entity_id}:v:{existing.last_updated}"
+            
+            # Ensure unique ID if update happens same second
+            if self.storage.retrieve(history_id):
+                 history_id = f"{history_id}:{datetime.utcnow().microsecond}"
+            
+            history_entry.entity_id = history_id
+            
+            # Store the history entry
+            try:
+                self.storage.store(history_entry)
+                # Link new entry to this history entry
+                parent_id = history_id
+            except Exception:
+                pass # If history archiving fails, proceed with update but lose history (graceful degradation)
+
         entry = ProvenanceEntry(
             entity_id=entity_id,
             entity_type=kwargs.get("entity_type", "entity"),
@@ -113,7 +145,8 @@ class ProvenanceManager:
             confidence=kwargs.get("confidence", 1.0),
             metadata=metadata or {},
             first_seen=existing.first_seen if existing else datetime.utcnow().isoformat(),
-            last_updated=datetime.utcnow().isoformat()
+            last_updated=datetime.utcnow().isoformat(),
+            parent_entity_id=parent_id  # Link to history or explicit parent
         )
         
         # Compute checksum for integrity
@@ -391,17 +424,26 @@ class ProvenanceManager:
             entity_id: Entity identifier
             
         Returns:
-            Dictionary containing lineage information
+            Dictionary containing lineage information including metadata
             
         Example:
             >>> lineage = prov_mgr.get_lineage("entity_1")
             >>> print(lineage["source_documents"])
             ['DOI:10.1371/...', 'doc_2']
+            >>> print(lineage["metadata"])
+            {'text': 'Apple Inc.', 'label': 'ORG'}
         """
         lineage_entries = self.storage.trace_lineage(entity_id)
         
         if not lineage_entries:
             return {}
+        
+        # Aggregate metadata from all lineage entries
+        # Most recent entry's metadata takes precedence
+        aggregated_metadata = {}
+        for entry in lineage_entries:
+            if entry.metadata:
+                aggregated_metadata.update(entry.metadata)
         
         return {
             "entity_id": entity_id,
@@ -418,7 +460,8 @@ class ProvenanceManager:
                 (e.last_updated for e in lineage_entries if e.last_updated),
                 default=None
             ),
-            "entity_count": len(lineage_entries)
+            "entity_count": len(lineage_entries),
+            "metadata": aggregated_metadata  # Add metadata key
         }
     
     def trace_lineage(self, entity_id: str) -> List[ProvenanceEntry]:

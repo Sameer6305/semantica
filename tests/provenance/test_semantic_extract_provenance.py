@@ -383,9 +383,13 @@ class TestRealProvenanceTracking:
         manager = ProvenanceManager()
         
         # Track various items
-        manager.track_entity("e1", "src1", "type1")
-        manager.track_entity("e2", "src2", "type2")
-        manager.track_relationship("r1", "src1", "e1", "relates", "e2")
+        manager.track_entity("e1", "src1", entity_type="type1")
+        manager.track_entity("e2", "src2", entity_type="type2")
+        manager.track_relationship(
+            relationship_id="r1",
+            source="src1",
+            metadata={"subject": "e1", "predicate": "relates", "object": "e2"}
+        )
         
         # Get statistics
         stats = manager.get_statistics()

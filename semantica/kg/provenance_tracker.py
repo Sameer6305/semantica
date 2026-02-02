@@ -261,7 +261,7 @@ class ProvenanceTracker:
                     "sources": self._unified_manager.get_all_sources(entity_id),
                     "first_seen": lineage.get("first_seen"),
                     "last_updated": lineage.get("last_updated"),
-                    "metadata": {},
+                    "metadata": lineage.get("metadata", {}),  # Include metadata from lineage
                     "lineage_chain": lineage.get("lineage_chain", [])
                 }
                 return legacy_format

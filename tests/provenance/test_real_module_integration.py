@@ -155,7 +155,7 @@ class TestRealModuleIntegration:
         for i in range(len(sources)):
             lineage = manager.get_lineage(f"entity_from_{i}")
             assert lineage is not None
-            assert lineage["source"] == sources[i]
+            assert sources[i] in lineage["source_documents"]
     
     def test_property_source_tracking(self):
         """Test tracking property sources for entities."""
@@ -227,7 +227,7 @@ class TestRealModuleIntegration:
         
         assert lineage_v1 is not None
         assert lineage_v2 is not None
-        assert lineage_v1["timestamp"] < lineage_v2["timestamp"]
+        assert lineage_v1["first_seen"] < lineage_v2["first_seen"]
     
     def test_batch_operations_with_provenance(self):
         """Test batch operations maintain provenance."""
@@ -280,9 +280,13 @@ class TestRealModuleIntegration:
         manager = ProvenanceManager()
         
         # Track some data
-        manager.track_entity("e1", "src1", "type1", metadata={"key": "value"})
-        manager.track_entity("e2", "src2", "type2")
-        manager.track_relationship("r1", "src1", "e1", "relates", "e2")
+        manager.track_entity("e1", "src1", entity_type="type1", metadata={"key": "value"})
+        manager.track_entity("e2", "src2", entity_type="type2")
+        manager.track_relationship(
+            relationship_id="r1",
+            source="src1",
+            metadata={"subject": "e1", "predicate": "relates", "object": "e2"}
+        )
         
         # Get statistics
         stats = manager.get_statistics()
