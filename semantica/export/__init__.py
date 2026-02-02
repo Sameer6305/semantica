@@ -120,12 +120,14 @@ Author: Semantica Contributors
 License: MIT
 """
 
+from .arrow_exporter import ArrowExporter
 from .config import ExportConfig, export_config
 from .csv_exporter import CSVExporter
 from .graph_exporter import GraphExporter
 from .json_exporter import JSONExporter
 from .lpg_exporter import LPGExporter
 from .methods import (
+    export_arrow,
     export_csv,
     export_graph,
     export_json,
@@ -153,6 +155,7 @@ __all__ = [
     "NamespaceManager",
     "JSONExporter",
     "CSVExporter",
+    "ArrowExporter",
     "GraphExporter",
     "SemanticNetworkYAMLExporter",
     "YAMLSchemaExporter",
@@ -166,6 +169,7 @@ __all__ = [
     "export_rdf",
     "export_json",
     "export_csv",
+    "export_arrow",
     "export_graph",
     "export_yaml",
     "export_owl",

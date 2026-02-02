@@ -155,6 +155,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 from ..utils.exceptions import ConfigurationError, ProcessingError
 from ..utils.logging import get_logger
+from .arrow_exporter import ArrowExporter
 from .config import export_config
 from .csv_exporter import CSVExporter
 from .graph_exporter import GraphExporter
@@ -314,6 +315,51 @@ def export_csv(
 
     except Exception as e:
         logger.error(f"Failed to export CSV: {e}")
+        raise
+
+
+def export_arrow(
+    data: Union[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]],
+    file_path: Union[str, Path],
+    method: str = "default",
+    **kwargs,
+) -> None:
+    """
+    Export data to Apache Arrow format (convenience function).
+
+    This is a user-friendly wrapper that exports data to Arrow IPC format.
+
+    Args:
+        data: Data to export (list of dicts or dict with list values)
+        file_path: Output Arrow file path (or base path for multiple files)
+        method: Export method (default: "default")
+        **kwargs: Additional options passed to ArrowExporter
+
+    Examples:
+        >>> from semantica.export.methods import export_arrow
+        >>> export_arrow(entities, "entities.arrow")
+        >>> export_arrow({"entities": [...], "relationships": [...]}, "output_base")
+    """
+    # Check for custom method in registry
+    custom_method = method_registry.get("arrow", method)
+    if custom_method and custom_method is not export_arrow:
+        try:
+            return custom_method(data, file_path, **kwargs)
+        except Exception as e:
+            logger.warning(
+                f"Custom method {method} failed: {e}, falling back to default"
+            )
+
+    try:
+        # Get config
+        config = export_config.get_method_config("arrow")
+        config.update(kwargs)
+
+        exporter = ArrowExporter(**config)
+        exporter.export(data, file_path, **kwargs)
+
+    except Exception as e:
+        logger.error(f"Failed to export Arrow: {e}")
         raise
 
 
