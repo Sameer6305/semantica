@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Apache Arrow Export Support** (PR #273 by @Sameer6305):
+  - Added Apache Arrow exporter with explicit schemas, entity/relationship export, compression support
+  - Integrated with export module and method registry, Pandas/DuckDB compatible
+  - 20 unit tests + 1 integration test, complete documentation with examples
+    
+
 ## [0.2.6] - 2026-02-03
 
 ### Added / Changed
