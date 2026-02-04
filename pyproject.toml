@@ -101,11 +101,9 @@ parse-docling = ["docling>=1.0.0"]
 
 # ---- Database Connectors ----
 db-snowflake = ["snowflake-connector-python>=3.0.0", "cryptography>=3.4.0"]
-db-duckdb = ["duckdb>=0.8.0"]
-db-mongodb = ["pymongo>=4.0.0"]
 
 db-all = [
-  "semantica[db-snowflake,db-duckdb,db-mongodb]"
+  "semantica[db-snowflake]"
 ]
 
 # ---- Embedding / Models ----

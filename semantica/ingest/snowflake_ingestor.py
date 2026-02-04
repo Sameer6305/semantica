@@ -421,25 +421,17 @@ class SnowflakeIngestor:
 
         self.logger.debug("Snowflake ingestor initialized")
 
-    def _validate_identifier(self, identifier: str, identifier_type: str = "identifier"):
-        """Validate SQL identifier to prevent malformed names.
+    def _escape_identifier(self, identifier: str) -> str:
+        """Escape SQL identifier by wrapping in quotes and doubling internal quotes.
         
         Args:
-            identifier: The identifier to validate
-            identifier_type: Type of identifier (for error messages)
+            identifier: The identifier to escape
             
-        Raises:
-            ValidationError: If identifier contains potentially problematic characters
+        Returns:
+            Properly escaped identifier safe for SQL interpolation
         """
-        if not identifier:
-            return
-            
-        # Check for quotes or other potentially problematic characters
-        if '"' in identifier or "'" in identifier or ";" in identifier:
-            raise ValidationError(
-                f"Invalid {identifier_type}: '{identifier}'. "
-                f"Identifiers must not contain quotes or semicolons."
-            )
+        escaped = identifier.replace('"', '""')
+        return f'"{escaped}"'
 
     def ingest_table(
         self,
@@ -495,16 +487,19 @@ class SnowflakeIngestor:
         )
 
         try:
-            # Validate identifiers
-            self._validate_identifier(table_name, "table_name")
-            self._validate_identifier(database, "database")
-            self._validate_identifier(schema, "schema")
-            
             # Connect to Snowflake
             conn = self.connector.connect()
 
-            # Build query
-            table_ref = f'"{database}"."{schema}"."{table_name}"' if database and schema else f'"{table_name}"'
+            # Build query with escaped identifiers
+            if database and schema:
+                table_ref = (
+                    f"{self._escape_identifier(database)}."
+                    f"{self._escape_identifier(schema)}."
+                    f"{self._escape_identifier(table_name)}"
+                )
+            else:
+                table_ref = self._escape_identifier(table_name)
+            
             query = f"SELECT * FROM {table_ref}"
 
             if where:
@@ -700,22 +695,17 @@ class SnowflakeIngestor:
                     "Database name is required for schema introspection. "
                     "Provide via 'database' parameter or set default database in connector."
                 )
-            
-            # Validate identifiers
-            self._validate_identifier(table_name, "table_name")
-            self._validate_identifier(database, "database")
-            self._validate_identifier(schema, "schema")
 
             conn = self.connector.connect()
 
-            # Get column information
+            # Get column information with escaped identifiers
             query = f"""
             SELECT
                 COLUMN_NAME,
                 DATA_TYPE,
                 IS_NULLABLE,
                 COLUMN_DEFAULT
-            FROM {database}.INFORMATION_SCHEMA.COLUMNS
+            FROM {self._escape_identifier(database)}.INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_SCHEMA = '{schema}'
               AND TABLE_NAME = '{table_name}'
             ORDER BY ORDINAL_POSITION
@@ -726,11 +716,11 @@ class SnowflakeIngestor:
             columns = cursor.fetchall()
             cursor.close()
 
-            # Get primary key information
+            # Get primary key information with escaped identifiers
             pk_query = f"""
             SELECT COLUMN_NAME
-            FROM {database}.INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
-            JOIN {database}.INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+            FROM {self._escape_identifier(database)}.INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+            JOIN {self._escape_identifier(database)}.INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
               ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
             WHERE tc.TABLE_SCHEMA = '{schema}'
               AND tc.TABLE_NAME = '{table_name}'
@@ -790,16 +780,13 @@ class SnowflakeIngestor:
                     "Database name is required for listing tables. "
                     "Provide via 'database' parameter or set default database in connector."
                 )
-            
-            # Validate identifiers
-            self._validate_identifier(database, "database")
-            self._validate_identifier(schema, "schema")
 
             conn = self.connector.connect()
 
+            # Build query with escaped database identifier
             query = f"""
             SELECT TABLE_NAME
-            FROM {database}.INFORMATION_SCHEMA.TABLES
+            FROM {self._escape_identifier(database)}.INFORMATION_SCHEMA.TABLES
             WHERE TABLE_SCHEMA = '{schema}'
               AND TABLE_TYPE = 'BASE TABLE'
             ORDER BY TABLE_NAME
