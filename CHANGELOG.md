@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Snowflake Connector for Data Ingestion** (PR #276 by @Sameer6305):
+  - Native Snowflake connector with multi-authentication (password, OAuth, key-pair, SSO)
+  - Table and query ingestion with pagination, schema introspection, batch processing
+  - SQL injection prevention via identifier escaping, OAuth token validation
+  - Progress tracking integration, context manager support, document export
+  - 24 comprehensive unit tests with mocking, complete documentation and examples
+  - Added as optional dependency `db-snowflake` with snowflake-connector-python>=3.0.0
+
 - **Apache Arrow Export Support** (PR #273 by @Sameer6305):
   - Added Apache Arrow exporter with explicit schemas, entity/relationship export, compression support
   - Integrated with export module and method registry, Pandas/DuckDB compatible
