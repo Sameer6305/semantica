@@ -96,8 +96,7 @@ extra_css:
   - css/custom.css
 
 # Custom JavaScript
-extra_javascript:
-  - js/version-selector.js
+extra_javascript: []
 
 # Navigation
 nav:
