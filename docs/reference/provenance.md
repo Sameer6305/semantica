@@ -6,6 +6,58 @@
 
 The Semantica provenance module provides W3C PROV-O compliant tracking for knowledge graphs, enabling complete end-to-end lineage from source documents to query responses. Designed for high-stakes domains where every decision must be explainable and auditable.
 
+<div class="grid cards" markdown>
+
+-   :material-web:{ .lg .middle } **W3C PROV-O Compliant**
+
+    ---
+
+    Implements PROV-O ontology (prov:Entity, prov:Activity, prov:Agent, prov:wasDerivedFrom)
+
+-   :material-all-inclusive:{ .lg .middle } **Complete Coverage**
+
+    ---
+
+    All 17 Semantica modules integrated for comprehensive tracking
+
+-   :material-source-document:{ .lg .middle } **Source Tracking**
+
+    ---
+
+    Document identifiers, page numbers, sections, and direct quotes supported
+
+-   :material-backup-restore:{ .lg .middle } **Backward Compatible**
+
+    ---
+
+    100% backward compatible, opt-in only with zero breaking changes
+
+-   :material-database:{ .lg .middle } **Multiple Storage**
+
+    ---
+
+    InMemory (fast) and SQLite (persistent) backends available
+
+-   :material-bridge:{ .lg .middle } **Bridge Axiom Support**
+
+    ---
+
+    Translation chain tracking for domain transformations (L1 → L2 → L3)
+
+-   :material-shield-check:{ .lg .middle } **Integrity Verification**
+
+    ---
+
+    SHA-256 checksums for tamper detection and verification
+
+-   :material-route:{ .lg .middle } **Complete Lineage**
+
+    ---
+
+    End-to-end tracing from document to AI response
+
+</div>
+
 ### Key Features
 
 - ✅ **W3C PROV-O Compliant** — Implements PROV-O ontology (prov:Entity, prov:Activity, prov:Agent, prov:wasDerivedFrom)
@@ -45,6 +97,12 @@ manager = ProvenanceManager()
 manager = ProvenanceManager(storage_path="provenance.db")
 ```
 
+**Key capabilities:**
+- Track entities and relationships with complete lineage
+- Store provenance data in memory or persistent SQLite storage
+- Query provenance information for audit and compliance
+- Maintain W3C PROV-O compliant records
+
 **Methods:**
 - `track_entity(entity_id, source, entity_type, **metadata)` — Track entity provenance
 - `track_relationship(relationship_id, source, subject, predicate, obj, **metadata)` — Track relationship provenance
@@ -66,6 +124,12 @@ from semantica.provenance import ProvenanceManager, InMemoryStorage
 manager = ProvenanceManager(storage=InMemoryStorage())
 ```
 
+**Best for:**
+- Development and testing environments
+- Temporary provenance tracking
+- High-performance scenarios where persistence isn't required
+- Rapid prototyping and debugging
+
 #### SQLiteStorage
 
 Persistent storage for production use.
@@ -76,6 +140,12 @@ from semantica.provenance import ProvenanceManager, SQLiteStorage
 storage = SQLiteStorage("provenance.db")
 manager = ProvenanceManager(storage=storage)
 ```
+
+**Best for:**
+- Production deployments requiring persistence
+- Long-term provenance storage
+- Compliance and audit requirements
+- Multi-process environments
 
 ### Data Schemas
 
@@ -504,9 +574,9 @@ manager = ProvenanceManager(storage=storage)
 
 ### Benchmarks
 
-- **Entity tracking:** <5ms per operation
-- **Lineage retrieval:** <10ms for chains up to 100 levels
-- **Batch operations:** 1000+ entities/second
+- **Entity tracking:** Fast per operation
+- **Lineage retrieval:** Quick retrieval for long chains
+- **Batch operations:** High-throughput batch processing
 - **Storage:** InMemory (fastest), SQLite (persistent)
 
 ### Optimization Tips

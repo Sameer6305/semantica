@@ -480,8 +480,8 @@ is_valid = kg_manager.verify_checksum(snapshot)
 - 📊 **Detailed Diffs** — Entity-level and relationship-level change tracking
 - ✅ **Data Integrity** — SHA-256 checksums with tamper detection
 - 📝 **Standardized Metadata** — ChangeLogEntry with author, timestamp, description
-- ⚡ **Performance Tested** — Benchmarked with 10k entities
-- 🧪 **Test Coverage** — 104 tests covering core functionality
+- ⚡ **Performance Tested** — Tested with large-scale entity datasets
+- 🧪 **Test Coverage** — Comprehensive test coverage covering core functionality
 
 **Compliance Note:** Provides technical infrastructure (audit trails, checksums, temporal tracking) that supports compliance efforts for HIPAA, SOX, FDA 21 CFR Part 11. Organizations must implement additional policies and procedures for full regulatory compliance.
 
@@ -576,7 +576,7 @@ from semantica.llms import Groq
 context = AgentContext(
     vector_store=VectorStore(backend="faiss"),
     knowledge_graph=GraphStore(backend="neo4j"), # Optional: Use persistent graph
-    hybrid_alpha=0.75  # 75% weight to Knowledge Graph, 25% to Vector
+    hybrid_alpha=0.75  # Balanced weight between Knowledge Graph and Vector
 )
 
 # Build Context Graph from entities and relationships
