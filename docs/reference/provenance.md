@@ -38,7 +38,7 @@ The Semantica provenance module provides W3C PROV-O compliant tracking for knowl
 
     InMemory (fast) and SQLite (persistent) backends available
 
--   :material-bridge:{ .lg .middle } **Bridge Axiom Support**
+-   :material-share-variant:{ .lg .middle } **Bridge Axiom Support**
 
     ---
 
@@ -50,7 +50,7 @@ The Semantica provenance module provides W3C PROV-O compliant tracking for knowl
 
     SHA-256 checksums for tamper detection and verification
 
--   :material-route:{ .lg .middle } **Complete Lineage**
+-   :material-link-variant:{ .lg .middle } **Complete Lineage**
 
     ---
 

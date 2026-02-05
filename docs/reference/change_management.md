@@ -20,19 +20,19 @@ The Semantica change management module provides enterprise-grade version control
 
     InMemory (development) and SQLite (production) with ACID guarantees
 
--   :material-account-tree:{ .lg .middle } **Knowledge Graph Versioning**
+-   :material-graph:{ .lg .middle } **Knowledge Graph Versioning**
 
     ---
 
     Entity and relationship-level change tracking with detailed diffs
 
--   :material-schema:{ .lg .middle } **Ontology Versioning**
+-   :material-shape:{ .lg .middle } **Ontology Versioning**
 
     ---
 
     Structural change tracking for classes, properties, and axioms
 
--   :material-audit:{ .lg .middle } **Audit Trail Compliance**
+-   :material-clipboard-check:{ .lg .middle } **Audit Trail Compliance**
 
     ---
 
