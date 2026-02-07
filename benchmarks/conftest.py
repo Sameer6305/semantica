@@ -183,30 +183,26 @@ if os.getenv("BENCHMARK_REAL_LIBS") != "1":
     if "pa" not in sys.modules:
         sys.modules["pa"] = RobustMock("pa")
     
-    # Pre-emptively mock the arrow_exporter module to prevent import errors
-    # This must happen before any semantica.export imports
-    if "semantica.export.arrow_exporter" not in sys.modules:
-        # Import the mock from benchmarks/export directory
-        try:
-            from benchmarks.export.arrow_exporter import ArrowExporter, ENTITY_SCHEMA, RELATIONSHIP_SCHEMA, METADATA_SCHEMA
-            # Create a mock module with the actual mock classes
-            import types
-            mock_arrow_module = types.ModuleType('semantica.export.arrow_exporter')
-            mock_arrow_module.ArrowExporter = ArrowExporter
-            mock_arrow_module.ENTITY_SCHEMA = ENTITY_SCHEMA or RobustMock("ENTITY_SCHEMA")
-            mock_arrow_module.RELATIONSHIP_SCHEMA = RELATIONSHIP_SCHEMA or RobustMock("RELATIONSHIP_SCHEMA")
-            mock_arrow_module.METADATA_SCHEMA = METADATA_SCHEMA or RobustMock("METADATA_SCHEMA")
-            mock_arrow_module.pa = RobustMock("pa")
-            sys.modules["semantica.export.arrow_exporter"] = mock_arrow_module
-        except ImportError:
-            # Fallback to RobustMock if import fails
-            mock_arrow_module = RobustMock("semantica.export.arrow_exporter")
-            mock_arrow_module.ArrowExporter = create_mock_class("semantica.export.arrow_exporter.ArrowExporter")
-            mock_arrow_module.ENTITY_SCHEMA = RobustMock("semantica.export.arrow_exporter.ENTITY_SCHEMA")
-            mock_arrow_module.RELATIONSHIP_SCHEMA = RobustMock("semantica.export.arrow_exporter.RELATIONSHIP_SCHEMA")
-            mock_arrow_module.METADATA_SCHEMA = RobustMock("semantica.export.arrow_exporter.METADATA_SCHEMA")
-            mock_arrow_module.pa = RobustMock("pa")
-            sys.modules["semantica.export.arrow_exporter"] = mock_arrow_module
+    # Pre-emptively create a mock arrow_exporter module to prevent import errors
+    # This must happen BEFORE any semantica.export imports
+    import types
+    mock_arrow_module = types.ModuleType('semantica.export.arrow_exporter')
+    
+    # Create a mock ArrowExporter class with proper interface
+    class MockArrowExporter:
+        def __init__(self, *args, **kwargs):
+            pass
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: f"Mock ArrowExporter.{name}"
+    
+    mock_arrow_module.ArrowExporter = MockArrowExporter
+    mock_arrow_module.ENTITY_SCHEMA = RobustMock("ENTITY_SCHEMA")
+    mock_arrow_module.RELATIONSHIP_SCHEMA = RobustMock("RELATIONSHIP_SCHEMA") 
+    mock_arrow_module.METADATA_SCHEMA = RobustMock("METADATA_SCHEMA")
+    mock_arrow_module.pa = RobustMock("pa")
+    
+    # Inject the mock module into sys.modules
+    sys.modules["semantica.export.arrow_exporter"] = mock_arrow_module
 
 # Infrastructure and Data Fixtures
 
