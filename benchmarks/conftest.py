@@ -49,6 +49,9 @@ HEAVY_LIBS = {
     "instructor.core",
     "instructor.providers",
     "instructor.providers.fireworks",
+    "pyarrow",
+    "arrow",
+    "pa",
 }
 
 
@@ -95,6 +98,9 @@ class RobustMock:
         if self.__name__.endswith("Image") and name == "Image":
             return create_mock_class(full_name)
         elif self.__name__.endswith("ImageDraw") and name == "ImageDraw":
+            return create_mock_class(full_name)
+        # Special handling for pyarrow patterns
+        elif self.__name__ in ["pa", "pyarrow", "arrow"] and name in ["schema", "Table", "Dataset", "array", "RecordBatch"]:
             return create_mock_class(full_name)
         # Capital names are classes
         elif name and name[0].isupper():
@@ -162,12 +168,20 @@ class MockFinder(importlib.abc.MetaPathFinder):
         if fullname.startswith("instructor"):
             return importlib.machinery.ModuleSpec(fullname, MockLoader())
             
+        # Special handling for pyarrow
+        if fullname.startswith("pyarrow") or fullname.startswith("arrow"):
+            return importlib.machinery.ModuleSpec(fullname, MockLoader())
+            
         return None
 
 
 if os.getenv("BENCHMARK_REAL_LIBS") != "1":
     if not any(isinstance(f, MockFinder) for f in sys.meta_path):
         sys.meta_path.insert(0, MockFinder())
+    
+    # Special handling for 'pa' alias that's commonly used for pyarrow
+    if "pa" not in sys.modules:
+        sys.modules["pa"] = RobustMock("pa")
 
 # Infrastructure and Data Fixtures
 
