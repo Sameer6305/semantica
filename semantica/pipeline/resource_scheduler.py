@@ -109,7 +109,7 @@ class ResourceScheduler:
 
         self.resources: Dict[str, Resource] = {}
         self.allocations: Dict[str, ResourceAllocation] = {}
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()  # RLock: allocate_resources holds lock and calls allocate_cpu/memory/gpu which also acquire it
 
         self._initialize_resources()
 
