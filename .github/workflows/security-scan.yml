@@ -48,7 +48,7 @@ jobs:
         semgrep --config=auto semantica/
         
     - name: Upload Security Reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-reports
         path: |
@@ -57,18 +57,18 @@ jobs:
           semgrep-report.json
           
     - name: Dependabot Security Scan
-      uses: github/dependabot-action@v3
+      uses: github/dependabot-action@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Security Scorecard
-      uses: ossf/scorecard-action@v2
+      uses: ossf/scorecard-action@v3
       with:
         results_file: scorecard-results.json
         results_format: json
         
     - name: Upload Scorecard Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: scorecard-results
         path: scorecard-results.json
