@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.7] - 2026-02-09
+
+### Added / Changed
 
 - **Snowflake Connector for Data Ingestion** (PR #276 by @Sameer6305):
   - Native Snowflake connector with multi-authentication (password, OAuth, key-pair, SSO)
@@ -19,6 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added Apache Arrow exporter with explicit schemas, entity/relationship export, compression support
   - Integrated with export module and method registry, Pandas/DuckDB compatible
   - 20 unit tests + 1 integration test, complete documentation with examples
+
+- **Comprehensive Benchmark Suite with Regression CLI** (PR #289 by @ZohaibHassan16, @KaifAhmad1):
+  - 137+ benchmarks across all 10 Semantica modules (Input, Core, Storage, Context, QA, Ontology, etc.)
+  - Environment-agnostic design with robust mocking system for CI/CD compatibility
+  - Statistical regression detection using Z-score analysis with configurable thresholds
+  - Automated performance auditing via GitHub Actions workflow
+  - Comprehensive documentation suite (benchmarks.md, architecture guides, usage examples)
+  - Zero breaking changes, production-ready with ultra-fast text processing (>10,000 ops/s)
+  - Added benchmark runner CLI: `python benchmarks/benchmark_runner.py`
+
+## [Unreleased]
     
 
 ## [0.2.6] - 2026-02-03

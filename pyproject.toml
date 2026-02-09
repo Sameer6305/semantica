@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semantica"
-version = "0.2.6"
+version = "0.2.7"
 description = "🧠 Semantica - An Open Source Framework for building Semantic Layers and Knowledge Engineering"
 readme = "README.md"
 license = { text = "MIT" }
@@ -101,9 +101,10 @@ parse-docling = ["docling>=1.0.0"]
 
 # ---- Database Connectors ----
 db-snowflake = ["snowflake-connector-python>=3.0.0", "cryptography>=3.4.0"]
+db-arrow = ["pyarrow>=10.0.0"]
 
 db-all = [
-  "semantica[db-snowflake]"
+  "semantica[db-snowflake,db-arrow]"
 ]
 
 # ---- Embedding / Models ----
