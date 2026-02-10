@@ -347,11 +347,11 @@ print(f"Entities: {len(entities)}, Relationships: {len(relationships)}")
 
 ### Knowledge Graph Construction
 
-> **Production-Ready KGs** • Entity Resolution • Temporal Support • Graph Analytics
+> **Production-Ready KGs** • **30+ Graph Algorithms** • **Entity Resolution** • **Temporal Support** • **Provenance Tracking**
 
 ```python
 from semantica.semantic_extract import NERExtractor, RelationExtractor
-from semantica.kg import GraphBuilder
+from semantica.kg import GraphBuilder, NodeEmbedder, SimilarityCalculator, CentralityCalculator
 
 # Extract entities and relationships
 ner_extractor = NERExtractor(method="ml", model="en_core_web_sm")
@@ -360,14 +360,37 @@ relation_extractor = RelationExtractor(method="dependency", model="en_core_web_s
 entities = ner_extractor.extract(text)
 relationships = relation_extractor.extract(text, entities=entities)
 
-# Build knowledge graph
+# Build knowledge graph with provenance
 builder = GraphBuilder()
 kg = builder.build({"entities": entities, "relationships": relationships})
 
+# Advanced graph analytics
+embedder = NodeEmbedder(method="node2vec", embedding_dimension=128)
+embeddings = embedder.compute_embeddings(kg, ["Entity"], ["RELATED_TO"])
+
+# Find similar nodes
+calc = SimilarityCalculator()
+similar_nodes = calc.find_most_similar(embeddings, embeddings["target_node"], top_k=5)
+
+# Analyze importance
+centrality = CentralityCalculator()
+importance_scores = centrality.calculate_all_centrality(kg)
+
 print(f"Nodes: {len(kg.get('entities', []))}, Edges: {len(kg.get('relationships', []))}")
+print(f"Similar nodes: {len(similar_nodes)}, Centrality measures: {len(importance_scores)}")
 ```
 
-[**Cookbook: Building Knowledge Graphs**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/introduction/07_Building_Knowledge_Graphs.ipynb) • [**Graph Analytics**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/introduction/10_Graph_Analytics.ipynb)
+**New Enhanced Algorithms:**
+- **Node Embeddings**: Node2Vec, DeepWalk, Word2Vec for structural similarity
+- **Similarity Analysis**: Cosine, Euclidean, Manhattan, Correlation metrics
+- **Path Finding**: Dijkstra, A*, BFS, K-shortest paths for route analysis
+- **Link Prediction**: Preferential attachment, Jaccard, Adamic-Adar for network completion
+- **Centrality Analysis**: Degree, Betweenness, Closeness, PageRank for importance ranking
+- **Community Detection**: Louvain, Leiden, Label propagation for clustering
+- **Connectivity Analysis**: Components, bridges, density for network robustness
+- **Provenance Tracking**: Complete audit trail for all graph operations
+
+[**Cookbook: Building Knowledge Graphs**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/introduction/07_Building_Knowledge_Graphs.ipynb) • [**Graph Analytics**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/introduction/10_Graph_Analytics.ipynb) • [**Advanced Graph Analytics**](https://github.com/Hawksight-AI/semantica/tree/main/cookbook/advanced/02_Advanced_Graph_Analytics.ipynb)
 
 ### Embeddings & Vector Store
 
