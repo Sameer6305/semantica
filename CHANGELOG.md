@@ -15,6 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Optimized IST timezone scheduling (Security scans: 7 AM IST, PRs: 9 AM IST)
   - Aligned with new Dependabot features: open-source proxy support, smart dependency grouping for Snowflake/Arrow/benchmark features, private registry support, semantic commit prefixes, and latest GitHub security best practices
 
+- **ResourceScheduler Deadlock Fix and Performance Improvements** (PR #299, #301 by @d4ndr4d3, @KaifAhmad1):
+  - Fixed critical deadlock in ResourceScheduler by replacing `threading.Lock()` with `threading.RLock()`
+  - Resolved nested lock acquisition issue in `allocate_resources()` → `allocate_cpu/memory/gpu()` calls
+  - Added allocation validation with `ValidationError` when no resources can be allocated
+  - Improved performance by moving progress tracking updates outside lock scope
+  - Implemented comprehensive resource cleanup on allocation failures to prevent leaks
+  - Added complete regression test suite (6 tests) for deadlock prevention and edge cases
+  - Enhanced error handling and documentation for better operator visibility
+  - Zero breaking changes, maintains thread safety and backward compatibility
+
 ## [0.2.7] - 2026-02-09
 
 ### Added / Changed
