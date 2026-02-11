@@ -128,7 +128,7 @@ vectorstore-qdrant = ["qdrant-client>=1.0.0"]
 vectorstore-weaviate = ["weaviate-client>=4.0.0"]
 vectorstore-pinecone = ["pinecone-client>=3.0.0"]
 vectorstore-milvus = ["pymilvus>=2.0.0"]
-vectorstore-pgvector = ["psycopg[binary,pool]>=3.0.0", "psycopg2-binary>=2.9.0", "pgvector>=0.2.0"]
+vectorstore-pgvector = ["psycopg[binary,pool]>=3.0.0", "pgvector>=0.2.0"]
 
 vectorstore-all = [
   "semantica[vectorstore-qdrant,vectorstore-weaviate,vectorstore-pinecone,vectorstore-milvus,vectorstore-pgvector]"

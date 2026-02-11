@@ -100,7 +100,7 @@ def store(pg_available, unique_table_name) -> Generator:
     if not pg_available:
         pytest.skip("PostgreSQL with pgvector not available")
 
-    from semantica.vector_store.pgvector_store import PgVectorStore
+    from semantica.vector_store.pgvector_store import PgVectorStore, psycopg_sql
 
     store = PgVectorStore(
         connection_string=TEST_CONNECTION_STRING,
@@ -112,15 +112,22 @@ def store(pg_available, unique_table_name) -> Generator:
 
     yield store
 
-    # Cleanup
+    # Cleanup: Drop test table after test completes
+    # Uses best-effort cleanup - failures are silently ignored since
+    # this is teardown of optional test resources, not core functionality
     try:
         with store._get_connection() as conn:
             cur = conn.cursor()
-            cur.execute(f"DROP TABLE IF EXISTS {unique_table_name}")
+            drop_sql = psycopg_sql.SQL("DROP TABLE IF EXISTS {}").format(
+                psycopg_sql.Identifier(unique_table_name)
+            )
+            cur.execute(drop_sql)
             conn.commit()
             cur.close()
         store.close()
     except Exception:
+        # Best-effort cleanup: PostgreSQL may be unavailable during teardown
+        # This is expected when tests are skipped or connection is lost
         pass
 
 
@@ -297,15 +304,23 @@ class TestPgVectorStoreSearch:
 
         assert len(results) == 0
 
-        # Cleanup
+        # Cleanup: Drop test table after test completes
+        # Uses best-effort cleanup - failures are silently ignored since
+        # this is teardown of optional test resources
         try:
             with empty_store._get_connection() as conn:
                 cur = conn.cursor()
-                cur.execute(f"DROP TABLE IF EXISTS {unique_table_name}")
+                from semantica.vector_store.pgvector_store import psycopg_sql
+                drop_sql = psycopg_sql.SQL("DROP TABLE IF EXISTS {}").format(
+                    psycopg_sql.Identifier(unique_table_name)
+                )
+                cur.execute(drop_sql)
                 conn.commit()
                 cur.close()
             empty_store.close()
         except Exception:
+            # Best-effort cleanup: PostgreSQL may be unavailable during teardown
+            # This is expected when tests are skipped or connection is lost
             pass
 
 
@@ -557,7 +572,7 @@ class TestPgVectorStoreDistanceMetrics:
         if not pg_available:
             pytest.skip("PostgreSQL not available")
 
-        from semantica.vector_store.pgvector_store import PgVectorStore
+        from semantica.vector_store.pgvector_store import PgVectorStore, psycopg_sql
 
         store = PgVectorStore(
             connection_string=TEST_CONNECTION_STRING,
@@ -569,15 +584,22 @@ class TestPgVectorStoreDistanceMetrics:
 
         yield store
 
-        # Cleanup
+        # Cleanup: Drop test table after test completes
+        # Uses best-effort cleanup - failures are silently ignored since
+        # this is teardown of optional test resources, not core functionality
         try:
             with store._get_connection() as conn:
                 cur = conn.cursor()
-                cur.execute(f"DROP TABLE IF EXISTS {store.table_name}")
+                drop_sql = psycopg_sql.SQL("DROP TABLE IF EXISTS {}").format(
+                    psycopg_sql.Identifier(store.table_name)
+                )
+                cur.execute(drop_sql)
                 conn.commit()
                 cur.close()
             store.close()
         except Exception:
+            # Best-effort cleanup: PostgreSQL may be unavailable during teardown
+            # This is expected when tests are skipped or connection is lost
             pass
 
     def test_l2_distance_search(self, l2_store):

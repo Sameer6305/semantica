@@ -313,33 +313,26 @@ class PgVectorStore:
                 f"Metadata length ({len(metadata)}) must match vectors length ({num_vectors})"
             )
 
-        # Batch insert using safe SQL composition
-        if PSYCOPG3_AVAILABLE:
-            insert_sql = psycopg_sql.SQL("""
-                INSERT INTO {} (id, vector, metadata)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (id) DO UPDATE SET
-                    vector = EXCLUDED.vector,
-                    metadata = EXCLUDED.metadata
-            """).format(psycopg_sql.Identifier(self.table_name))
-        else:
-            insert_sql = """
-                INSERT INTO {} (id, vector, metadata)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (id) DO UPDATE SET
-                    vector = EXCLUDED.vector,
-                    metadata = EXCLUDED.metadata
-            """.format(psycopg_sql.Identifier(self.table_name))
+        # Batch insert using safe SQL composition with executemany() for efficiency
+        # Build data tuples for batch insert
+        data_tuples = [
+            (vec_id, vec.tolist() if isinstance(vec, np.ndarray) else list(vec), json.dumps(meta))
+            for vec_id, vec, meta in zip(ids, vectors, metadata)
+        ]
+
+        insert_sql = psycopg_sql.SQL("""
+            INSERT INTO {} (id, vector, metadata)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                vector = EXCLUDED.vector,
+                metadata = EXCLUDED.metadata
+        """).format(psycopg_sql.Identifier(self.table_name))
 
         with self._get_connection() as conn:
             try:
                 cur = conn.cursor()
-                for vec_id, vec, meta in zip(ids, vectors, metadata):
-                    vec_list = vec.tolist() if isinstance(vec, np.ndarray) else list(vec)
-                    if PSYCOPG3_AVAILABLE:
-                        cur.execute(insert_sql, (vec_id, vec_list, json.dumps(meta)))
-                    else:
-                        cur.execute(insert_sql, (vec_id, vec_list, json.dumps(meta)))
+                # Use executemany for batch insert optimization
+                cur.executemany(insert_sql, data_tuples)
                 conn.commit()
                 cur.close()
                 self.logger.info(f"Added {num_vectors} vectors")
@@ -406,62 +399,34 @@ class PgVectorStore:
 
             where_clause = psycopg_sql.SQL(" AND ").join(filter_conditions)
             
-            if PSYCOPG3_AVAILABLE:
-                search_sql = psycopg_sql.SQL("""
-                    SELECT id, vector {op} %s::vector AS score, metadata
-                    FROM {table}
-                    WHERE {where}
-                    ORDER BY vector {op} %s::vector
-                    LIMIT %s
-                """).format(
-                    op=psycopg_sql.SQL(op),
-                    table=psycopg_sql.Identifier(self.table_name),
-                    where=where_clause
-                )
-            else:
-                # psycopg2: format table name, embed operator directly
-                search_sql = psycopg_sql.SQL("""
-                    SELECT id, vector {op} %s::vector AS score, metadata
-                    FROM {table}
-                    WHERE {where}
-                    ORDER BY vector {op} %s::vector
-                    LIMIT %s
-                """).format(
-                    op=psycopg_sql.SQL(op),
-                    table=psycopg_sql.Identifier(self.table_name),
-                    where=where_clause
-                )
+            search_sql = psycopg_sql.SQL("""
+                SELECT id, vector {op} %s::vector AS score, metadata
+                FROM {table}
+                WHERE {where}
+                ORDER BY vector {op} %s::vector
+                LIMIT %s
+            """).format(
+                op=psycopg_sql.SQL(op),
+                table=psycopg_sql.Identifier(self.table_name),
+                where=where_clause
+            )
             params = [query_list] + filter_values + [query_list, top_k]
         else:
-            if PSYCOPG3_AVAILABLE:
-                search_sql = psycopg_sql.SQL("""
-                    SELECT id, vector {op} %s::vector AS score, metadata
-                    FROM {table}
-                    ORDER BY vector {op} %s::vector
-                    LIMIT %s
-                """).format(
-                    op=psycopg_sql.SQL(op),
-                    table=psycopg_sql.Identifier(self.table_name)
-                )
-            else:
-                search_sql = psycopg_sql.SQL("""
-                    SELECT id, vector {op} %s::vector AS score, metadata
-                    FROM {table}
-                    ORDER BY vector {op} %s::vector
-                    LIMIT %s
-                """).format(
-                    op=psycopg_sql.SQL(op),
-                    table=psycopg_sql.Identifier(self.table_name)
-                )
+            search_sql = psycopg_sql.SQL("""
+                SELECT id, vector {op} %s::vector AS score, metadata
+                FROM {table}
+                ORDER BY vector {op} %s::vector
+                LIMIT %s
+            """).format(
+                op=psycopg_sql.SQL(op),
+                table=psycopg_sql.Identifier(self.table_name)
+            )
             params = [query_list, query_list, top_k]
 
         with self._get_connection() as conn:
             try:
                 cur = conn.cursor()
-                if PSYCOPG3_AVAILABLE:
-                    cur.execute(search_sql, params)
-                else:
-                    cur.execute(search_sql, params)
+                cur.execute(search_sql, params)
                 rows = cur.fetchall()
                 cur.close()
 
@@ -520,22 +485,14 @@ class PgVectorStore:
             return True
 
         # Use safe SQL composition for table name
-        if PSYCOPG3_AVAILABLE:
-            delete_sql = psycopg_sql.SQL("DELETE FROM {} WHERE id = ANY(%s)").format(
-                psycopg_sql.Identifier(self.table_name)
-            )
-        else:
-            delete_sql = psycopg_sql.SQL("DELETE FROM {} WHERE id = ANY(%s)").format(
-                psycopg_sql.Identifier(self.table_name)
-            )
+        delete_sql = psycopg_sql.SQL("DELETE FROM {} WHERE id = ANY(%s)").format(
+            psycopg_sql.Identifier(self.table_name)
+        )
 
         with self._get_connection() as conn:
             try:
                 cur = conn.cursor()
-                if PSYCOPG3_AVAILABLE:
-                    cur.execute(delete_sql, (ids,))
-                else:
-                    cur.execute(delete_sql, (ids,))
+                cur.execute(delete_sql, (ids,))
                 conn.commit()
                 deleted_count = cur.rowcount
                 cur.close()
@@ -616,10 +573,7 @@ class PgVectorStore:
                         psycopg_sql.SQL(", ").join(updates)
                     )
                     params.append(vec_id)
-                    if PSYCOPG3_AVAILABLE:
-                        cur.execute(update_sql, params)
-                    else:
-                        cur.execute(update_sql, params)
+                    cur.execute(update_sql, params)
 
                 conn.commit()
                 cur.close()
@@ -649,26 +603,16 @@ class PgVectorStore:
             return []
 
         # Use safe SQL composition for table name
-        if PSYCOPG3_AVAILABLE:
-            get_sql = psycopg_sql.SQL("""
-                SELECT id, vector, metadata
-                FROM {}
-                WHERE id = ANY(%s)
-            """).format(psycopg_sql.Identifier(self.table_name))
-        else:
-            get_sql = psycopg_sql.SQL("""
-                SELECT id, vector, metadata
-                FROM {}
-                WHERE id = ANY(%s)
-            """).format(psycopg_sql.Identifier(self.table_name))
+        get_sql = psycopg_sql.SQL("""
+            SELECT id, vector, metadata
+            FROM {}
+            WHERE id = ANY(%s)
+        """).format(psycopg_sql.Identifier(self.table_name))
 
         with self._get_connection() as conn:
             try:
                 cur = conn.cursor()
-                if PSYCOPG3_AVAILABLE:
-                    cur.execute(get_sql, (ids,))
-                else:
-                    cur.execute(get_sql, (ids,))
+                cur.execute(get_sql, (ids,))
                 rows = cur.fetchall()
                 cur.close()
 
@@ -818,10 +762,7 @@ class PgVectorStore:
                 drop_sql = psycopg_sql.SQL("DROP INDEX IF EXISTS {}").format(
                     psycopg_sql.Identifier(index_name)
                 )
-                if PSYCOPG3_AVAILABLE:
-                    cur.execute(drop_sql)
-                else:
-                    cur.execute(drop_sql)
+                cur.execute(drop_sql)
                 conn.commit()
                 cur.close()
                 self.logger.info(f"Dropped index: {index_name}")
@@ -848,10 +789,7 @@ class PgVectorStore:
                 count_sql = psycopg_sql.SQL("SELECT COUNT(*) FROM {}").format(
                     psycopg_sql.Identifier(self.table_name)
                 )
-                if PSYCOPG3_AVAILABLE:
-                    cur.execute(count_sql)
-                else:
-                    cur.execute(count_sql)
+                cur.execute(count_sql)
                 count = cur.fetchone()[0]
 
                 # Get index info
