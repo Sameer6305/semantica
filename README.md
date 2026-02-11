@@ -394,7 +394,7 @@ print(f"Similar nodes: {len(similar_nodes)}, Centrality measures: {len(importanc
 
 ### Embeddings & Vector Store
 
-> **FastEmbed by default** • **Multiple backends** • **Semantic search**
+> **FastEmbed by default** • **Multiple backends** (FAISS, PostgreSQL/pgvector, Weaviate, Qdrant, Milvus, Pinecone) • **Semantic search**
 
 ```python
 from semantica.embeddings import EmbeddingGenerator
