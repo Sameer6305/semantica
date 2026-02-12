@@ -452,7 +452,19 @@ class VectorStore:
         """
         # Delegate to backend store if available
         if self._backend_store:
-            return self._backend_store.add(vectors, metadata, **options)
+            # Handle different method names across backend stores
+            if hasattr(self._backend_store, 'add'):
+                return self._backend_store.add(vectors, metadata, **options)
+            elif hasattr(self._backend_store, 'add_vectors'):
+                # FAISSStore and others use add_vectors with different signature
+                if hasattr(self._backend_store, 'store_vectors'):
+                    # Some stores have store_vectors method
+                    return self._backend_store.store_vectors(vectors, metadata=metadata, **options)
+                else:
+                    # Basic add_vectors without metadata
+                    return self._backend_store.add_vectors(vectors, **options)
+            else:
+                raise NotImplementedError(f"Backend store {type(self._backend_store).__name__} does not have add or add_vectors method")
         
         # Use in-memory implementation
         tracking_id = self.progress_tracker.start_tracking(
@@ -591,7 +603,13 @@ class VectorStore:
         """
         # Delegate to backend store if available
         if self._backend_store:
-            return self._backend_store.search(query_vector, top_k=k, **options)
+            # Handle different method names across backend stores
+            if hasattr(self._backend_store, 'search'):
+                return self._backend_store.search(query_vector, top_k=k, **options)
+            elif hasattr(self._backend_store, 'search_similar'):
+                return self._backend_store.search_similar(query_vector, k=k, **options)
+            else:
+                raise NotImplementedError(f"Backend store {type(self._backend_store).__name__} does not have search or search_similar method")
         
         # Use in-memory implementation
         tracking_id = self.progress_tracker.start_tracking(
