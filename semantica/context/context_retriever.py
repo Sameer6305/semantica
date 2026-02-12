@@ -2134,6 +2134,355 @@ Answer:"""
             except Exception as e:
                 # Sanitize category for logging (remove sensitive data)
                 safe_category = category[:20] if category else "unknown"
-                self.logger.warning(f"Failed to find policies for {safe_category}: {type(e).__name__}")
+                return policies
+
+    # Decision Retrieval Methods
+    def find_precedents_hybrid(
+        self,
+        scenario: str,
+        category: Optional[str] = None,
+        limit: int = 10,
+        use_hybrid_search: bool = True,
+        max_hops: int = 3
+    ) -> List["Decision"]:
+        """
+        Hybrid precedent search with user controls.
         
-        return policies
+        Args:
+            scenario: Scenario to find precedents for
+            category: Optional category filter
+            limit: Maximum number of results
+            use_hybrid_search: Use hybrid search (semantic + structural)
+            max_hops: Maximum hops for multi-hop reasoning
+            
+        Returns:
+            List of similar decisions
+        """
+        from .decision_models import Decision
+        
+        if not self.knowledge_graph:
+            return []
+        
+        try:
+            # Use DecisionQuery if available
+            if hasattr(self.knowledge_graph, 'execute_query'):
+                from .decision_query import DecisionQuery
+                query_engine = DecisionQuery(self.knowledge_graph)
+                return query_engine.find_precedents_hybrid(scenario, category, limit)
+            else:
+                # Fallback to simple graph search
+                return self._fallback_precedent_search(scenario, category, limit)
+                
+        except Exception as e:
+            self.logger.error(f"Failed to find precedents: {e}")
+            return []
+
+    def retrieve_decisions(
+        self,
+        query: str,
+        category: Optional[str] = None,
+        limit: int = 10
+    ) -> List["Decision"]:
+        """
+        Decision-specific retrieval.
+        
+        Args:
+            query: Query string
+            category: Optional category filter
+            limit: Maximum number of results
+            
+        Returns:
+            List of relevant decisions
+        """
+        return self.find_precedents_hybrid(query, category, limit)
+
+    def multi_hop_context_assembly(
+        self,
+        start_node: str,
+        query_context: str,
+        max_hops: int = 3,
+        include_context: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Dynamic context assembly with user controls.
+        
+        Args:
+            start_node: Starting node ID
+            query_context: Query context
+            max_hops: Maximum hops to traverse
+            include_context: Include full context
+            
+        Returns:
+            Assembled context with decisions
+        """
+        if not self.knowledge_graph:
+            return {"context": [], "decisions": [], "metadata": {}}
+        
+        try:
+            # Get multi-hop context
+            context = self.expand_context(start_node, max_hops=max_hops)
+            
+            # Find related decisions
+            decisions = []
+            if hasattr(self.knowledge_graph, 'execute_query'):
+                from .decision_query import DecisionQuery
+                query_engine = DecisionQuery(self.knowledge_graph)
+                decisions = query_engine.multi_hop_reasoning(start_node, query_context, max_hops)
+            
+            return {
+                "context": context,
+                "decisions": decisions,
+                "metadata": {
+                    "start_node": start_node,
+                    "query_context": query_context,
+                    "max_hops": max_hops,
+                    "context_count": len(context),
+                    "decision_count": len(decisions)
+                }
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed multi-hop context assembly: {e}")
+            return {"context": [], "decisions": [], "metadata": {}}
+
+    def graph_augmented_generation(
+        self,
+        query: str,
+        graph_context: Dict[str, Any]
+    ) -> str:
+        """
+        GAG for reduced hallucinations.
+        
+        Args:
+            query: Query string
+            graph_context: Graph context from multi-hop assembly
+            
+        Returns:
+            Augmented response with context
+        """
+        context_text = ""
+        
+        # Format decisions from context
+        decisions = graph_context.get("decisions", [])
+        if decisions:
+            context_text += "Relevant Decisions:\n"
+            for decision in decisions[:5]:  # Limit to top 5
+                context_text += f"- {decision.scenario} (Category: {decision.category})\n"
+                context_text += f"  Reasoning: {decision.reasoning[:200]}...\n"
+                context_text += f"  Outcome: {decision.outcome}\n\n"
+        
+        # Format entities from context
+        entities = graph_context.get("context", [])
+        if entities:
+            context_text += "Related Entities:\n"
+            for entity in entities[:10]:  # Limit to top 10
+                context_text += f"- {entity.get('name', 'Unknown')} ({entity.get('type', 'Unknown')})\n"
+        
+        # Generate augmented response
+        if context_text:
+            return f"Based on the following context:\n\n{context_text}\nQuery: {query}\n\nResponse would be generated by LLM with this context."
+        else:
+            return f"Query: {query}\n\nNo relevant context found."
+
+    def explainable_retrieval(self, decision_id: str) -> Dict[str, Any]:
+        """
+        Trace relationship paths for explainability.
+        
+        Args:
+            decision_id: Decision ID to trace
+            
+        Returns:
+            Explainability information
+        """
+        if not self.knowledge_graph:
+            return {"error": "Knowledge graph not available"}
+        
+        try:
+            # Get decision details
+            decision_context = self.expand_context(decision_id, max_hops=1)
+            
+            # Trace paths using graph traversal
+            paths = []
+            if hasattr(self.knowledge_graph, 'execute_query'):
+                query = """
+                MATCH path = (d:Decision {decision_id: $decision_id})-[*1..3]-(related)
+                RETURN path, length(path) as path_length
+                ORDER BY path_length
+                LIMIT 10
+                """
+                results = self.knowledge_graph.execute_query(query, {"decision_id": decision_id})
+                paths = [record.get("path") for record in results]
+            
+            return {
+                "decision_id": decision_id,
+                "context": decision_context,
+                "relationship_paths": paths,
+                "path_count": len(paths)
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed explainable retrieval: {e}")
+            return {"error": str(e)}
+
+    def dynamic_context_traversal(
+        self,
+        query: str,
+        entity_types: List[str],
+        max_hops: int = 4
+    ) -> Dict[str, Any]:
+        """
+        Dynamic context assembly with entity filtering.
+        
+        Args:
+            query: Query string
+            entity_types: List of entity types to filter
+            max_hops: Maximum hops to traverse
+            
+        Returns:
+            Filtered context results
+        """
+        if not self.knowledge_graph:
+            return {"context": [], "metadata": {}}
+        
+        try:
+            # Find relevant entities based on query
+            relevant_entities = []
+            
+            # Use vector search to find initial entities
+            vector_results = self.vector_search(query, limit=20)
+            for result in vector_results:
+                if result.get("type") in entity_types:
+                    relevant_entities.append(result)
+            
+            # Expand context for filtered entities
+            expanded_context = []
+            for entity in relevant_entities[:10]:  # Limit entities
+                entity_id = entity.get("name") or entity.get("id")
+                if entity_id:
+                    context = self.expand_context(entity_id, max_hops=max_hops)
+                    # Filter by entity types again
+                    filtered_context = [
+                        item for item in context 
+                        if item.get("type") in entity_types
+                    ]
+                    expanded_context.extend(filtered_context)
+            
+            return {
+                "query": query,
+                "entity_types": entity_types,
+                "max_hops": max_hops,
+                "context": expanded_context,
+                "metadata": {
+                    "initial_entities": len(relevant_entities),
+                    "expanded_context": len(expanded_context)
+                }
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed dynamic context traversal: {e}")
+            return {"context": [], "metadata": {}}
+
+    def hybrid_retrieval(
+        self,
+        query: str,
+        use_vector: bool = True,
+        use_graph: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Combine vector search with graph traversal.
+        
+        Args:
+            query: Query string
+            use_vector: Use vector search
+            use_graph: Use graph traversal
+            
+        Returns:
+            Hybrid retrieval results
+        """
+        results = {"vector_results": [], "graph_results": [], "hybrid_results": []}
+        
+        try:
+            # Vector search
+            if use_vector:
+                results["vector_results"] = self.vector_search(query, limit=20)
+            
+            # Graph search
+            if use_graph:
+                # Find entities from query
+                entities = self._extract_entities_from_query(query)
+                for entity in entities[:5]:  # Limit entities
+                    context = self.expand_context(entity, max_hops=2)
+                    results["graph_results"].extend(context)
+            
+            # Combine results
+            all_results = results["vector_results"] + results["graph_results"]
+            
+            # Deduplicate and rank
+            seen = set()
+            hybrid_results = []
+            for result in all_results:
+                result_id = result.get("name") or result.get("id") or str(hash(result.get("content", "")))
+                if result_id not in seen:
+                    seen.add(result_id)
+                    hybrid_results.append(result)
+            
+            results["hybrid_results"] = hybrid_results[:20]  # Limit final results
+            
+        except Exception as e:
+            self.logger.error(f"Failed hybrid retrieval: {e}")
+        
+        return results
+
+    def _fallback_precedent_search(
+        self,
+        scenario: str,
+        category: Optional[str],
+        limit: int
+    ) -> List["Decision"]:
+        """Fallback precedent search when DecisionQuery is not available."""
+        from .decision_models import Decision
+        
+        decisions = []
+        
+        try:
+            # Simple graph search for decision nodes
+            if hasattr(self.knowledge_graph, 'get_nodes_by_label'):
+                decision_nodes = self.knowledge_graph.get_nodes_by_label("Decision")
+                
+                for node_data in decision_nodes[:limit]:
+                    # Convert to Decision object
+                    decision = Decision(
+                        decision_id=node_data.get("id", ""),
+                        category=node_data.get("properties", {}).get("category", ""),
+                        scenario=node_data.get("content", ""),
+                        reasoning=node_data.get("properties", {}).get("reasoning", ""),
+                        outcome=node_data.get("properties", {}).get("outcome", ""),
+                        confidence=node_data.get("properties", {}).get("confidence", 0.0),
+                        timestamp=datetime.now(),
+                        decision_maker=node_data.get("properties", {}).get("decision_maker", ""),
+                        metadata=node_data.get("properties", {})
+                    )
+                    
+                    # Filter by category if specified
+                    if category and decision.category != category:
+                        continue
+                    
+                    decisions.append(decision)
+        
+        except Exception as e:
+            self.logger.error(f"Fallback precedent search failed: {e}")
+        
+        return decisions
+
+    def _extract_entities_from_query(self, query: str) -> List[str]:
+        """Extract potential entity names from query."""
+        # Simple entity extraction - could be enhanced with NER
+        entities = []
+        
+        # Split query and look for capitalized terms (potential entities)
+        words = query.split()
+        for word in words:
+            if word.istitle() and len(word) > 2:
+                entities.append(word)
+        
+        return entities[:10]  # Limit entities

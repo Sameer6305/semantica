@@ -1,6 +1,6 @@
 # Context Module Usage Guide
 
-This guide demonstrates how to use the Semantica context module for building context graphs, managing agent memory, retrieving context, linking entities, and enhanced decision tracking with hybrid search capabilities.
+This guide demonstrates how to use the Semantica context module for building context graphs, managing agent memory, retrieving context, linking entities, and decision tracking with hybrid search capabilities and advanced KG algorithm integration.
 
 ## Quick Imports
 
@@ -13,6 +13,9 @@ from semantica.context import AgentMemory
 
 # Entity linking
 from semantica.context import EntityLinker
+
+# Decision tracking with advanced features
+from semantica.context import Decision, Policy, DecisionRecorder, DecisionQuery, CausalChainAnalyzer, PolicyEngine
 
 # For vector storage (often used with context)
 from semantica.vector_store import VectorStore
@@ -42,8 +45,11 @@ print(f"Found {len(results)} results")
 5. [Context Retrieval](#context-retrieval)
 6. [Entity Linking](#entity-linking)
 7. [Decision Tracking](#decision-tracking)
-8. [Hybrid Search for Decisions](#hybrid-search-for-decisions)
-9. [Explainable AI](#explainable-ai)
+8. [Context Graphs with KG Algorithms](#context-graphs-with-kg-algorithms)
+9. [Advanced Decision Analytics](#advanced-decision-analytics)
+10. [Hybrid Search for Decisions](#hybrid-search-for-decisions)
+11. [Explainable AI](#explainable-ai)
+12. [Production Examples](#production-examples)
 
 ## High-Level Interface (Quick Start)
 
@@ -363,7 +369,7 @@ score = linker._calculate_text_similarity("Python", "Python Language")
 
 ## Decision Tracking
 
-The `DecisionContext` class provides enhanced decision tracking capabilities with hybrid search, explainable AI, and KG algorithm integration.
+The `DecisionContext` class provides decision tracking capabilities with hybrid search, explainable AI, and KG algorithm integration.
 
 ### Basic Decision Recording
 
@@ -438,7 +444,7 @@ print(f"Related relationships: {len(context_info.related_relationships)}")
 
 ## Hybrid Search for Decisions
 
-The enhanced context retriever supports hybrid search combining semantic and structural embeddings.
+The context retriever supports hybrid search combining semantic and structural embeddings.
 
 ### Finding Similar Decisions
 
@@ -611,3 +617,490 @@ insurance_precedents = decision_context.find_similar_decisions(
 
 print(f"Found {len(insurance_precedents)} similar insurance claims")
 ```
+
+## Context Graphs with KG Algorithms
+
+The context module now integrates with `semantica.kg` algorithms to provide advanced graph analytics, centrality measures, community detection, and node embeddings for comprehensive context graph analysis.
+
+### Initializing Context Graph with KG Features
+
+```python
+from semantica.context import ContextGraph
+from semantica.graph_store import GraphStore
+
+# Context graph with KG algorithms
+graph = ContextGraph(
+    enable_advanced_analytics=True,      # Enable KG algorithms
+    enable_centrality_analysis=True,     # Enable centrality measures
+    enable_community_detection=True,     # Enable community detection
+    enable_node_embeddings=True          # Enable Node2Vec embeddings
+)
+
+print(f"KG components initialized: {len(graph.kg_components)}")
+```
+
+### Graph Analytics with KG Algorithms
+
+```python
+# Comprehensive graph analysis
+analysis = graph.analyze_graph_with_kg()
+
+print(f"Graph metrics:")
+print(f"  - Node count: {analysis['graph_metrics']['node_count']}")
+print(f"  - Edge count: {analysis['graph_metrics']['edge_count']}")
+print(f"  - Node types: {analysis['graph_metrics']['node_types']}")
+
+# Centrality analysis
+if 'centrality_analysis' in analysis:
+    centrality = analysis['centrality_analysis']
+    print(f"  - Centrality measures available for {len(centrality)} nodes")
+
+# Community detection
+if 'community_analysis' in analysis:
+    communities = analysis['community_analysis']
+    print(f"  - Found {communities['num_communities']} communities")
+    print(f"  - Modularity: {communities['modularity']:.3f}")
+
+# Node embeddings
+if 'node_embeddings' in analysis:
+    embeddings = analysis['node_embeddings']
+    print(f"  - Generated embeddings for {len(embeddings)} nodes")
+```
+
+### Node Centrality Analysis
+
+```python
+# Get centrality measures for a specific node
+node_id = "python_programming"
+centrality_measures = graph.get_node_centrality(node_id)
+
+print(f"Centrality measures for {node_id}:")
+print(f"  - Degree centrality: {centrality_measures.get('degree_centrality', 0):.3f}")
+print(f"  - Betweenness centrality: {centrality_measures.get('betweenness_centrality', 0):.3f}")
+print(f"  - Closeness centrality: {centrality_measures.get('closeness_centrality', 0):.3f}")
+print(f"  - Eigenvector centrality: {centrality_measures.get('eigenvector_centrality', 0):.3f}")
+```
+
+### Finding Similar Nodes with Advanced Similarity
+
+```python
+# Find similar nodes using different similarity measures
+similar_nodes = graph.find_similar_nodes(
+    node_id="python_programming",
+    similarity_type="content",      # "content", "structural", "embedding"
+    top_k=10
+)
+
+print(f"Similar nodes to 'python_programming':")
+for node_id, similarity_score in similar_nodes:
+    print(f"  - {node_id}: {similarity_score:.3f}")
+
+# Structural similarity
+structural_similar = graph.find_similar_nodes(
+    node_id="python_programming",
+    similarity_type="structural",
+    top_k=5
+)
+```
+
+### AgentContext with KG Features
+
+```python
+from semantica.context import AgentContext
+from semantica.vector_store import VectorStore
+from semantica.graph_store import GraphStore
+
+# Initialize AgentContext with all KG features
+vector_store = VectorStore(backend="inmemory", dimension=384)
+knowledge_graph = GraphStore(backend="neo4j", uri="bolt://localhost:7687")
+
+context = AgentContext(
+    vector_store=vector_store,
+    knowledge_graph=knowledge_graph,
+    enable_decision_tracking=True,
+    enable_advanced_analytics=True,      # Enable KG algorithms
+    enable_kg_algorithms=True,          # Enable KG integration
+    enable_vector_store_features=True    # Enable vector store features
+)
+
+print("AgentContext initialized with KG algorithms")
+```
+
+## Advanced Decision Analytics
+
+The decision tracking system provides advanced analytics using KG algorithms for decision influence analysis, relationship prediction, and comprehensive insights.
+
+### DecisionQuery with KG Integration
+
+```python
+from semantica.context import DecisionQuery
+
+# Decision query with KG algorithms
+query = DecisionQuery(
+    graph_store=knowledge_graph,
+    vector_store=vector_store,
+    enable_advanced_analytics=True,
+    enable_centrality_analysis=True,
+    enable_community_detection=True,
+    enable_node_embeddings=True
+)
+
+print(f"DecisionQuery with {len(query.kg_components)} KG components")
+```
+
+### Advanced Precedent Search with Custom Weights
+
+```python
+# Find precedents using advanced search with custom similarity weights
+precedents = context.find_precedents_advanced(
+    scenario="Credit limit increase for premium customer",
+    category="credit_approval",
+    limit=10,
+    use_kg_features=True,
+    similarity_weights={
+        "semantic": 0.4,      # Vector similarity
+        "structural": 0.3,    # Graph structure similarity
+        "text": 0.2,         # Text overlap
+        "category": 0.1      # Category matching
+    }
+)
+
+print(f"Found {len(precedents)} precedents with advanced search")
+for precedent in precedents:
+    print(f"  - Score: {precedent.metadata.get('similarity_score', 0):.3f}")
+    print(f"  - Scenario: {precedent.scenario[:100]}...")
+```
+
+### Decision Influence Analysis
+
+```python
+# Analyze decision influence using KG algorithms
+decision_id = "decision_123"
+influence_analysis = context.analyze_decision_influence(
+    decision_id=decision_id,
+    max_depth=3
+)
+
+print(f"Decision influence analysis for {decision_id}:")
+print(f"  - Influence score: {influence_analysis.get('influence_score', 0):.3f}")
+
+# Centrality measures
+centrality = influence_analysis.get('centrality_measures', {})
+print(f"  - Degree centrality: {centrality.get('degree_centrality', 0):.3f}")
+print(f"  - Betweenness centrality: {centrality.get('betweenness_centrality', 0):.3f}")
+
+# Community information
+community = influence_analysis.get('community_info', {})
+if community:
+    print(f"  - Community ID: {community.get('community_id')}")
+    print(f"  - Community size: {community.get('community_size')}")
+
+# Related decisions
+downstream = influence_analysis.get('downstream_decisions', [])
+upstream = influence_analysis.get('upstream_decisions', [])
+print(f"  - Downstream decisions: {len(downstream)}")
+print(f"  - Upstream decisions: {len(upstream)}")
+```
+
+### Decision Relationship Prediction
+
+```python
+# Predict potential relationships for decisions
+predictions = context.predict_decision_relationships(
+    decision_id="decision_123",
+    top_k=5
+)
+
+print(f"Predicted relationships for decision_123:")
+for prediction in predictions:
+    print(f"  - Target: {prediction.get('target', 'unknown')}")
+    print(f"  - Score: {prediction.get('score', 0):.3f}")
+    print(f"  - Type: {prediction.get('type', 'unknown')}")
+```
+
+### Context Graph Analysis
+
+```python
+# Analyze the entire context graph
+graph_analysis = context.analyze_context_graph()
+
+print("Context graph analysis:")
+if 'error' not in graph_analysis:
+    metrics = graph_analysis.get('graph_metrics', {})
+    print(f"  - Nodes: {metrics.get('node_count', 0)}")
+    print(f"  - Edges: {metrics.get('edge_count', 0)}")
+    
+    centrality = graph_analysis.get('centrality_analysis', {})
+    print(f"  - Centrality analysis: {len(centrality)} nodes analyzed")
+    
+    communities = graph_analysis.get('community_analysis', {})
+    print(f"  - Communities: {communities.get('num_communities', 0)}")
+else:
+    print(f"  - Error: {graph_analysis['error']}")
+```
+
+### Entity Similarity and Centrality
+
+```python
+# Find similar entities in the context graph
+similar_entities = context.find_similar_entities(
+    entity_id="python_programming",
+    similarity_type="content",
+    top_k=10
+)
+
+print(f"Similar entities to 'python_programming':")
+for entity_id, similarity_score in similar_entities:
+    print(f"  - {entity_id}: {similarity_score:.3f}")
+
+# Get entity centrality measures
+entity_centrality = context.get_entity_centrality("python_programming")
+print(f"Entity centrality: {entity_centrality}")
+```
+
+### Comprehensive Context Insights
+
+```python
+# Get comprehensive insights about the context
+insights = context.get_context_insights()
+
+print("Context insights:")
+print(f"  - Timestamp: {insights.get('timestamp')}")
+
+# Memory statistics
+memory_stats = insights.get('memory_stats', {})
+print(f"  - Total memories: {memory_stats.get('total_items', 0)}")
+print(f"  - Memory usage: {memory_stats.get('memory_usage', {})}")
+
+# Decision statistics
+decision_stats = insights.get('decision_stats', {})
+if decision_stats:
+    print(f"  - Total decisions: {decision_stats.get('total_decisions', 0)}")
+    print(f"  - Decision categories: {decision_stats.get('categories', [])}")
+
+# Advanced features status
+features = insights.get('advanced_features', {})
+print(f"  - KG algorithms enabled: {features.get('kg_algorithms_enabled', False)}")
+print(f"  - Vector store features enabled: {features.get('vector_store_features_enabled', False)}")
+print(f"  - Decision tracking enabled: {features.get('decision_tracking_enabled', False)}")
+```
+
+## Production Examples
+
+### Banking Decision System with KG Analytics
+
+```python
+# Initialize banking decision system
+banking_context = AgentContext(
+    vector_store=VectorStore(backend="faiss", dimension=768),
+    knowledge_graph=GraphStore(backend="neo4j", uri="bolt://localhost:7687"),
+    enable_decision_tracking=True,
+    enable_advanced_analytics=True,
+    enable_kg_algorithms=True,
+    enable_vector_store_features=True
+)
+
+# Record banking decisions with full context
+decisions = [
+    {
+        "category": "mortgage_approval",
+        "scenario": "Mortgage application for first-time homebuyer",
+        "reasoning": "Strong credit score (750), stable employment, 20% down payment",
+        "outcome": "approved",
+        "confidence": 0.94,
+        "decision_maker": "loan_officer_001",
+        "amount": 350000,
+        "credit_score": 750,
+        "risk_level": "low"
+    },
+    {
+        "category": "credit_card_approval",
+        "scenario": "Premium credit card application",
+        "reasoning": "Excellent credit history, high income, existing relationship",
+        "outcome": "approved",
+        "confidence": 0.96,
+        "decision_maker": "credit_analyst_002",
+        "credit_limit": 25000,
+        "credit_score": 820,
+        "risk_level": "very_low"
+    }
+]
+
+# Process decisions
+decision_ids = []
+for decision_data in decisions:
+    decision_id = banking_context.record_decision(**decision_data)
+    decision_ids.append(decision_id)
+
+# Analyze decision influence
+for decision_id in decision_ids:
+    influence = banking_context.analyze_decision_influence(decision_id)
+    print(f"Decision {decision_id} influence: {influence.get('influence_score', 0):.3f}")
+
+# Find similar decisions with KG features
+similar_decisions = banking_context.find_precedents_advanced(
+    scenario="High-value credit application",
+    category="credit_approval",
+    use_kg_features=True,
+    similarity_weights={"semantic": 0.5, "structural": 0.3, "category": 0.2}
+)
+
+print(f"Found {len(similar_decisions)} similar decisions with KG analysis")
+
+# Get comprehensive insights
+insights = banking_context.get_context_insights()
+print(f"Banking system insights: {insights.get('memory_stats', {})}")
+```
+
+### Healthcare Decision Support System
+
+```python
+# Healthcare decision system with advanced analytics
+healthcare_context = AgentContext(
+    vector_store=VectorStore(backend="chroma", dimension=1536),
+    knowledge_graph=GraphStore(backend="neo4j"),
+    enable_decision_tracking=True,
+    enable_advanced_analytics=True,
+    enable_kg_algorithms=True
+)
+
+# Record medical decisions
+medical_decisions = [
+    {
+        "category": "treatment_approval",
+        "scenario": "Approval for experimental cancer treatment",
+        "reasoning": "Patient meets criteria, no alternative treatments available",
+        "outcome": "approved",
+        "confidence": 0.88,
+        "decision_maker": "dr_smith",
+        "patient_id": "patient_123",
+        "condition": "stage_4_lung_cancer",
+        "treatment_type": "immunotherapy"
+    },
+    {
+        "category": "diagnostic_test",
+        "scenario": "MRI scan authorization",
+        "reasoning": "Symptoms indicate need for detailed imaging",
+        "outcome": "approved",
+        "confidence": 0.92,
+        "decision_maker": "dr_jones",
+        "patient_id": "patient_456",
+        "test_type": "brain_mri",
+        "urgency": "medium"
+    }
+]
+
+# Process medical decisions
+for decision in medical_decisions:
+    decision_id = healthcare_context.record_decision(**decision)
+    
+    # Analyze decision influence in medical context
+    influence = healthcare_context.analyze_decision_influence(decision_id)
+    print(f"Medical decision influence: {influence.get('influence_score', 0):.3f}")
+
+# Find similar treatment decisions
+similar_treatments = healthcare_context.find_precedents_advanced(
+    scenario="Cancer treatment approval",
+    category="treatment_approval",
+    use_kg_features=True
+)
+
+print(f"Found {len(similar_treatments)} similar treatment decisions")
+
+# Analyze healthcare context graph
+graph_analysis = healthcare_context.analyze_context_graph()
+if 'error' not in graph_analysis:
+    print(f"Healthcare graph: {graph_analysis.get('graph_metrics', {})}")
+```
+
+### E-commerce Personalization System
+
+```python
+# E-commerce system with KG recommendations
+ecommerce_context = AgentContext(
+    vector_store=VectorStore(backend="qdrant", dimension=1024),
+    knowledge_graph=GraphStore(backend="neo4j"),
+    enable_decision_tracking=True,
+    enable_advanced_analytics=True,
+    enable_kg_algorithms=True
+)
+
+# Record personalization decisions
+personalization_decisions = [
+    {
+        "category": "product_recommendation",
+        "scenario": "Premium product recommendation for VIP customer",
+        "reasoning": "High purchase history, premium segment, similar preferences",
+        "outcome": "recommended",
+        "confidence": 0.91,
+        "decision_maker": "recommendation_engine",
+        "customer_id": "vip_customer_001",
+        "product_category": "luxury_goods",
+        "price_range": "high"
+    },
+    {
+        "category": "pricing_decision",
+        "scenario": "Dynamic pricing adjustment",
+        "reasoning": "High demand, low inventory, competitor pricing",
+        "outcome": "price_increased",
+        "confidence": 0.87,
+        "decision_maker": "pricing_algorithm",
+        "product_id": "product_789",
+        "original_price": 99.99,
+        "new_price": 119.99
+    }
+]
+
+# Process e-commerce decisions
+for decision in personalization_decisions:
+    decision_id = ecommerce_context.record_decision(**decision)
+    
+    # Find similar customers using KG features
+    similar_customers = ecommerce_context.find_similar_entities(
+        entity_id=decision.get('customer_id', ''),
+        similarity_type="structural",
+        top_k=5
+    )
+    print(f"Similar customers: {len(similar_customers)}")
+
+# Get comprehensive e-commerce insights
+insights = ecommerce_context.get_context_insights()
+print(f"E-commerce system status: {insights.get('advanced_features', {})}")
+```
+
+### Backward Compatibility Examples
+
+All existing code continues to work without changes:
+
+```python
+# Old API still works perfectly
+context = AgentContext(vector_store=vector_store)
+query = DecisionQuery(graph_store)
+graph = ContextGraph()
+
+# Store and retrieve as before
+memory_id = context.store("User message", conversation_id="conv1")
+results = context.retrieve("User query")
+
+# Decision tracking with old API
+if hasattr(context, 'record_decision'):
+    decision_id = context.record_decision(
+        category="test",
+        scenario="Test scenario",
+        reasoning="Test reasoning",
+        outcome="approved",
+        confidence=0.8
+    )
+```
+
+## Summary
+
+The context module provides:
+
+- **Backward Compatibility**: All existing code works unchanged
+- **KG Algorithm Integration**: Advanced graph analytics with centrality, community detection, embeddings
+- **Vector Store Features**: Hybrid search combining semantic and structural similarity
+- **Advanced Decision Analytics**: Influence analysis, relationship prediction, comprehensive insights
+- **Production Ready**: Scalable architecture for real-world applications
+
+Users can now build truly comprehensive context graphs with semantica, leveraging all advanced KG algorithms and vector store features while maintaining complete backward compatibility!

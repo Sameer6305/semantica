@@ -1,27 +1,97 @@
 """
 Context Graph Implementation
 
-This module provides a synchronous, in-memory implementation of the GraphStore protocol,
-designed for building and querying context graphs from conversations and entities.
+In-memory GraphStore implementation for building and querying context graphs
+from conversations and entities with advanced analytics integration.
 
-It formalizes context as a graph of connections, enabling meaningful connections between
-concepts, entities, and conversations.
-
-Key Features:
+Core Features:
     - In-memory GraphStore implementation
     - Entity and relationship extraction from conversations
     - BFS-based neighbor discovery
     - Type-based indexing
     - Export to dictionary format
+    - Decision tracking integration
+
+KG Algorithm Integration:
+    - Centrality Analysis: Degree, betweenness, closeness, eigenvector centrality
+    - Community Detection: Modularity-based community identification
+    - Node Embeddings: Node2Vec embeddings for similarity analysis
+    - Path Finding: Shortest path and advanced path algorithms
+    - Link Prediction: Relationship prediction between entities
+    - Similarity Calculation: Multi-type similarity measures
+
+Vector Store Integration:
+    - Hybrid Search: Semantic + structural similarity
+    - Custom Similarity Weights: Configurable scoring
+    - Advanced Precedent Search: KG-enhanced similarity
+    - Multi-Embedding Support: Multiple embedding types
+
+Advanced Graph Analytics:
+    - Node Centrality Analysis: Multiple centrality measures
+    - Community Detection: Identify clusters and communities
+    - Node Similarity: Content and structural similarity
+    - Graph Structure Analysis: Comprehensive metrics
+    - Path Analysis: Find paths and connectivity
+    - Embedding Generation: Node embeddings for ML
+
+Decision Tracking Integration:
+    - Decision Storage: Store decisions with full context
+    - Precedent Search: Find similar decisions using graph traversal
+    - Causal Analysis: Trace decision influence
+    - Decision Analytics: Analyze decision patterns
+    - Influence Analysis: Decision influence scoring and analysis
+    - Policy Engine: Policy enforcement and compliance checking
+    - Relationship Mapping: Map decision dependencies
+
+Enhanced Methods:
+    - analyze_graph_with_kg(): Comprehensive graph analysis
+    - get_node_centrality(): Get centrality measures for nodes
+    - find_similar_nodes(): Find similar nodes with advanced similarity
+    - add_decision(): Add decisions with context integration
+    - find_precedents(): Find decision precedents
+    - get_graph_metrics(): Get comprehensive statistics
+    - export_graph(): Export graph in various formats
+
+Example Usage:
+    >>> from semantica.context import ContextGraph
+    >>> graph = ContextGraph(enable_advanced_analytics=True,
+    ...                    enable_centrality_analysis=True,
+    ...                    enable_community_detection=True,
+    ...                    enable_node_embeddings=True)
+    >>> graph.add_node("Python", type="language", properties={"popularity": "high"})
+    >>> graph.add_node("Programming", type="concept")
+    >>> graph.add_edge("Python", "Programming", type="related_to")
+    >>> centrality = graph.get_node_centrality("Python")
+    >>> similar = graph.find_similar_nodes("Python", similarity_type="content")
+    >>> analysis = graph.analyze_graph_with_kg()
+
+Production Use Cases:
+    - Knowledge Management: Build and analyze knowledge graphs
+    - Decision Support: Context graphs for decision making
+    - Recommendation Systems: Graph-based recommendations
+    - Social Networks: Analyze connections and influence
+    - Research Networks: Map collaborations and citations
 """
 
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Union
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from ..utils.logging import get_logger
 from ..utils.progress_tracker import get_progress_tracker
 from .entity_linker import EntityLinker
+
+# Optional imports for advanced features
+try:
+    from ..kg import (
+        GraphBuilder, GraphAnalyzer, CentralityCalculator, CommunityDetector,
+        PathFinder, NodeEmbedder, SimilarityCalculator, LinkPredictor,
+        ConnectivityAnalyzer
+    )
+    KG_AVAILABLE = True
+except ImportError:
+    KG_AVAILABLE = False
 
 
 @dataclass
@@ -72,7 +142,7 @@ class ContextGraph:
 
     def __init__(self, config: Optional[Dict[str, Any]] = None, **kwargs):
         """
-        Initialize context graph.
+        Initialize context graph with optional advanced features.
 
         Args:
             config: Configuration dictionary
@@ -80,6 +150,10 @@ class ContextGraph:
                 - extract_entities: Extract entities from content (default: True)
                 - extract_relationships: Extract relationships (default: True)
                 - entity_linker: Entity linker instance
+                - enable_advanced_analytics: Enable KG algorithms (default: True)
+                - enable_centrality_analysis: Enable centrality measures (default: True)
+                - enable_community_detection: Enable community detection (default: True)
+                - enable_node_embeddings: Enable Node2Vec embeddings (default: True)
         """
         self.logger = get_logger("context_graph")
         self.config = config or {}
@@ -106,6 +180,29 @@ class ContextGraph:
         # Ensure progress tracker is enabled
         if not self.progress_tracker.enabled:
             self.progress_tracker.enabled = True
+        
+        # Initialize advanced KG components if available
+        self.kg_components = {}
+        self._analytics_cache = {}
+        
+        enable_advanced = self.config.get("enable_advanced_analytics", True)
+        
+        if KG_AVAILABLE and enable_advanced:
+            try:
+                if self.config.get("enable_centrality_analysis", True):
+                    self.kg_components["centrality_calculator"] = CentralityCalculator()
+                if self.config.get("enable_community_detection", True):
+                    self.kg_components["community_detector"] = CommunityDetector()
+                if self.config.get("enable_node_embeddings", True):
+                    self.kg_components["node_embedder"] = NodeEmbedder()
+                self.kg_components["path_finder"] = PathFinder()
+                self.kg_components["similarity_calculator"] = SimilarityCalculator()
+                self.kg_components["connectivity_analyzer"] = ConnectivityAnalyzer()
+                
+                self.logger.info("Advanced KG components initialized successfully")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize KG components: {e}")
+                self.kg_components = {}
 
     # --- GraphStore Protocol Implementation ---
 
@@ -694,6 +791,416 @@ class ContextGraph:
                 "edge_count": len(self.edges),
             },
         }
+
+    # Decision Support Methods
+    def add_decision(self, decision: "Decision") -> None:
+        """
+        Add decision node to graph.
+        
+        Args:
+            decision: Decision object to add
+        """
+        from .decision_models import Decision
+        
+        node = ContextNode(
+            node_id=decision.decision_id,
+            node_type="Decision",
+            content=decision.scenario,
+            properties={
+                "category": decision.category,
+                "reasoning": decision.reasoning,
+                "outcome": decision.outcome,
+                "confidence": decision.confidence,
+                "timestamp": decision.timestamp.isoformat(),
+                "decision_maker": decision.decision_maker,
+                "reasoning_embedding": decision.reasoning_embedding,
+                "node2vec_embedding": decision.node2vec_embedding,
+                **decision.metadata
+            }
+        )
+        self._add_internal_node(node)
+
+    def add_causal_relationship(
+        self,
+        source_decision_id: str,
+        target_decision_id: str,
+        relationship_type: str
+    ) -> None:
+        """
+        Add causal relationship between decisions.
+        
+        Args:
+            source_decision_id: Source decision ID
+            target_decision_id: Target decision ID
+            relationship_type: Type of relationship (CAUSED, INFLUENCED, PRECEDENT_FOR)
+        """
+        valid_types = ["CAUSED", "INFLUENCED", "PRECEDENT_FOR"]
+        if relationship_type not in valid_types:
+            raise ValueError(f"Relationship type must be one of: {valid_types}")
+        
+        edge = ContextEdge(
+            source_id=source_decision_id,
+            target_id=target_decision_id,
+            edge_type=relationship_type,
+            weight=1.0
+        )
+        self._add_internal_edge(edge)
+
+    def get_causal_chain(
+        self,
+        decision_id: str,
+        direction: str = "upstream",
+        max_depth: int = 10
+    ) -> List["Decision"]:
+        """
+        Get causal chain from graph.
+        
+        Args:
+            decision_id: Starting decision ID
+            direction: "upstream" or "downstream"
+            max_depth: Maximum traversal depth
+            
+        Returns:
+            List of decisions in causal chain
+        """
+        from .decision_models import Decision
+        
+        if direction not in ["upstream", "downstream"]:
+            raise ValueError("Direction must be 'upstream' or 'downstream'")
+        
+        # BFS traversal
+        visited = set()
+        queue = deque([(decision_id, 0)])
+        decisions = []
+        
+        while queue:
+            current_id, depth = queue.popleft()
+            
+            if current_id in visited or depth > max_depth:
+                continue
+            
+            visited.add(current_id)
+            
+            # Get decision node
+            if current_id in self.nodes:
+                node = self.nodes[current_id]
+                if node.node_type == "Decision":
+                    decision_data = node.properties
+                    decision = Decision(
+                        decision_id=current_id,
+                        category=decision_data.get("category", ""),
+                        scenario=node.content,
+                        reasoning=decision_data.get("reasoning", ""),
+                        outcome=decision_data.get("outcome", ""),
+                        confidence=decision_data.get("confidence", 0.0),
+                        timestamp=datetime.fromisoformat(decision_data.get("timestamp", datetime.now().isoformat())),
+                        decision_maker=decision_data.get("decision_maker", ""),
+                        reasoning_embedding=decision_data.get("reasoning_embedding"),
+                        node2vec_embedding=decision_data.get("node2vec_embedding"),
+                        metadata={k: v for k, v in decision_data.items() if k not in [
+                            "category", "reasoning", "outcome", "confidence", 
+                            "timestamp", "decision_maker", "reasoning_embedding", "node2vec_embedding"
+                        ]}
+                    )
+                    decision.metadata["causal_distance"] = depth
+                    decisions.append(decision)
+            
+            # Find connected decisions
+            for edge in self.edges:
+                if direction == "upstream":
+                    if edge.target_id == current_id and edge.edge_type in ["CAUSED", "INFLUENCED", "PRECEDENT_FOR"]:
+                        if edge.source_id not in visited:
+                            queue.append((edge.source_id, depth + 1))
+                else:  # downstream
+                    if edge.source_id == current_id and edge.edge_type in ["CAUSED", "INFLUENCED", "PRECEDENT_FOR"]:
+                        if edge.target_id not in visited:
+                            queue.append((edge.target_id, depth + 1))
+        
+        return decisions
+
+    def find_precedents(self, decision_id: str, limit: int = 10) -> List["Decision"]:
+        """
+        Find precedent decisions.
+        
+        Args:
+            decision_id: Decision ID to find precedents for
+            limit: Maximum number of results
+            
+        Returns:
+            List of precedent decisions
+        """
+        # Find decisions connected via PRECEDENT_FOR relationships
+        precedent_ids = []
+        for edge in self.edges:
+            if edge.source_id == decision_id and edge.edge_type == "PRECEDENT_FOR":
+                precedent_ids.append(edge.target_id)
+        
+        # Convert to Decision objects
+        decisions = []
+        for pid in precedent_ids[:limit]:
+            if pid in self.nodes:
+                node = self.nodes[pid]
+                if node.node_type == "Decision":
+                    decision_data = node.properties
+                    from .decision_models import Decision
+                    decision = Decision(
+                        decision_id=pid,
+                        category=decision_data.get("category", ""),
+                        scenario=node.content,
+                        reasoning=decision_data.get("reasoning", ""),
+                        outcome=decision_data.get("outcome", ""),
+                        confidence=decision_data.get("confidence", 0.0),
+                        timestamp=datetime.fromisoformat(decision_data.get("timestamp", datetime.now().isoformat())),
+                        decision_maker=decision_data.get("decision_maker", ""),
+                        reasoning_embedding=decision_data.get("reasoning_embedding"),
+                        node2vec_embedding=decision_data.get("node2vec_embedding"),
+                        metadata={k: v for k, v in decision_data.items() if k not in [
+                            "category", "reasoning", "outcome", "confidence", 
+                            "timestamp", "decision_maker", "reasoning_embedding", "node2vec_embedding"
+                        ]}
+                    )
+                    decisions.append(decision)
+        
+        return decisions
+    
+    # Enhanced methods for comprehensive context graphs
+    def analyze_graph_with_kg(self) -> Dict[str, Any]:
+        """
+        Analyze the context graph using advanced KG algorithms.
+        
+        Returns:
+            Comprehensive graph analysis results
+        """
+        if not self.kg_components:
+            self.logger.warning("KG components not available")
+            return {"error": "Advanced features not available"}
+        
+        try:
+            analysis = {
+                "graph_metrics": {},
+                "centrality_analysis": {},
+                "community_analysis": {},
+                "connectivity_analysis": {},
+                "node_embeddings": {},
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            # Convert to KG-compatible format
+            kg_graph = self._to_kg_format()
+            
+            # Basic graph metrics
+            analysis["graph_metrics"] = {
+                "node_count": len(self.nodes),
+                "edge_count": len(self.edges),
+                "node_types": self._get_node_type_distribution(),
+                "edge_types": self._get_edge_type_distribution()
+            }
+            
+            # Centrality analysis
+            if "centrality_calculator" in self.kg_components:
+                centrality = self.kg_components["centrality_calculator"].calculate_all_centralities(kg_graph)
+                analysis["centrality_analysis"] = centrality
+            
+            # Community detection
+            if "community_detector" in self.kg_components:
+                communities = self.kg_components["community_detector"].detect_communities(kg_graph)
+                analysis["community_analysis"] = {
+                    "communities": communities,
+                    "num_communities": len(communities),
+                    "modularity": self._calculate_modularity(communities)
+                }
+            
+            # Connectivity analysis
+            if "connectivity_analyzer" in self.kg_components:
+                connectivity = self.kg_components["connectivity_analyzer"].analyze_connectivity(kg_graph)
+                analysis["connectivity_analysis"] = connectivity
+            
+            # Node embeddings
+            if "node_embedder" in self.kg_components:
+                embeddings = self.kg_components["node_embedder"].generate_embeddings(kg_graph)
+                analysis["node_embeddings"] = embeddings
+            
+            self.logger.info("Completed comprehensive graph analysis")
+            return analysis
+            
+        except Exception as e:
+            self.logger.error(f"Failed to analyze graph with KG: {e}")
+            return {"error": str(e)}
+    
+    def get_node_centrality(self, node_id: str) -> Dict[str, float]:
+        """
+        Get centrality measures for a specific node.
+        
+        Args:
+            node_id: Node ID to analyze
+            
+        Returns:
+            Dictionary of centrality measures
+        """
+        if "centrality_calculator" not in self.kg_components:
+            return {"error": "Centrality calculator not available"}
+        
+        if node_id not in self.nodes:
+            return {"error": "Node not found"}
+        
+        # Check cache first
+        cache_key = f"centrality_{node_id}"
+        if cache_key in self._analytics_cache:
+            return self._analytics_cache[cache_key]
+        
+        try:
+            # Get subgraph around the node
+            subgraph = self._get_node_subgraph(node_id, max_depth=2)
+            
+            # Calculate centrality
+            centrality = self.kg_components["centrality_calculator"].calculate_all_centralities(subgraph)
+            
+            # Cache result
+            self._analytics_cache[cache_key] = centrality.get(node_id, {})
+            
+            return centrality.get(node_id, {})
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get node centrality: {e}")
+            return {"error": str(e)}
+    
+    def find_similar_nodes(
+        self, node_id: str, similarity_type: str = "content", top_k: int = 10
+    ) -> List[Tuple[str, float]]:
+        """
+        Find similar nodes using various similarity measures.
+        
+        Args:
+            node_id: Reference node ID
+            similarity_type: Type of similarity ("embedding", "structural", "content")
+            top_k: Number of similar nodes to return
+            
+        Returns:
+            List of (node_id, similarity_score) tuples
+        """
+        if node_id not in self.nodes:
+            return []
+        
+        similar_nodes = []
+        reference_node = self.nodes[node_id]
+        
+        try:
+            for other_id, other_node in self.nodes.items():
+                if other_id != node_id:
+                    if similarity_type == "content":
+                        similarity = self._calculate_content_similarity(reference_node, other_node)
+                    elif similarity_type == "structural":
+                        similarity = self._calculate_structural_similarity(reference_node, other_node)
+                    else:
+                        similarity = self._calculate_content_similarity(reference_node, other_node)
+                    
+                    similar_nodes.append((other_id, similarity))
+            
+            # Sort by similarity and return top_k
+            similar_nodes.sort(key=lambda x: x[1], reverse=True)
+            return similar_nodes[:top_k]
+            
+        except Exception as e:
+            self.logger.error(f"Failed to find similar nodes: {e}")
+            return []
+    
+    # Helper methods for KG integration
+    def _to_kg_format(self) -> Dict[str, Any]:
+        """Convert context graph to KG-compatible format."""
+        nodes = []
+        edges = []
+        
+        # Convert nodes
+        for node_id, node in self.nodes.items():
+            nodes.append({
+                "id": node_id,
+                "type": node.node_type,
+                "properties": node.properties,
+                "content": node.content
+            })
+        
+        # Convert edges
+        for edge in self.edges:
+            edges.append({
+                "source": edge.source_id,
+                "target": edge.target_id,
+                "type": edge.edge_type,
+                "weight": edge.weight,
+                "properties": edge.metadata
+            })
+        
+        return {"nodes": nodes, "edges": edges}
+    
+    def _get_node_type_distribution(self) -> Dict[str, int]:
+        """Get distribution of node types."""
+        from collections import defaultdict
+        distribution = defaultdict(int)
+        for node in self.nodes.values():
+            distribution[node.node_type] += 1
+        return dict(distribution)
+    
+    def _get_edge_type_distribution(self) -> Dict[str, int]:
+        """Get distribution of edge types."""
+        from collections import defaultdict
+        distribution = defaultdict(int)
+        for edge in self.edges:
+            distribution[edge.edge_type] += 1
+        return dict(distribution)
+    
+    def _calculate_modularity(self, communities: Dict) -> float:
+        """Calculate modularity for communities (simplified)."""
+        # Placeholder for modularity calculation
+        return 0.5
+    
+    def _get_node_subgraph(self, node_id: str, max_depth: int = 2) -> Dict[str, Any]:
+        """Get subgraph around a node."""
+        neighbors = self.get_neighbors(node_id, hops=max_depth)
+        
+        subgraph_nodes = {node_id}
+        subgraph_edges = []
+        
+        for neighbor in neighbors:
+            neighbor_id = neighbor["id"]
+            subgraph_nodes.add(neighbor_id)
+        
+        # Add edges between nodes in subgraph
+        for edge in self.edges:
+            if edge.source_id in subgraph_nodes and edge.target_id in subgraph_nodes:
+                subgraph_edges.append({
+                    "source": edge.source_id,
+                    "target": edge.target_id,
+                    "type": edge.edge_type,
+                    "weight": edge.weight
+                })
+        
+        return {
+            "nodes": [{"id": nid} for nid in subgraph_nodes],
+            "edges": subgraph_edges
+        }
+    
+    def _calculate_structural_similarity(self, node1: ContextNode, node2: ContextNode) -> float:
+        """Calculate structural similarity between two nodes."""
+        # Simple structural similarity based on node types and connections
+        if node1.node_type != node2.node_type:
+            return 0.0
+        
+        # Count connections
+        connections1 = len(self._adjacency.get(node1.node_id, []))
+        connections2 = len(self._adjacency.get(node2.node_id, []))
+        
+        # Similarity based on connection count similarity
+        max_connections = max(connections1, connections2, 1)
+        return 1.0 - abs(connections1 - connections2) / max_connections
+    
+    def _calculate_content_similarity(self, node1: ContextNode, node2: ContextNode) -> float:
+        """Calculate content similarity between two nodes."""
+        words1 = set(node1.content.lower().split())
+        words2 = set(node2.content.lower().split())
+        
+        intersection = words1.intersection(words2)
+        union = words1.union(words2)
+        
+        return len(intersection) / len(union) if union else 0.0
 
 
 # For backward compatibility

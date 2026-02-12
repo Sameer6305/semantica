@@ -3,7 +3,7 @@
 <img src="Semantica Logo.png" alt="Semantica Logo" width="460"/>
 
 # 🧠 Semantica
-### Open-Source Semantic Layer & Knowledge Engineering Framework
+### Open-Source Semantic Layer & Context Graph Framework
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -14,7 +14,7 @@
 
 ### ⭐ Give us a Star • 🍴 Fork us • 💬 Join our Discord
 
-> **Transform Chaos into Intelligence. Build AI systems that are explainable, traceable, and trustworthy — not black boxes.**
+> **Transform Chaos into Intelligence. Build AI systems with context graphs, decision tracking, and advanced knowledge engineering that are explainable, traceable, and trustworthy — not black boxes.**
 
 </div>
 
@@ -36,15 +36,46 @@ pip install semantica
 ```
 
 ```python
-from semantica.semantic_extract import NERExtractor
+from semantica.context import AgentContext
+from semantica.vector_store import VectorStore
 from semantica.kg import GraphBuilder
 
-# Extract entities and build knowledge graph
-ner = NERExtractor(method="ml", model="en_core_web_sm")
-entities = ner.extract("Apple Inc. was founded by Steve Jobs in 1976.")
-kg = GraphBuilder().build({"entities": entities, "relationships": []})
+# Initialize context with advanced features
+vs = VectorStore(backend="faiss", dimension=768)
+kg = GraphBuilder().build({"entities": [], "relationships": []})
+context = AgentContext(
+    vector_store=vs,
+    knowledge_graph=kg,
+    enable_decision_tracking=True,
+    enable_advanced_analytics=True,
+    enable_kg_algorithms=True,
+    enable_vector_store_features=True
+)
 
-print(f"Built KG with {len(kg.get('entities', []))} entities")
+# Store memory with context graphs
+memory_id = context.store(
+    "User is working on a React project with FastAPI",
+    conversation_id="session_1"
+)
+
+# Record decision with full context
+decision_id = context.record_decision(
+    category="technology_choice",
+    scenario="Framework selection for web API",
+    reasoning="React ecosystem with FastAPI provides best performance",
+    outcome="selected_fastapi",
+    confidence=0.92
+)
+
+# Find similar decisions (precedents)
+precedents = context.find_precedents_advanced(
+    scenario="Framework selection",
+    use_kg_features=True
+)
+
+print(f"Memory stored: {memory_id}")
+print(f"Decision recorded: {decision_id}")
+print(f"Found {len(precedents)} precedents")
 ```
 
 **[📖 Full Quick Start](#-quick-start)** • **[🍳 Cookbook Examples](#-semantica-cookbook)** • **[💬 Join Discord](https://discord.gg/ggb7vWeP)** • **[⭐ Star Us](https://github.com/Hawksight-AI/semantica)**
@@ -69,6 +100,10 @@ print(f"Built KG with {len(kg.get('entities', []))} entities")
 
 | Feature | Benefit |
 |:--------|:--------|
+| **Context Graphs** | Structured knowledge representation with entity relationships and semantic context |
+| **Decision Tracking** | Complete decision lifecycle management with precedent search and causal analysis |
+| **KG Algorithms** | Advanced graph analytics including centrality, community detection, and embeddings |
+| **Vector Store Integration** | Hybrid search with custom similarity weights and advanced filtering |
 | **Auditable** | Complete provenance tracking with W3C PROV-O compliance |
 | **Explainable** | Transparent reasoning paths with entity relationships |
 | **Provenance-Aware** | End-to-end lineage from documents to responses |
@@ -91,10 +126,12 @@ print(f"Built KG with {len(kg.get('entities', []))} entities")
 
 ### Powers Your AI Stack
 
-- **GraphRAG Systems** — Retrieval with graph reasoning and hybrid search
-- **AI Agents** — Trustworthy, accountable multi-agent systems with semantic memory
-- **Reasoning Models** — Explainable AI decisions with reasoning paths
-- **Enterprise AI** — Governed, auditable platforms that support compliance
+- **Context Graphs** — Structured knowledge representation with entity relationships and semantic context
+- **Decision Tracking Systems** — Complete decision lifecycle management with precedent search and causal analysis
+- **GraphRAG Systems** — Retrieval with graph reasoning and hybrid search using KG algorithms
+- **AI Agents** — Trustworthy, accountable multi-agent systems with semantic memory and decision history
+- **Reasoning Models** — Explainable AI decisions with reasoning paths and influence analysis
+- **Enterprise AI** — Governed, auditable platforms that support compliance and policy enforcement
 
 ### Integrations
 
@@ -104,6 +141,63 @@ print(f"Built KG with {len(kg.get('entities', []))} entities")
 
 > **Built for environments where every answer must be explainable and governed.**
 
+---
+
+## 🧠 Context Module: Advanced Context Engineering
+
+The **Context Module** is Semantica's flagship component, providing sophisticated context management with **context graphs**, **decision tracking**, and **advanced knowledge engineering**.
+
+### 🎯 Core Capabilities
+
+| **Feature** | **Description** | **Use Case** |
+|------------|-------------|------------|
+| **Context Graphs** | Structured knowledge representation with entity relationships | Knowledge management, decision support |
+| **Decision Tracking** | Complete decision lifecycle with precedent search | Banking approvals, healthcare decisions |
+| **KG Algorithms** | Advanced graph analytics (centrality, community detection) | Influence analysis, similarity search |
+| **Vector Store Integration** | Hybrid search with custom similarity weights | Advanced retrieval and filtering |
+| **Memory Management** | Hierarchical memory with short-term and long-term storage | Agent conversation history |
+
+### 🚀 Advanced Features
+
+- **Hybrid Retrieval**: Combines vector search, graph traversal, and keyword matching
+- **Multi-Hop Reasoning**: Trace relationships across multiple graph hops
+- **Decision Influence Analysis**: Understand how decisions impact each other
+- **Policy Engine**: Enforce business rules and compliance automatically
+- **Causal Chain Analysis**: Trace decision causality and influence paths
+- **Entity Linking**: Resolve ambiguities and maintain consistent entity references
+
+### Examples
+
+```python
+# Banking Decision System
+from semantica.context import AgentContext
+
+context = AgentContext(
+    vector_store=vs,
+    knowledge_graph=kg,
+    enable_decision_tracking=True,
+    enable_kg_algorithms=True
+)
+
+# Record loan decision
+decision_id = context.record_decision(
+    category="mortgage_approval",
+    scenario="First-time homebuyer application",
+    reasoning="Strong credit score, stable employment",
+    outcome="approved",
+    confidence=0.94
+)
+
+# Find similar decisions with KG features
+precedents = context.find_precedents_advanced(
+    scenario="Mortgage application",
+    use_kg_features=True,
+    similarity_weights={"semantic": 0.5, "structural": 0.3, "category": 0.2}
+)
+
+# Analyze decision influence
+influence = context.analyze_decision_influence(decision_id)
+```
 
 ---
 
