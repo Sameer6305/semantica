@@ -2323,7 +2323,7 @@ Answer:"""
             
         except Exception as e:
             self.logger.error(f"Failed explainable retrieval: {e}")
-            return {"error": str(e)}
+            return {"error": "An error occurred during explainable retrieval. Please check the logs for details."}
 
     def dynamic_context_traversal(
         self,
