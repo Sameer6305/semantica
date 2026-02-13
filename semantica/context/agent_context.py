@@ -226,6 +226,20 @@ class AgentContext:
         self._policy_engine = None
         
         if enable_decision_tracking and knowledge_graph:
+            # Validate that knowledge_graph supports required GraphStore interface
+            if not hasattr(knowledge_graph, 'execute_query'):
+                self.logger.error(
+                    "Decision tracking requires a GraphStore-compatible knowledge graph with execute_query() method. "
+                    "Provided knowledge_graph type does not support Cypher queries. "
+                    "Use GraphStore (Neo4j, FalkorDB) or disable decision tracking."
+                )
+                raise ValueError(
+                    "Decision tracking requires a GraphStore-compatible knowledge graph. "
+                    "The provided knowledge_graph does not have an execute_query() method. "
+                    "For decision tracking, use a GraphStore backend (Neo4j, FalkorDB) "
+                    "or set enable_decision_tracking=False."
+                )
+            
             # Initialize enhanced decision tracking components
             try:
                 self._decision_recorder = DecisionRecorder(knowledge_graph)
