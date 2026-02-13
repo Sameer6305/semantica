@@ -508,7 +508,7 @@ class DecisionQuery:
             MATCH (start {{id: $start_entity}})
             CALL {{
                 WITH start
-                MATCH (start)-[*1..{max_hops}]-(d:Decision)
+                MATCH path = (start)-[*1..{max_hops}]-(d:Decision)
                 RETURN d, length(path) as hop_count
             }}
             RETURN d, hop_count
