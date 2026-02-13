@@ -15,7 +15,7 @@ from semantica.context import AgentMemory
 from semantica.context import EntityLinker
 
 # Decision tracking with advanced features
-from semantica.context import Decision, Policy, DecisionRecorder, DecisionQuery, CausalChainAnalyzer, PolicyEngine
+from semantica.context import Decision, Policy, PolicyException, DecisionRecorder, DecisionQuery, CausalChainAnalyzer, PolicyEngine
 
 # For vector storage (often used with context)
 from semantica.vector_store import VectorStore
@@ -40,16 +40,19 @@ print(f"Found {len(results)} results")
 
 1. [High-Level Interface (Quick Start)](#high-level-interface-quick-start)
 2. [Basic Usage](#basic-usage)
-3. [Context Graph Construction](#context-graph-construction)
-4. [Agent Memory Management](#agent-memory-management)
-5. [Context Retrieval](#context-retrieval)
-6. [Entity Linking](#entity-linking)
-7. [Decision Tracking](#decision-tracking)
-8. [Context Graphs with KG Algorithms](#context-graphs-with-kg-algorithms)
-9. [Advanced Decision Analytics](#advanced-decision-analytics)
-10. [Hybrid Search for Decisions](#hybrid-search-for-decisions)
-11. [Explainable AI](#explainable-ai)
-12. [Production Examples](#production-examples)
+3. [Enhanced AgentContext with Decision Tracking and KG Algorithms](#enhanced-agentcontext-with-decision-tracking-and-kg-algorithms)
+4. [Context Graph Construction](#context-graph-construction)
+5. [Enhanced ContextGraph with KG Algorithms](#enhanced-contextgraph-with-kg-algorithms)
+6. [Agent Memory Management](#agent-memory-management)
+7. [Context Retrieval](#context-retrieval)
+8. [Entity Linking](#entity-linking)
+9. [Decision Tracking](#decision-tracking)
+10. [Policy Exception Management](#policy-exception-management)
+11. [Hybrid Search for Decisions](#hybrid-search-for-decisions)
+12. [Context Graphs with KG Algorithms](#context-graphs-with-kg-algorithms)
+13. [Advanced Decision Analytics](#advanced-decision-analytics)
+14. [Production Examples](#production-examples)
+15. [Explainable AI](#explainable-ai)
 
 ## High-Level Interface (Quick Start)
 
@@ -195,6 +198,67 @@ kg = ContextGraph()
 context = AgentContext(vector_store=vs, knowledge_graph=kg)
 ```
 
+### Enhanced AgentContext with Decision Tracking and KG Algorithms
+
+The enhanced `AgentContext` supports advanced decision tracking, KG algorithm integration, and vector store features for production-grade context engineering.
+
+```python
+from semantica.context import AgentContext, ContextGraph
+from semantica.vector_store import VectorStore
+from semantica.graph_store import GraphStore  # For decision tracking
+
+# Initialize Vector Store
+vs = VectorStore(backend="inmemory", dimension=768)
+
+# Initialize Graph Store (required for decision tracking)
+# Note: Decision tracking requires a GraphStore with execute_query() support
+gs = GraphStore(backend="neo4j", uri="bolt://localhost:7687")
+
+# Initialize Context Graph with KG algorithms
+kg = ContextGraph(
+    enable_advanced_analytics=True,
+    enable_centrality_analysis=True,
+    enable_community_detection=True,
+    enable_node_embeddings=True
+)
+
+# Initialize Enhanced Agent Context
+context = AgentContext(
+    vector_store=vs,
+    knowledge_graph=kg,
+    enable_decision_tracking=True,        # Enable decision lifecycle management
+    enable_advanced_analytics=True,       # Enable KG algorithm integration
+    enable_kg_algorithms=True,            # Enable centrality, community detection
+    enable_vector_store_features=True     # Enable hybrid search capabilities
+)
+
+# Record a decision with full context
+decision_id = context.record_decision(
+    category="mortgage_approval",
+    scenario="First-time homebuyer application",
+    reasoning="Strong credit score, stable employment, low debt-to-income ratio",
+    outcome="approved",
+    confidence=0.94,
+    decision_maker="loan_officer_001"
+)
+
+# Find similar decisions with KG-enhanced search
+precedents = context.find_precedents_advanced(
+    scenario="Mortgage application",
+    use_kg_features=True,
+    similarity_weights={"semantic": 0.5, "structural": 0.3, "category": 0.2}
+)
+
+# Analyze decision influence
+influence = context.analyze_decision_influence(decision_id)
+print(f"Influence score: {influence.get('influence_score', 0):.3f}")
+print(f"Centrality measures: {influence.get('centrality_measures', {})}")
+
+# Get comprehensive context insights
+insights = context.get_context_insights()
+print(f"Advanced features: {insights.get('advanced_features', {})}")
+```
+
 ## Context Graph Construction
 
 The `ContextGraph` class is an in-memory graph store.
@@ -281,6 +345,46 @@ print(f"Density: {stats['density']:.4f}")
 entities = graph.find_nodes(node_type="entity")
 relations = graph.find_edges(edge_type="related_to")
 node = graph.find_node("node1")
+```
+
+### Enhanced ContextGraph with KG Algorithms
+
+The enhanced `ContextGraph` supports advanced KG algorithms for centrality analysis, community detection, and node embeddings.
+
+```python
+from semantica.context import ContextGraph
+
+# Initialize with KG algorithms enabled
+graph = ContextGraph(
+    enable_advanced_analytics=True,
+    enable_centrality_analysis=True,
+    enable_community_detection=True,
+    enable_node_embeddings=True
+)
+
+# Add nodes and edges
+graph.add_node("Python", "Language", {"popularity": "high"})
+graph.add_node("FastAPI", "Framework", {"language": "Python"})
+graph.add_node("Django", "Framework", {"language": "Python"})
+graph.add_edge("FastAPI", "Python", "WRITTEN_IN")
+graph.add_edge("Django", "Python", "WRITTEN_IN")
+
+# Centrality analysis
+centrality = graph.get_node_centrality("Python")
+print(f"Python centrality: {centrality}")
+
+# Find similar nodes using embeddings
+similar_nodes = graph.find_similar_nodes("Python", similarity_type="content")
+print(f"Similar nodes to Python: {[node['id'] for node in similar_nodes]}")
+
+# Community detection
+analysis = graph.analyze_graph_with_kg()
+communities = analysis.get('community_analysis', {})
+print(f"Communities found: {communities.get('num_communities', 0)}")
+
+# Node embeddings
+embeddings = graph.get_node_embeddings("Python")
+print(f"Python embedding dimension: {len(embeddings) if embeddings else 0}")
 ```
 
 ## Agent Memory Management
@@ -440,6 +544,43 @@ context_info = decision_context.get_decision_context(
 
 print(f"Decision context: {len(context_info.related_entities)} entities")
 print(f"Related relationships: {len(context_info.related_relationships)}")
+```
+
+### Policy Exception Management
+
+The enhanced decision tracking system supports policy exceptions with proper audit trails.
+
+```python
+from semantica.context import PolicyException, PolicyEngine
+from datetime import datetime
+
+# Create a policy exception
+exception = PolicyException(
+    exception_id="exc_001",
+    decision_id="decision_123",
+    policy_id="lending_policy_v2",
+    reason="Customer relationship exception - long-term premium client",
+    approver="branch_manager_001",
+    approval_timestamp=datetime.now(),
+    justification="Customer has 10-year history with excellent payment record"
+)
+
+# Convert to dictionary for storage
+exception_dict = exception.to_dict()
+print(f"Exception recorded: {exception_dict['exception_id']}")
+
+# Create exception from dictionary (e.g., when loading from database)
+recreated_exception = PolicyException.from_dict(exception_dict)
+print(f"Recreated exception: {recreated_exception.reason}")
+
+# Policy engine can record exceptions in GraphStore
+policy_engine = PolicyEngine(graph_store)
+exception_id = policy_engine.record_exception(
+    decision_id="decision_123",
+    policy_id="lending_policy_v2",
+    reason="Long-term customer relationship exception"
+)
+print(f"Policy exception recorded: {exception_id}")
 ```
 
 ## Hybrid Search for Decisions
