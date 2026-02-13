@@ -999,7 +999,6 @@ context_config.set("retention_days", 60)
 - [Vector Store](vector_store.md) - The long-term storage backend
 - [Graph Store](graph_store.md) - The knowledge graph backend
 - [KG Algorithms](kg.md) - Knowledge graph algorithms and analytics
-- [Decision Tracking](decision_tracking.md) - Decision management and analysis
 - [Reasoning](reasoning.md) - Uses context for logic
 
 ## Cookbook
