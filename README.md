@@ -137,6 +137,7 @@ print(f"Found {len(precedents)} precedents")
 
 - **Docling Support** — Document parsing with table extraction (PDF, DOCX, PPTX, XLSX)
 - **AWS Neptune** — Amazon Neptune graph database support with IAM authentication
+- **Apache AGE** — PostgreSQL graph extension backend (openCypher via SQL)
 - **Custom Ontology Import** — Import existing ontologies (OWL, RDF, Turtle, JSON-LD)
 
 > **Built for environments where every answer must be explainable and governed.**
@@ -284,7 +285,8 @@ The **semantic gap** is the fundamental disconnect between what AI systems can p
 - 📐 **OWL Ontologies** — HermiT/Pellet validated, custom ontology import support
 - 🔢 **Vector Embeddings** — FastEmbed by default
 - ☁️ **AWS Neptune** — Amazon Neptune graph database support
-- 🔍 **Provenance** — Every AI response links back to:
+- � **Apache AGE** — PostgreSQL graph extension with openCypher support
+- �🔍 **Provenance** — Every AI response links back to:
   - 📄 Source documents
   - 🏷️ Extracted entities & relations
   - 📐 Ontology rules applied
@@ -510,13 +512,13 @@ results = vector_store.search(query="supply chain", top_k=5)
 
 ### Graph Store & Triplet Store
 
-> **Neo4j, FalkorDB, Amazon Neptune** • **SPARQL queries** • **RDF triplets**
+> **Neo4j, FalkorDB, Amazon Neptune, Apache AGE** • **SPARQL queries** • **RDF triplets**
 
 ```python
 from semantica.graph_store import GraphStore
 from semantica.triplet_store import TripletStore
 
-# Graph Store (Neo4j, FalkorDB)
+# Graph Store (Neo4j, FalkorDB, Apache AGE)
 graph_store = GraphStore(backend="neo4j", uri="bolt://localhost:7687", user="neo4j", password="password")
 graph_store.add_nodes([{"id": "n1", "labels": ["Person"], "properties": {"name": "Alice"}}])
 
@@ -537,6 +539,15 @@ neptune_store.add_nodes([
 
 # Query Operations
 result = neptune_store.execute_query("MATCH (p:Person) RETURN p.name, p.age")
+
+# Apache AGE Graph Store (PostgreSQL + openCypher)
+age_store = GraphStore(
+    backend="age",
+    connection_string="host=localhost dbname=agedb user=postgres password=secret",
+    graph_name="semantica",
+)
+age_store.connect()
+age_store.create_node(labels=["Person"], properties={"name": "Alice", "age": 30})
 
 # Triplet Store (Blazegraph, Jena, RDF4J)
 triplet_store = TripletStore(backend="blazegraph", endpoint="http://localhost:9999/blazegraph")
