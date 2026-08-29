@@ -9,12 +9,7 @@ limit. (Previously lived in tests/test_seed_manager.py; moved to the
 AgentMemory area per review.)
 """
 
-import os
-import sys
-
 import pytest
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from semantica.context.agent_memory import AgentMemory
 
