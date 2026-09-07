@@ -125,7 +125,12 @@ class TestFAISSIndexDeleteVectors:
 
         query = np.array([[0.0, 1.0, 0.0]], dtype=np.float32)
         distances, indices = idx.search(query, k=3)
-        returned_ids = [idx.vector_ids[i] for i in indices[0] if i < len(idx.vector_ids)]
+        # Filter both negative sentinels (-1) and out-of-range indices.
+        returned_ids = [
+            idx.vector_ids[i]
+            for i in indices[0]
+            if 0 <= i < len(idx.vector_ids)
+        ]
         assert "b" not in returned_ids
 
     def test_get_vector_returns_none_after_deletion(self):
@@ -420,6 +425,61 @@ class TestFAISSStoreDeleteVectors:
                 f"Metadata for surviving {vid!r} was overwritten"
             )
 
+    def test_stale_persisted_next_id_is_clamped_to_inferred_minimum(self, tmp_path):
+        """Regression: a stale ``next_id`` in the sidecar must be clamped to
+        at least ``max(vec_N)+1`` so that auto-save after deletion cannot
+        propagate the stale value and cause future ID collisions.
+        """
+        import json as _json
+        _ = pytest.importorskip("faiss")
+        rng = np.random.default_rng(seed=3)
+        store = FAISSStore(dimension=3)
+        store.add_vectors(rng.random((5, 3)).astype(np.float32))
+        # IDs are vec_0..vec_4, next_id=5
+        path = tmp_path / "s.faiss"
+        store.save_index(path)
+
+        # Corrupt the sidecar: set next_id to a stale low value
+        meta = _json.loads((tmp_path / "s.faiss.meta.json").read_text())
+        meta["next_id"] = 2  # stale — vec_2, vec_3, vec_4 still exist
+        (tmp_path / "s.faiss.meta.json").write_text(_json.dumps(meta))
+
+        # Load and immediately delete one vector (auto-save fires)
+        s2 = FAISSStore(dimension=3)
+        s2.load_index(path)
+        assert s2._next_id == 5, f"Stale next_id should be clamped to 5, got {s2._next_id}"
+        s2.delete_vectors(["vec_3"])  # triggers auto-save
+
+        # The sidecar must not carry the stale value forward
+        persisted = _json.loads((tmp_path / "s.faiss.meta.json").read_text())
+        assert persisted["next_id"] >= 5, (
+            f"Auto-save propagated stale next_id={persisted['next_id']} (expected >= 5)"
+        )
+
+    def test_search_does_not_return_phantom_id_when_k_exceeds_ntotal(self):
+        """Regression: when k > ntotal, FAISS returns -1 sentinel values.
+        ``-1 < len(vector_ids)`` is always True in Python, so without an
+        explicit non-negative guard ``-1`` maps to ``vector_ids[-1]``,
+        making the last vector appear as a spurious extra result.
+        """
+        faiss = pytest.importorskip("faiss")
+        store = FAISSStore(dimension=3)
+        vecs = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], dtype=np.float32)
+        store.add_vectors(vecs, ids=["only_a", "only_b"])
+
+        # Ask for 10 neighbors but only 2 exist
+        results = store.search_similar(
+            np.array([0.0, 1.0, 0.0], dtype=np.float32), k=10
+        )
+        returned_ids = [r["id"] for r in results]
+        assert len(results) == 2, (
+            f"Expected exactly 2 results, got {len(results)}: {returned_ids}"
+        )
+        assert returned_ids.count("only_b") == 1, (
+            f"only_b appears {returned_ids.count('only_b')} time(s) — "
+            "sentinel -1 is mapping to vector_ids[-1]"
+        )
+
     def test_next_id_persisted_across_delete_save_reload(self, tmp_path):
         """Regression test for critical bug: delete → auto-save → reload → add.
 
@@ -493,8 +553,12 @@ class TestFAISSStoreDeleteVectors:
         assert store3.index.metadata.get(new_id) == {"new": True}
 
     def test_no_op_delete_does_not_rewrite_disk(self, tmp_path):
-        """A deletion of only nonexistent IDs must not trigger a disk write."""
-        import os, time
+        """A deletion of only nonexistent IDs must not call FAISSIndex.save().
+
+        Uses a spy on ``FAISSIndex.save`` rather than filesystem mtime so the
+        assertion is deterministic regardless of filesystem timestamp resolution.
+        """
+        from unittest.mock import patch
         _ = pytest.importorskip("faiss")
         store = _populated_store(ids=["a", "b", "c"])
         path = tmp_path / "idx.faiss"
@@ -502,21 +566,19 @@ class TestFAISSStoreDeleteVectors:
 
         loaded = FAISSStore(dimension=3)
         loaded.load_index(path)
-        mtime_before = os.path.getmtime(str(path))
-        time.sleep(0.05)
 
-        loaded.delete_vectors(["z"])        # nonexistent → delete_count 0
-        loaded.delete_vectors([])           # empty list → delete_count 0
-        assert os.path.getmtime(str(path)) == mtime_before, (
-            "A no-op deletion caused an unnecessary full index rewrite"
-        )
+        with patch.object(loaded.index, "save", wraps=loaded.index.save) as mock_save:
+            loaded.delete_vectors(["z"])  # nonexistent → delete_count 0
+            loaded.delete_vectors([])     # empty list  → delete_count 0
+            assert mock_save.call_count == 0, (
+                f"save() called {mock_save.call_count} time(s) for a no-op deletion"
+            )
 
-        # A real deletion must still write
-        time.sleep(0.05)
-        loaded.delete_vectors(["b"])
-        assert os.path.getmtime(str(path)) > mtime_before, (
-            "A real deletion did not persist to disk"
-        )
+            # A real deletion must still trigger save()
+            loaded.delete_vectors(["b"])
+            assert mock_save.call_count == 1, (
+                f"save() was not called after a real deletion (calls={mock_save.call_count})"
+            )
 
 
 # ---------------------------------------------------------------------------

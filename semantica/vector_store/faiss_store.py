@@ -388,22 +388,23 @@ class FAISSIndex:
         obj = cls(index, dimension, index_type)
         obj.vector_ids = vector_ids
         obj.metadata = metadata
-        # Restore the monotonic counter.  Fall back to ntotal for older sidecar
-        # files that pre-date this field; ntotal == len(vector_ids) for stores
-        # that have never had a deletion, so the counter stays collision-free.
+        # Restore the monotonic counter.  Always clamp to at least the
+        # highest inferred vec_N ID, so a stale or corrupted persisted value
+        # (e.g. written before a deletion that shifted the gap) cannot cause
+        # future default IDs to collide with existing vector IDs.
+        _vec_nums = [
+            int(v[4:]) + 1
+            for v in vector_ids
+            if v.startswith("vec_") and v[4:].isdigit()
+        ]
+        _inferred = max(_vec_nums) if _vec_nums else index.ntotal
         if persisted_next_id is not None:
-            obj.next_id = int(persisted_next_id)
+            # Trust the persisted value but never go below the inferred minimum
+            # (guards against stale/corrupted sidecars).
+            obj.next_id = max(int(persisted_next_id), _inferred)
         else:
-            # Older sidecar files lack this field.  For clean stores (no
-            # prior deletions) ntotal == len(vector_ids) and the counter
-            # can be safely inferred from the highest existing vec_N ID,
-            # which is always >= ntotal when gaps exist.
-            _vec_nums = [
-                int(v[4:]) + 1
-                for v in vector_ids
-                if v.startswith("vec_") and v[4:].isdigit()
-            ]
-            obj.next_id = max(_vec_nums) if _vec_nums else index.ntotal
+            # Older sidecar files lack this field.  Use the inferred value.
+            obj.next_id = _inferred
         return obj
 
 
@@ -436,7 +437,7 @@ class FAISSSearch:
 
         results = []
         for i, (dist, idx) in enumerate(zip(distances[0], indices[0])):
-            if idx < len(self.index.vector_ids):
+            if idx < len(self.index.vector_ids) and idx >= 0:
                 vector_id = self.index.vector_ids[idx]
                 dist_val = float(dist)
 
