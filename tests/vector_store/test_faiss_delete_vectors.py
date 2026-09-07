@@ -178,6 +178,26 @@ class TestFAISSIndexDeleteVectors:
         # Python-side state must be untouched
         assert len(hnsw.vector_ids) == 5
 
+    def test_ivf_delete_raises_not_implemented(self):
+        """IVF does not compact labels after remove_ids; raise NotImplementedError.
+
+        IVF surviving labels stay sparse (0,2,4 not 0,1,2), so the list-compact
+        approach used by Flat would desynchronize search labels from vector_ids.
+        """
+        faiss = pytest.importorskip("faiss")
+        dim = 4
+        train = np.random.rand(80, dim).astype(np.float32)
+        q = faiss.IndexFlatL2(dim)
+        ivf = faiss.IndexIVFFlat(q, dim, 2)
+        ivf.train(train)
+        idx = FAISSIndex(ivf, dimension=dim)
+        vecs = np.random.rand(5, dim).astype(np.float32)
+        idx.add_vectors(vecs, ids=["a", "b", "c", "d", "e"])
+        with pytest.raises(NotImplementedError):
+            idx.delete_vectors(["b"])
+        # Python-side state must be completely untouched
+        assert idx.vector_ids == ["a", "b", "c", "d", "e"]
+
 
 # ---------------------------------------------------------------------------
 # FAISSStore-level unit tests
@@ -305,6 +325,62 @@ class TestFAISSStoreDeleteVectors:
         # Count must be unchanged
         assert store.count() == 5
 
+    def test_ivf_raises_not_implemented(self):
+        """FAISSStore.delete_vectors on IVF must raise NotImplementedError.
+
+        IVF remove_ids preserves original labels rather than compacting them,
+        which would desynchronize search labels from vector_ids.
+        """
+        faiss = pytest.importorskip("faiss")
+        store = FAISSStore(dimension=4)
+        # nlist=2 so we only need >= 2*39 = 78 training points
+        store.create_index(index_type="ivf", metric="L2", nlist=2)
+        train = np.random.rand(80, 4).astype(np.float32)
+        store.index.index.train(train)
+        store.add_vectors(train[:5], ids=["a", "b", "c", "d", "e"])
+        with pytest.raises(NotImplementedError):
+            store.delete_vectors(["a"])
+        # State must be completely unchanged
+        assert store.count() == 5
+
+    def test_delete_with_loaded_index_auto_saves(self, tmp_path):
+        """Deletion on a store loaded from disk auto-saves without explicit save_index."""
+        _ = pytest.importorskip("faiss")
+        # Create, populate, save
+        store = _populated_store(ids=["a", "b", "c"])
+        path = tmp_path / "store.faiss"
+        store.save_index(path)
+
+        # Load into a fresh store and delete
+        loaded = FAISSStore(dimension=3)
+        loaded.load_index(path)
+        loaded.delete_vectors(["b"])
+
+        # Reload without any additional save call — deletion must have persisted
+        reloaded = FAISSStore(dimension=3)
+        reloaded.load_index(path)
+        assert reloaded.count() == 2
+        assert "b" not in reloaded.index.vector_ids
+
+    def test_default_id_no_collision_after_deletion(self):
+        """Default vec_N IDs must not reuse a surviving ID after deletion."""
+        _ = pytest.importorskip("faiss")
+        store = _populated_store(ids=["vec_0", "vec_1", "vec_2"])
+        # Delete the middle one; len(vector_ids) drops to 2
+        store.delete_vectors(["vec_1"])
+        assert store.count() == 2
+
+        # Add a new vector — without the monotonic counter, the default ID
+        # would be vec_2 which already exists and would be silently skipped.
+        new_vecs = np.random.rand(1, 3).astype(np.float32)
+        returned_ids = store.add_vectors(new_vecs)
+        # The returned ID must not be an existing one
+        assert returned_ids[0] not in {"vec_0", "vec_2"}, (
+            f"Default ID {returned_ids[0]} collides with a surviving ID"
+        )
+        # And the vector must actually have been inserted
+        assert store.count() == 3
+
 
 # ---------------------------------------------------------------------------
 # Facade delegation test
@@ -367,6 +443,20 @@ class TestFAISSErasureCoordinator:
         vs._backend_store.create_index(index_type="hnsw", metric="L2")
         vecs = np.random.rand(5, 4).astype(np.float32)
         vs._backend_store.add_vectors(vecs, ids=["a", "b", "c", "d", "e"])
+        coord = ErasureCoordinator(vector_store=vs)
+        receipt = coord.erase_entity("a", vector_ids=["a"])
+        assert receipt.stores["vectors"]["status"] == STATUS_UNSUPPORTED
+        assert not receipt.complete
+
+    def test_erasure_ivf_reports_unsupported(self):
+        """IVF deletion raises NotImplementedError; coordinator must report unsupported."""
+        faiss = pytest.importorskip("faiss")
+        dim = 4
+        vs = VectorStore(backend="faiss", config={"dimension": dim})
+        vs._backend_store.create_index(index_type="ivf", metric="L2", nlist=2)
+        train = np.random.rand(80, dim).astype(np.float32)
+        vs._backend_store.index.index.train(train)
+        vs._backend_store.add_vectors(train[:5], ids=["a", "b", "c", "d", "e"])
         coord = ErasureCoordinator(vector_store=vs)
         receipt = coord.erase_entity("a", vector_ids=["a"])
         assert receipt.stores["vectors"]["status"] == STATUS_UNSUPPORTED
