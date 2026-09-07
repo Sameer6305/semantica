@@ -381,6 +381,45 @@ class TestFAISSStoreDeleteVectors:
         # And the vector must actually have been inserted
         assert store.count() == 3
 
+    def test_default_id_skip_past_explicit_id(self):
+        """Blocker: default IDs must skip over explicit IDs already in the store.
+
+        If a user inserts an explicit ``"vec_N"`` and then adds two vectors
+        without IDs, the generator must skip ``"vec_N"`` rather than
+        producing it and losing the second vector silently.
+        """
+        _ = pytest.importorskip("faiss")
+        store = FAISSStore(dimension=3)
+
+        # Explicit vec_1 first
+        store.add_vectors(np.ones((1, 3), dtype=np.float32), ids=["vec_1"])
+
+        # 2 default vectors — one would collide with vec_1 if not skipped
+        store.add_vectors(np.ones((2, 3), dtype=np.float32))
+
+        # 1 more default vector — must get a fresh ID, not re-generate a used one
+        original_meta = {vid: {"original": vid} for vid in store.index.vector_ids}
+        for vid, m in original_meta.items():
+            store.index.metadata[vid] = m
+        count_before = store.count()
+
+        ret = store.add_vectors(
+            np.ones((1, 3), dtype=np.float32), metadata=[{"new": True}]
+        )
+        new_id = ret[0]
+
+        assert store.count() == count_before + 1, (
+            f"Vector was silently skipped; count stayed {store.count()}"
+        )
+        assert new_id not in original_meta, (
+            f"Generated ID {new_id!r} collides with an already-existing ID"
+        )
+        # Surviving IDs' metadata must not be overwritten
+        for vid, m in original_meta.items():
+            assert store.index.metadata.get(vid) == m, (
+                f"Metadata for surviving {vid!r} was overwritten"
+            )
+
     def test_next_id_persisted_across_delete_save_reload(self, tmp_path):
         """Regression test for critical bug: delete → auto-save → reload → add.
 

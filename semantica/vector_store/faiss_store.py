@@ -288,10 +288,12 @@ class FAISSIndex:
         for vid in delete_set:
             self.metadata.pop(vid, None)
 
-        assert len(self.vector_ids) == self.index.ntotal, (
-            f"FAISSIndex invariant broken after delete_vectors: "
-            f"vector_ids={len(self.vector_ids)}, ntotal={self.index.ntotal}"
-        )
+        if len(self.vector_ids) != self.index.ntotal:
+            raise ProcessingError(
+                f"FAISSIndex invariant broken after delete_vectors: "
+                f"vector_ids={len(self.vector_ids)}, ntotal={self.index.ntotal}. "
+                "This indicates a bug in FAISS remove_ids or the deletion logic."
+            )
         return {"delete_count": removed}
 
     def save(self, path: Union[str, Path]):
@@ -389,7 +391,19 @@ class FAISSIndex:
         # Restore the monotonic counter.  Fall back to ntotal for older sidecar
         # files that pre-date this field; ntotal == len(vector_ids) for stores
         # that have never had a deletion, so the counter stays collision-free.
-        obj.next_id = int(persisted_next_id) if persisted_next_id is not None else index.ntotal
+        if persisted_next_id is not None:
+            obj.next_id = int(persisted_next_id)
+        else:
+            # Older sidecar files lack this field.  For clean stores (no
+            # prior deletions) ntotal == len(vector_ids) and the counter
+            # can be safely inferred from the highest existing vec_N ID,
+            # which is always >= ntotal when gaps exist.
+            _vec_nums = [
+                int(v[4:]) + 1
+                for v in vector_ids
+                if v.startswith("vec_") and v[4:].isdigit()
+            ]
+            obj.next_id = max(_vec_nums) if _vec_nums else index.ntotal
         return obj
 
 
@@ -616,9 +630,17 @@ class FAISSStore:
             # deletion (len(vector_ids) would decrease, potentially reusing
             # a label that still exists in the index).
             if ids is None:
-                ids = [
-                    f"vec_{self._next_id + i}" for i in range(len(vectors))
-                ]
+                _existing = set(self.index.vector_ids)
+                generated: List[str] = []
+                while len(generated) < len(vectors):
+                    cand = f"vec_{self._next_id}"
+                    self._next_id += 1
+                    if cand not in _existing:
+                        generated.append(cand)
+                        _existing.add(cand)
+                ids = generated
+                # Sync FAISSIndex.next_id so save() persists the correct value.
+                self.index.next_id = self._next_id
 
             # Assign metadata before the duplicate-skip filter so callers
             # always get up-to-date metadata even for already-present ids.
@@ -633,14 +655,7 @@ class FAISSStore:
             self.progress_tracker.update_tracking(
                 tracking_id, message="Adding vectors to index..."
             )
-            before = len(self.index.vector_ids)
             self.index.add_vectors(vectors, ids)
-            # Advance the counter by the number of vectors actually accepted
-            # (duplicates are skipped by FAISSIndex.add_vectors).
-            delta = len(self.index.vector_ids) - before
-            self._next_id += delta
-            # Keep FAISSIndex.next_id in sync so save() persists the correct value.
-            self.index.next_id = self._next_id
 
             self.logger.info(f"Added {len(vectors)} vectors to FAISS index")
             self.progress_tracker.stop_tracking(
