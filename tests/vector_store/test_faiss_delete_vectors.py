@@ -381,6 +381,104 @@ class TestFAISSStoreDeleteVectors:
         # And the vector must actually have been inserted
         assert store.count() == 3
 
+    def test_next_id_persisted_across_delete_save_reload(self, tmp_path):
+        """Regression test for critical bug: delete → auto-save → reload → add.
+
+        Without persisting ``next_id`` in the sidecar, ``load_index`` would
+        set ``_next_id = ntotal`` (4 after one deletion from 5 vectors), which
+        would generate ``"vec_4"`` as the next default ID.  That ID is still
+        present in the surviving vector list, so the insertion would be
+        silently skipped, the count would not increase, and the old vector's
+        metadata would be overwritten by the new metadata.
+
+        This test pins the full lifecycle so any regression is caught
+        immediately.
+        """
+        _ = pytest.importorskip("faiss")
+        rng = np.random.default_rng(seed=7)
+        dim = 4
+
+        # Step 1: create vec_0 .. vec_4, record their embeddings
+        store1 = FAISSStore(dimension=dim)
+        vecs = rng.random((5, dim)).astype(np.float32)
+        store1.add_vectors(vecs)
+        for vid in store1.index.vector_ids:
+            store1.index.metadata[vid] = {"original": vid}
+        path = tmp_path / "idx.faiss"
+        store1.save_index(path)
+
+        # Step 2: reload → delete vec_2 (auto-saves) → reload again
+        store2 = FAISSStore(dimension=dim)
+        store2.load_index(path)
+        store2.delete_vectors(["vec_2"])   # ntotal drops to 4; auto-save triggered
+
+        store3 = FAISSStore(dimension=dim)
+        store3.load_index(path)
+
+        # Step 3: add a new vector without an explicit ID
+        new_vec = rng.random((1, dim)).astype(np.float32)
+        count_before = store3.count()
+        returned_ids = store3.add_vectors(new_vec, metadata=[{"new": True}])
+
+        # The generated ID must not collide with any surviving ID
+        surviving = set(store3.index.vector_ids[:count_before])
+        new_id = returned_ids[0]
+        assert new_id not in surviving, (
+            f"Generated ID {new_id!r} collides with surviving ID "
+            f"(surviving={sorted(surviving)})"
+        )
+
+        # The new vector must actually have been inserted
+        assert store3.count() == count_before + 1, (
+            f"Count did not increase: was {count_before}, still {store3.count()}"
+        )
+
+        # The new vector must be retrievable
+        assert store3.get_vector(new_id) is not None, (
+            f"New vector with ID {new_id!r} is not retrievable"
+        )
+
+        # The surviving vec_4's embedding must be unchanged
+        original_vec4 = vecs[4]
+        loaded_vec4 = store3.get_vector("vec_4")
+        assert loaded_vec4 is not None
+        np.testing.assert_allclose(loaded_vec4, original_vec4, atol=1e-5,
+            err_msg="vec_4 embedding was corrupted by the new add")
+
+        # The surviving vec_4's metadata must be unchanged
+        assert store3.index.metadata.get("vec_4") == {"original": "vec_4"}, (
+            f"vec_4 metadata was overwritten: {store3.index.metadata.get('vec_4')}"
+        )
+
+        # The new vector's metadata must be the new value
+        assert store3.index.metadata.get(new_id) == {"new": True}
+
+    def test_no_op_delete_does_not_rewrite_disk(self, tmp_path):
+        """A deletion of only nonexistent IDs must not trigger a disk write."""
+        import os, time
+        _ = pytest.importorskip("faiss")
+        store = _populated_store(ids=["a", "b", "c"])
+        path = tmp_path / "idx.faiss"
+        store.save_index(path)
+
+        loaded = FAISSStore(dimension=3)
+        loaded.load_index(path)
+        mtime_before = os.path.getmtime(str(path))
+        time.sleep(0.05)
+
+        loaded.delete_vectors(["z"])        # nonexistent → delete_count 0
+        loaded.delete_vectors([])           # empty list → delete_count 0
+        assert os.path.getmtime(str(path)) == mtime_before, (
+            "A no-op deletion caused an unnecessary full index rewrite"
+        )
+
+        # A real deletion must still write
+        time.sleep(0.05)
+        loaded.delete_vectors(["b"])
+        assert os.path.getmtime(str(path)) > mtime_before, (
+            "A real deletion did not persist to disk"
+        )
+
 
 # ---------------------------------------------------------------------------
 # Facade delegation test

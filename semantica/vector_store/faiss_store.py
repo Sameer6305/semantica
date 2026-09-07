@@ -128,6 +128,11 @@ class FAISSIndex:
         self.index_type = index_type
         self.vector_ids: List[str] = []
         self.metadata: Dict[str, Dict[str, Any]] = {}
+        # Monotonic counter for default ID generation, mirroring FAISSStore._next_id.
+        # Persisted in the .meta.json sidecar so that load_index restores the
+        # correct value rather than deriving it from ntotal (which underestimates
+        # when vectors have been deleted and sparse gaps exist).
+        self.next_id: int = 0
 
     def add_vectors(self, vectors: np.ndarray, ids: Optional[List[str]] = None):
         """
@@ -313,6 +318,7 @@ class FAISSIndex:
                 "metadata": self.metadata,
                 "dimension": self.dimension,
                 "index_type": self.index_type,
+                "next_id": self.next_id,
             },
             cls=_LosslessJSONEncoder,
         )
@@ -352,6 +358,12 @@ class FAISSIndex:
             if persisted_index_type is not None:
                 index_type = persisted_index_type
 
+            # Restore the monotonic ID counter.  Older sidecar files written
+            # before this field was added will not have the key; fall back to
+            # ntotal, which equals the counter value for stores that have never
+            # had a deletion (no gaps in label space).
+            persisted_next_id = data.get("next_id")
+
             # Check for vector count vs sidecar ID count mismatch
             if len(vector_ids) != index.ntotal:
                 raise ProcessingError(
@@ -369,10 +381,15 @@ class FAISSIndex:
             )
             vector_ids = []
             metadata = {}
+            persisted_next_id = None
 
         obj = cls(index, dimension, index_type)
         obj.vector_ids = vector_ids
         obj.metadata = metadata
+        # Restore the monotonic counter.  Fall back to ntotal for older sidecar
+        # files that pre-date this field; ntotal == len(vector_ids) for stores
+        # that have never had a deletion, so the counter stays collision-free.
+        obj.next_id = int(persisted_next_id) if persisted_next_id is not None else index.ntotal
         return obj
 
 
@@ -620,7 +637,10 @@ class FAISSStore:
             self.index.add_vectors(vectors, ids)
             # Advance the counter by the number of vectors actually accepted
             # (duplicates are skipped by FAISSIndex.add_vectors).
-            self._next_id += len(self.index.vector_ids) - before
+            delta = len(self.index.vector_ids) - before
+            self._next_id += delta
+            # Keep FAISSIndex.next_id in sync so save() persists the correct value.
+            self.index.next_id = self._next_id
 
             self.logger.info(f"Added {len(vectors)} vectors to FAISS index")
             self.progress_tracker.stop_tracking(
@@ -731,9 +751,10 @@ class FAISSStore:
         self.search_engine = FAISSSearch(self.index)
         # Remember the path so delete_vectors can auto-save to the same location.
         self._index_path = path
-        # Sync the monotonic counter so future default IDs don't collide
-        # with any IDs restored from the persisted sidecar.
-        self._next_id = self.index.index.ntotal
+        # Restore the monotonic counter from the sidecar (via FAISSIndex.next_id)
+        # rather than using ntotal.  After a deletion ntotal is smaller than the
+        # highest generated ID, so ntotal would cause ID collisions on the next add.
+        self._next_id = self.index.next_id
 
         self.logger.info(f"Loaded FAISS index from {path}")
         return self.index
@@ -856,9 +877,16 @@ class FAISSStore:
 
         Delegates to :meth:`FAISSIndex.delete_vectors`.  When the store was
         loaded from disk via :meth:`load_index`, the updated index and sidecar
-        are written back to the same path atomically before this method
-        returns, so the deletion is durable across process restarts without
-        the caller needing a separate :meth:`save_index` call.
+        are written back to disk before this method returns, so the deletion is
+        durable across process restarts without the caller needing a separate
+        :meth:`save_index` call.  Note: only the ``.meta.json`` sidecar write
+        is atomic (temp-file + rename); the ``.faiss`` binary is written in
+        place.  A process crash between those two writes would leave the files
+        inconsistent, but the mismatch guard in :meth:`FAISSIndex.load` would
+        detect it on the next load rather than silently returning wrong data.
+
+        No-op deletions (all requested IDs unknown, or empty input) do not
+        trigger a disk write.
 
         When the store was created in memory (no :meth:`load_index` call), the
         deletion is in-memory only and the caller must invoke
@@ -889,10 +917,10 @@ class FAISSStore:
             )
         result = self.index.delete_vectors(vector_ids)
         # If the store was loaded from disk (load_index recorded the path),
-        # persist the deletion immediately so that the vectors cannot be
-        # resurrected by a process restart.  This satisfies the erasure
-        # contract: STATUS_ERASED is only issued after the data is gone both
-        # from memory and from the persisted index.
-        if self._index_path is not None:
+        # persist the deletion so that the vectors cannot be resurrected by a
+        # process restart.  Only write when something was actually removed:
+        # a no-op deletion (all IDs unknown or empty list) must not trigger
+        # a full index rewrite.
+        if self._index_path is not None and result.get("delete_count", 0) > 0:
             self.index.save(self._index_path)
         return result
