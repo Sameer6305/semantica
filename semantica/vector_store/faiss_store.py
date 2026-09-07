@@ -275,8 +275,8 @@ class FAISSIndex:
                 raise NotImplementedError(
                     f"The underlying FAISS index type "
                     f"({type(self.index).__name__}) does not support "
-                    "remove_ids().  Use a Flat or IVF index for deletion "
-                    "support, or rebuild the index without the deleted vectors."
+                    "remove_ids().  Use a Flat index for deletion support, "
+                    "or rebuild the index without the deleted vectors."
                 ) from exc
             raise ProcessingError(f"FAISS remove_ids failed: {exc}") from exc
 
