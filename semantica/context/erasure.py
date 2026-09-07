@@ -14,13 +14,13 @@ not. It *composes* the existing public APIs; nothing in ``context_graph.py`` or
 ``agent_memory.py`` changes, and ``ContextGraph`` keeps its graph-scope
 contract.
 
-The property that matters is honest partial reporting. FAISS exposes no delete
-at all -- a flat FAISS index cannot remove individual vectors without a full
-rebuild -- so erasure is genuinely not completable on it today. Milvus and
-Weaviate now expose ``delete_vectors`` and are fully supported. The receipt
-says ``unsupported`` for FAISS rather than reporting a success it did not
+The property that matters is honest partial reporting. FAISS flat and IVF
+indices now expose ``delete_vectors`` backed by native ``remove_ids``, so
+erasure is completable on them. HNSW does not support ``remove_ids`` and
+reports ``unsupported``. Milvus and Weaviate are also fully supported. The
+receipt says ``unsupported`` rather than reporting a success it did not
 achieve -- a receipt that reads
-"graph: erased, memory: 14 erased, vectors: unsupported on faiss" is
+"graph: erased, memory: 14 erased, vectors: unsupported on faiss/hnsw" is
 actionable; a bare ``True`` is a compliance liability.
 
 Example:
@@ -379,8 +379,7 @@ class ErasureCoordinator:
 
         method_name, target = _vector_delete_capability(self.vector_store)
         if method_name is None:
-            # FAISS exposes no delete at all; it cannot remove vectors from a
-            # flat index without a full rebuild.
+            # FAISS HNSW does not support remove_ids; Flat and IVF do.
             self.logger.warning(
                 "Vector backend %r exposes no delete; %d vector id(s) for %r "
                 "were not erased",

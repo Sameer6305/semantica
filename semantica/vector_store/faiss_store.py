@@ -199,6 +199,79 @@ class FAISSIndex:
         """Get metadata by ID."""
         return self.metadata.get(vector_id)
 
+    def delete_vectors(self, vector_ids_to_delete: List[str]) -> Dict[str, Any]:
+        """Remove vectors by their external string IDs.
+
+        Translates each requested external ID to its sequential internal FAISS
+        position, calls ``index.remove_ids`` with an ``IDSelectorBatch`` of
+        those positions, then updates ``vector_ids`` and ``metadata`` to match
+        the compacted index.  The invariant ``len(self.vector_ids) ==
+        self.index.ntotal`` is re-checked after the operation.
+
+        **Persistence:** the deletion is in-memory only.  Call
+        :meth:`FAISSStore.save_index` afterwards to write the updated state to
+        disk; without that call the deleted vectors will reappear on the next
+        process restart.
+
+        Args:
+            vector_ids_to_delete: External string IDs to remove.  Unknown IDs
+                are silently ignored.  Duplicate entries are deduplicated.
+
+        Returns:
+            ``{"delete_count": N}`` where *N* is the number of vectors
+            actually removed from the FAISS index (0 if none existed).
+
+        Raises:
+            NotImplementedError: If the underlying FAISS index type does not
+                support ``remove_ids`` (e.g. ``IndexHNSWFlat``).  No state is
+                mutated before this is raised.
+            ProcessingError: For any other unexpected FAISS error.
+        """
+        if not vector_ids_to_delete:
+            return {"delete_count": 0}
+
+        delete_set = set(vector_ids_to_delete)
+
+        # Map external string IDs to sequential internal FAISS positions.
+        positions = [
+            pos
+            for pos, vid in enumerate(self.vector_ids)
+            if vid in delete_set
+        ]
+        if not positions:
+            return {"delete_count": 0}
+
+        sel = faiss.IDSelectorBatch(np.array(positions, dtype=np.int64))
+        try:
+            removed = self.index.remove_ids(sel)
+        except RuntimeError as exc:
+            if "not implemented" in str(exc).lower():
+                # HNSW and a handful of other index types do not implement
+                # remove_ids.  Raise NotImplementedError so callers (and the
+                # ErasureCoordinator) can distinguish "unsupported" from a
+                # transient failure worth retrying.
+                raise NotImplementedError(
+                    f"The underlying FAISS index type "
+                    f"({type(self.index).__name__}) does not support "
+                    "remove_ids().  Use a Flat or IVF index for deletion "
+                    "support, or rebuild the index without the deleted vectors."
+                ) from exc
+            raise ProcessingError(f"FAISS remove_ids failed: {exc}") from exc
+
+        # Keep state consistent: update the Python-side list and metadata
+        # dict to mirror the now-compacted FAISS array.  The list comprehension
+        # cannot raise, so the index and its metadata are always updated
+        # together (no partial-mutation window).
+        self.vector_ids = [vid for vid in self.vector_ids if vid not in delete_set]
+        for vid in delete_set:
+            self.metadata.pop(vid, None)
+
+        assert len(self.vector_ids) == self.index.ntotal, (
+            f"FAISSIndex invariant broken after delete_vectors: "
+            f"vector_ids={len(self.vector_ids)}, ntotal={self.index.ntotal}"
+        )
+        return {"delete_count": removed}
+
     def save(self, path: Union[str, Path]):
         """Save index to disk.
 
@@ -735,10 +808,44 @@ class FAISSStore:
         """Return the number of vectors currently tracked in this store.
 
         Returns the length of the ``vector_ids`` list maintained by
-        ``FAISSIndex``.  FAISSStore does not implement vector deletion, so
-        this list is strictly append-only and is always consistent with the
-        underlying FAISS index (``index.ntotal``).
+        ``FAISSIndex``.  This list is always kept consistent with the
+        underlying FAISS index (``index.ntotal``), including after deletions.
         """
         if self.index is None:
             return 0
         return len(self.index.vector_ids)
+
+    def delete_vectors(self, vector_ids: List[str], **options) -> Dict[str, Any]:
+        """Delete vectors by their external string IDs.
+
+        Delegates to :meth:`FAISSIndex.delete_vectors`.  The deletion is
+        **in-memory only**: the caller must invoke :meth:`save_index` after
+        this call to make the removal durable across process restarts.
+
+        For GDPR / right-to-erasure workflows, the typical sequence is::
+
+            store.delete_vectors(ids)
+            store.save_index(path)
+
+        HNSW indices do not support ``remove_ids`` and raise
+        ``NotImplementedError``, which the :class:`ErasureCoordinator`
+        translates to ``STATUS_UNSUPPORTED``.
+
+        Args:
+            vector_ids: External string IDs to delete.  Unknown IDs are
+                silently ignored.  Duplicates are deduplicated.
+            **options: Accepted for API parity with other backends; unused.
+
+        Returns:
+            ``{"delete_count": N}``
+
+        Raises:
+            ProcessingError: If no index has been initialized.
+            NotImplementedError: If the underlying index type (e.g. HNSW)
+                does not support deletion.
+        """
+        if self.index is None:
+            raise ProcessingError(
+                "Index not initialized. Call create_index() first."
+            )
+        return self.index.delete_vectors(vector_ids)
