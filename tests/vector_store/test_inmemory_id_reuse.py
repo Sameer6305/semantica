@@ -408,3 +408,82 @@ class TestInmemoryIdPersistence(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------
+# 4. Concurrency: concurrent store_vectors calls must not produce duplicate IDs
+# ---------------------------------------------------------------------------
+
+class TestInmemoryIdConcurrency(unittest.TestCase):
+    """Concurrent store_vectors calls on the same VectorStore must each get
+    unique IDs and all vectors must survive (no silent overwrites)."""
+
+    def test_concurrent_store_vectors_produce_unique_ids(self):
+        """Two threads storing vectors simultaneously must not collide."""
+        import threading as _threading
+
+        store = _make_store(dim=4)
+        results: list = []
+        errors: list = []
+
+        def _store_batch(n: int) -> None:
+            try:
+                ids = store.store_vectors(
+                    [_vec() for _ in range(n)],
+                    [{"batch": n, "idx": i} for i in range(n)],
+                )
+                results.extend(ids)
+            except Exception as exc:
+                errors.append(exc)
+
+        threads = [_threading.Thread(target=_store_batch, args=(5,)) for _ in range(6)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        self.assertFalse(errors, f"Threads raised: {errors}")
+        total = 6 * 5
+        self.assertEqual(len(results), total, "Some store calls lost vectors")
+        # All returned IDs must be unique — no two threads got the same ID
+        self.assertEqual(
+            len(set(results)), total,
+            f"Duplicate IDs produced under concurrency: "
+            f"{[x for x in results if results.count(x) > 1]}",
+        )
+        # Every returned ID must be present in the store
+        for vid in results:
+            self.assertIn(vid, store.vectors, f"ID {vid!r} not in store after concurrent insert")
+
+    def test_concurrent_delete_and_store_no_phantom_ids(self):
+        """A thread deleting while another is storing must not leave the store
+        with stale index entries or inconsistent counts."""
+        import threading as _threading
+
+        store = _make_store(dim=4)
+        initial = store.store_vectors([_vec() for _ in range(4)], [{} for _ in range(4)])
+        errors: list = []
+
+        def _deleter():
+            try:
+                store.delete_vectors(initial[:2])
+            except Exception as exc:
+                errors.append(exc)
+
+        def _storer():
+            try:
+                store.store_vectors([_vec(), _vec()], [{}, {}])
+            except Exception as exc:
+                errors.append(exc)
+
+        t1 = _threading.Thread(target=_deleter)
+        t2 = _threading.Thread(target=_storer)
+        t1.start(); t2.start()
+        t1.join(); t2.join()
+
+        self.assertFalse(errors, f"Threads raised: {errors}")
+        # After the dust settles the vectors dict and metadata must agree
+        self.assertEqual(
+            set(store.vectors.keys()), set(store.metadata.keys()),
+            "vectors and metadata dicts are out of sync after concurrent delete+store",
+        )
