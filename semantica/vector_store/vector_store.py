@@ -570,20 +570,33 @@ class VectorStore:
             # index-rebuild sequence so concurrent callers cannot observe
             # half-written state or generate the same candidate ID.
             with self._inmemory_lock:
-                # Generate collision-safe IDs using a monotonic counter that is
-                # never decremented on deletion.  Using len(self.vectors) would
-                # regenerate IDs that still belong to surviving vectors after any
-                # deletion, silently overwriting them (issue #1029).
-                existing = set(self.vectors)
+                # Snapshot the live key-set at lock-entry so the generator
+                # and the within-batch de-dupe use a consistent view.
+                pre_existing = set(self.vectors)
+                # within_batch tracks IDs chosen during *this* call so the
+                # same candidate is never returned twice in one batch.
+                within_batch: set = set()
+
                 for vector, meta in zip(vectors, metadata):
-                    # Skip candidates that already exist (e.g. explicit vec_N
-                    # inserted by a caller before the counter reaches that number).
+                    # Advance the monotonic counter until we find a candidate
+                    # that is free both in the live store and in this batch.
+                    #
+                    # The counter is never decremented on deletion, so under
+                    # normal operation every candidate it produces is genuinely
+                    # fresh.  The only reason a candidate can be occupied is
+                    # that a caller pre-inserted a ``vec_N`` key ahead of the
+                    # counter (e.g. manually writing to self.vectors).  Skipping
+                    # over such keys is intentional and matches FAISSStore's
+                    # identical behaviour.  Nothing is overwritten: the loop
+                    # breaks only on a candidate that is absent from both
+                    # pre_existing and within_batch.
                     while True:
                         candidate = f"vec_{self._next_id}"
                         self._next_id += 1
-                        if candidate not in existing:
+                        if candidate not in pre_existing and candidate not in within_batch:
                             break
-                    existing.add(candidate)
+
+                    within_batch.add(candidate)
                     self.vectors[candidate] = vector
                     self.metadata[candidate] = meta
                     vector_ids.append(candidate)

@@ -157,9 +157,76 @@ class TestInmemoryIdNoReuseAfterDelete(unittest.TestCase):
         for new_id in ids:
             self.assertIn(new_id, store.vectors)
 
+    def test_auto_generated_id_never_silently_overwrites_live_vector(self):
+        """An automatically generated ID must never land on top of a live
+        auto-generated vector, regardless of deletion history.
 
-# ---------------------------------------------------------------------------
-# 2. AgentMemory path
+        This is the core of 'Never overwrite an existing live vector id
+        silently' from issue #1029: after any sequence of stores and deletes
+        every auto-generated ID must map to exactly one vector.
+        """
+        store = self._store()
+        # Store 5 vectors — auto-ids vec_0..vec_4
+        first_batch = store.store_vectors([_vec() for _ in range(5)], [{} for _ in range(5)])
+        # Delete vec_0, vec_1, vec_2 — _next_id stays at 5, so the next
+        # auto-id should be vec_5, vec_6 …  NOT vec_2/vec_3/vec_4.
+        store.delete_vectors(first_batch[:3])
+        surviving = set(store.vectors.keys())  # {vec_3, vec_4}
+
+        second_batch = store.store_vectors([_vec(), _vec()], [{}, {}])
+
+        # None of the new IDs must collide with surviving ones
+        for new_id in second_batch:
+            self.assertNotIn(
+                new_id, surviving,
+                f"Auto-generated ID {new_id!r} silently landed on a live vector",
+            )
+        # Both new vectors must be independently present
+        for new_id in second_batch:
+            self.assertIn(new_id, store.vectors)
+            self.assertIn(new_id, store.metadata)
+        # Total count: 2 surviving + 2 new
+        self.assertEqual(len(store.vectors), 4)
+
+    def test_collision_detection_no_silent_overwrite_even_with_corrupted_counter(self):
+        """Even if _next_id is externally wound back (simulating a corrupt
+        load), the generator must never silently overwrite a live vector.
+
+        The while-loop guarantees this by skipping every occupied candidate
+        until it finds a free slot.  The existing vector and its metadata
+        must be completely unchanged after the call.
+        """
+        store = self._store()
+        # Store vec_0 and vec_1 (_next_id advances to 2)
+        ids = store.store_vectors([_vec(), _vec()], [{"orig": 0}, {"orig": 1}])
+        id_b = ids[1]  # vec_1
+        vec_b_before = store.vectors[id_b].copy()
+        meta_b_before = dict(store.metadata[id_b])
+
+        # Corrupt the counter: reset to 0 so candidates start at vec_0/vec_1
+        store._next_id = 0
+
+        # store_vectors must succeed without raising and without overwriting
+        new_ids = store.store_vectors([_vec()], [{"new": True}])
+
+        # The new ID must be some other slot — not vec_0 or vec_1
+        self.assertNotIn(
+            new_ids[0], {ids[0], ids[1]},
+            f"New vector landed on a live ID {new_ids[0]!r} "
+            "(no-silent-overwrite invariant violated)",
+        )
+        # vec_1 must be completely unchanged
+        np.testing.assert_array_equal(
+            store.vectors[id_b], vec_b_before,
+            err_msg="Live vector vec_1 was overwritten by the post-corruption store call",
+        )
+        self.assertEqual(
+            store.metadata[id_b], meta_b_before,
+            "Live metadata for vec_1 was overwritten by the post-corruption store call",
+        )
+        # New vector must actually be in the store
+        self.assertIn(new_ids[0], store.vectors)
+        self.assertEqual(store.metadata[new_ids[0]], {"new": True})
 # ---------------------------------------------------------------------------
 
 class TestAgentMemoryIdNoReuseAfterDelete(unittest.TestCase):
