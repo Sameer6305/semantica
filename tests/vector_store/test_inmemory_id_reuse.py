@@ -262,9 +262,7 @@ class TestAgentMemoryIdNoReuseAfterDelete(unittest.TestCase):
         self.memory.store("content A", memory_id="mem_a", skip_graph=True)
         self.memory.store("content B", memory_id="mem_b", skip_graph=True)
 
-        vid_b_before = self.store.vector_ids_for("mem_b") if hasattr(
-            self.store, "vector_ids_for"
-        ) else self.memory.vector_ids_for("mem_b")
+        vid_b_before = self.memory.vector_ids_for("mem_b")
 
         self.memory.delete_memory("mem_a")
         self.memory.store("content C", memory_id="mem_c", skip_graph=True)
@@ -272,6 +270,8 @@ class TestAgentMemoryIdNoReuseAfterDelete(unittest.TestCase):
         vid_b = self.memory.vector_ids_for("mem_b")
         vid_c = self.memory.vector_ids_for("mem_c")
 
+        # B's vector IDs must be unchanged — it was never touched.
+        self.assertEqual(vid_b, vid_b_before, "mem_b's vector IDs changed unexpectedly")
         self.assertTrue(vid_b, "mem_b has no tracked vector IDs")
         self.assertTrue(vid_c, "mem_c has no tracked vector IDs")
         self.assertTrue(
@@ -545,12 +545,70 @@ class TestInmemoryIdConcurrency(unittest.TestCase):
 
         t1 = _threading.Thread(target=_deleter)
         t2 = _threading.Thread(target=_storer)
-        t1.start(); t2.start()
-        t1.join(); t2.join()
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
 
         self.assertFalse(errors, f"Threads raised: {errors}")
         # After the dust settles the vectors dict and metadata must agree
         self.assertEqual(
             set(store.vectors.keys()), set(store.metadata.keys()),
             "vectors and metadata dicts are out of sync after concurrent delete+store",
+        )
+
+    def test_concurrent_search_and_delete_no_runtime_error(self):
+        """search_vectors() must not raise RuntimeError when a concurrent
+        delete_vectors() modifies the store during iteration.
+
+        Uses threading.Barrier to make the race deterministic: the search
+        thread announces it is ready just before calling search_similar, and
+        the delete thread fires only after that signal has been received.
+        Without the lock-protected snapshot in search_vectors(), the delete
+        would mutate self.vectors while list() is iterating it, reliably
+        causing 'RuntimeError: dictionary changed size during iteration'.
+        """
+        import threading as _threading
+
+        store = _make_store(dim=4)
+        vecs = store.store_vectors([_vec() for _ in range(8)], [{} for _ in range(8)])
+        query = _vec()
+        errors: list = []
+
+        # Barrier with 2 parties: searcher + deleter.
+        barrier = _threading.Barrier(2)
+
+        original_search_similar = store.retriever.search_similar
+
+        def _patched_search_similar(q, vectors, keys, k, **kw):
+            # Signal the deleter that iteration is about to begin, then wait
+            # for it to be ready too.  Both threads proceed together.
+            barrier.wait(timeout=5)
+            return original_search_similar(q, vectors, keys, k, **kw)
+
+        store.retriever.search_similar = _patched_search_similar
+
+        def _searcher():
+            try:
+                store.search_vectors(query, k=4)
+            except Exception as exc:
+                errors.append(exc)
+
+        def _deleter():
+            barrier.wait(timeout=5)   # wait until searcher is mid-search
+            try:
+                store.delete_vectors(vecs[:4])
+            except Exception as exc:
+                errors.append(exc)
+
+        t1 = _threading.Thread(target=_searcher)
+        t2 = _threading.Thread(target=_deleter)
+        t1.start()
+        t2.start()
+        t1.join(timeout=10)
+        t2.join(timeout=10)
+
+        self.assertFalse(
+            errors,
+            f"Concurrent search+delete raised: {errors}",
         )

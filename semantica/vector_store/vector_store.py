@@ -798,14 +798,25 @@ class VectorStore:
                 )
                 return []
 
+            # Snapshot vectors and metadata together under the lock so a
+            # concurrent delete_vectors / store_vectors cannot cause
+            # "RuntimeError: dictionary changed size during iteration" and
+            # cannot produce an inconsistent (values, keys) pair where one
+            # list is shorter than the other.  The lock is released before
+            # the (potentially slow) similarity computation.
+            with self._inmemory_lock:
+                snapshot_vectors = list(self.vectors.values())
+                snapshot_keys = list(self.vectors.keys())
+                snapshot_metadata = dict(self.metadata)
+
             # Use retriever for similarity search
             self.progress_tracker.update_tracking(
                 tracking_id, message="Performing similarity search..."
             )
             results = self.retriever.search_similar(
                 query_vector,
-                list(self.vectors.values()),
-                list(self.vectors.keys()),
+                snapshot_vectors,
+                snapshot_keys,
                 k=k,
                 **options,
             )
@@ -813,8 +824,8 @@ class VectorStore:
             # Add metadata to results; guarantee the key always exists.
             for result in results:
                 vector_id = result.get("id")
-                if vector_id and vector_id in self.metadata:
-                    result["metadata"] = self.metadata[vector_id]
+                if vector_id and vector_id in snapshot_metadata:
+                    result["metadata"] = snapshot_metadata[vector_id]
                 elif "metadata" not in result:
                     result["metadata"] = {}
 
