@@ -80,7 +80,15 @@ def _mock_simple_salesforce_if_needed():
                 "simple_salesforce.exceptions": sf_exc_mod,
             },
         ):
-            yield
+            # Also patch the module-level sentinel names that were set to None
+            # when salesforce_ingestor was first imported without the library.
+            # This ensures tests that import _SalesforceAuthenticationFailed
+            # directly from the module get the real stub class.
+            import semantica.ingest.salesforce_ingestor as _sf_ingestor_mod
+            with patch.object(_sf_ingestor_mod, "_SalesforceAuthenticationFailed", _SFAuthFailed), \
+                 patch.object(_sf_ingestor_mod, "_SalesforceError", _SFError), \
+                 patch.object(_sf_ingestor_mod, "SALESFORCE_AVAILABLE", True):
+                yield
     else:
         yield
 
