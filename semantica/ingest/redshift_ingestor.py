@@ -638,7 +638,7 @@ class RedshiftIngestor:
         database: Optional[str] = None,
         user: Optional[str] = None,
         password: Optional[str] = None,
-        schema: Optional[str] = "public",
+        schema: Optional[str] = None,
         iam: bool = False,
         db_user: Optional[str] = None,
         cluster_identifier: Optional[str] = None,
@@ -854,6 +854,11 @@ class RedshiftIngestor:
             already_connected = self.connector.connection is not None
             conn = self.connector.connect()
 
+            # Capture the previous autocommit state so we can restore it
+            # when the connection was already open (caller-owned).  We only
+            # need to restore it in that case; transient connections are
+            # closed in the finally block anyway.
+            _prev_autocommit = conn.autocommit if already_connected else None
             try:
                 # Enable autocommit for read-only ingestion to avoid leaving
                 # idle transactions open on the server (Redshift/Postgres
@@ -890,6 +895,8 @@ class RedshiftIngestor:
                     cursor.close()
 
             finally:
+                if already_connected and _prev_autocommit is not None:
+                    conn.autocommit = _prev_autocommit
                 if not already_connected:
                     self.connector.disconnect()
 
@@ -989,6 +996,7 @@ class RedshiftIngestor:
             already_connected = self.connector.connection is not None
             conn = self.connector.connect()
 
+            _prev_autocommit = conn.autocommit if already_connected else None
             try:
                 # Enable autocommit for read-only ingestion.
                 conn.autocommit = True
@@ -1013,34 +1021,43 @@ class RedshiftIngestor:
                     )
 
                     columns = (
-                        [desc[0] for desc in cursor.description]
+                        self._disambiguate_columns(
+                            [desc[0] for desc in cursor.description]
+                        )
                         if cursor.description
                         else []
                     )
 
                     if batch_size:
-                        all_rows: List[Tuple[Any, ...]] = []
+                        # Process each batch immediately so raw tuples from
+                        # the previous batch are eligible for GC before the
+                        # next fetch.  This keeps live memory proportional to
+                        # one batch of raw rows plus the accumulated converted
+                        # results, rather than two full copies of all rows.
+                        data: List[Dict[str, Any]] = []
                         while True:
                             batch = cursor.fetchmany(batch_size)
                             if not batch:
                                 break
-                            all_rows.extend(batch)
+                            batch_dicts = self._make_row_dicts(columns, batch)
+                            data.extend(self._convert_rows(batch_dicts))
                             self.progress_tracker.update_tracking(
                                 tracking_id,
-                                message=f"Fetched {len(all_rows)} rows...",
+                                message=f"Fetched {len(data)} rows...",
                             )
                     else:
-                        all_rows = cursor.fetchall()
+                        raw_rows = cursor.fetchall()
+                        row_dicts = self._make_row_dicts(columns, raw_rows)
+                        data = self._convert_rows(row_dicts)
 
                 finally:
                     cursor.close()
 
             finally:
+                if already_connected and _prev_autocommit is not None:
+                    conn.autocommit = _prev_autocommit
                 if not already_connected:
                     self.connector.disconnect()
-
-            row_dicts = [dict(zip(columns, row)) for row in all_rows]
-            data = self._convert_rows(row_dicts)
 
             self.progress_tracker.stop_tracking(
                 tracking_id,
@@ -1174,6 +1191,7 @@ class RedshiftIngestor:
             already_connected = self.connector.connection is not None
             conn = self.connector.connect()
 
+            _prev_autocommit = conn.autocommit if already_connected else None
             try:
                 conn.autocommit = True
 
@@ -1207,6 +1225,8 @@ class RedshiftIngestor:
                 primary_keys = [row[0] for row in pk_rows]
 
             finally:
+                if already_connected and _prev_autocommit is not None:
+                    conn.autocommit = _prev_autocommit
                 if not already_connected:
                     self.connector.disconnect()
 
@@ -1285,6 +1305,7 @@ class RedshiftIngestor:
             already_connected = self.connector.connection is not None
             conn = self.connector.connect()
 
+            _prev_autocommit = conn.autocommit if already_connected else None
             try:
                 conn.autocommit = True
 
@@ -1296,6 +1317,8 @@ class RedshiftIngestor:
                     cursor.close()
 
             finally:
+                if already_connected and _prev_autocommit is not None:
+                    conn.autocommit = _prev_autocommit
                 if not already_connected:
                     self.connector.disconnect()
 
@@ -1419,6 +1442,57 @@ class RedshiftIngestor:
     # Internal helpers
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _disambiguate_columns(columns: List[str]) -> List[str]:
+        """Return a new column-name list with duplicate labels made unique.
+
+        When the cursor reports duplicate column labels (e.g. from a JOIN
+        that selects the same column name from two tables), a plain
+        ``dict(zip(columns, row))`` silently drops every value except the
+        last one for each repeated key.
+
+        This method appends a ``_1``, ``_2``, … suffix to each duplicate
+        occurrence (the *first* occurrence keeps the original name) so that
+        all values are retained in the resulting dict.
+
+        Args:
+            columns: Raw column-name list from ``cursor.description``.
+
+        Returns:
+            A new list of the same length where every name is unique.
+        """
+        seen: Dict[str, int] = {}
+        result: List[str] = []
+        for name in columns:
+            if name not in seen:
+                seen[name] = 0
+                result.append(name)
+            else:
+                seen[name] += 1
+                result.append(f"{name}_{seen[name]}")
+        return result
+
+    def _make_row_dicts(
+        self,
+        columns: List[str],
+        rows: List[Any],
+    ) -> List[Dict[str, Any]]:
+        """Zip *rows* (tuples from the cursor) with *columns* into dicts.
+
+        Duplicate column labels are disambiguated before zipping so that no
+        value is silently discarded.  The returned column list (already
+        stored in ``RedshiftData.columns``) matches the disambiguated names.
+
+        Args:
+            columns: Column-name list, already disambiguated via
+                :meth:`_disambiguate_columns`.
+            rows: Raw cursor rows (each a tuple of values).
+
+        Returns:
+            List of ``{column_name: value}`` dicts.
+        """
+        return [dict(zip(columns, row)) for row in rows]
+
     def _fetch_all(
         self, cursor: Any
     ) -> Tuple[List[str], List[Dict[str, Any]]]:
@@ -1437,12 +1511,14 @@ class RedshiftIngestor:
             converted row dictionaries.
         """
         columns = (
-            [desc[0] for desc in cursor.description]
+            self._disambiguate_columns(
+                [desc[0] for desc in cursor.description]
+            )
             if cursor.description
             else []
         )
         raw_rows = cursor.fetchall()
-        row_dicts = [dict(zip(columns, row)) for row in raw_rows]
+        row_dicts = self._make_row_dicts(columns, raw_rows)
         return columns, self._convert_rows(row_dicts)
 
     def _convert_rows(

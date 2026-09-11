@@ -200,7 +200,9 @@ data = ingestor.ingest_query(
 
 ### Batch fetching for large result sets
 
-Use `batch_size` to fetch results in chunks rather than loading the entire result set into memory at once:
+Use `batch_size` to control the driver fetch size — rows are fetched from
+the server in chunks of that size rather than all at once, and each chunk is
+converted immediately before the next is requested:
 
 ```python
 data = ingestor.ingest_query(
@@ -208,6 +210,11 @@ data = ingestor.ingest_query(
     batch_size=10000,
 )
 ```
+
+`batch_size` controls how many rows the driver reads from Redshift per
+round-trip. The returned `RedshiftData.data` list still contains all matching
+rows; use `LIMIT`/`OFFSET` in the query itself if you need to cap the total
+result size.
 
 
 ## Schema Discovery

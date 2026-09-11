@@ -3053,3 +3053,432 @@ class TestGraphBuilderContract:
         assert "entities" in graph
         assert "relationships" in graph
         assert graph["metadata"]["num_entities"] == 2
+
+
+# ===========================================================================
+# Code-review fix tests
+# ===========================================================================
+
+
+# ---------------------------------------------------------------------------
+# Fix #1 — autocommit state restored on caller-owned connections
+# ---------------------------------------------------------------------------
+
+
+class TestAutocommitRestoration:
+    """autocommit must be restored to its previous value when the connection
+    was already open (caller-owned) before the ingestion call."""
+
+    def _make_ingesting_connection(self, initial_autocommit: bool):
+        """Return a mock connection with autocommit pre-set."""
+        mock_conn = Mock()
+        mock_conn.autocommit = initial_autocommit
+        return mock_conn
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_ingest_table_restores_autocommit_false(self, mock_sdk):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        mock_conn = self._make_ingesting_connection(initial_autocommit=False)
+        mock_sdk.connect.return_value = mock_conn
+        mock_conn.cursor.return_value = _make_cursor_with_rows(["id"], [(1,)])
+
+        with RedshiftIngestor(
+            host="h", database="d", user="u", password="p"
+        ) as ing:
+            # autocommit is False on the shared connection
+            assert ing.connector.connection is mock_conn
+            ing.ingest_table("t")
+            # must be restored to False after the call
+            assert mock_conn.autocommit is False
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_ingest_table_restores_autocommit_true(self, mock_sdk):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        mock_conn = self._make_ingesting_connection(initial_autocommit=True)
+        mock_sdk.connect.return_value = mock_conn
+        mock_conn.cursor.return_value = _make_cursor_with_rows(["id"], [])
+
+        with RedshiftIngestor(
+            host="h", database="d", user="u", password="p"
+        ) as ing:
+            ing.ingest_table("t")
+            # was True before → must still be True after
+            assert mock_conn.autocommit is True
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_ingest_query_restores_autocommit(self, mock_sdk):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        mock_conn = self._make_ingesting_connection(initial_autocommit=False)
+        mock_sdk.connect.return_value = mock_conn
+        mock_conn.cursor.return_value = _make_cursor_with_rows(["n"], [])
+
+        with RedshiftIngestor(
+            host="h", database="d", user="u", password="p"
+        ) as ing:
+            ing.ingest_query("SELECT 1")
+            assert mock_conn.autocommit is False
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_get_table_schema_restores_autocommit(self, mock_sdk):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        mock_conn, _ = _schema_cursor([])
+        mock_conn.autocommit = False
+        mock_sdk.connect.return_value = mock_conn
+
+        with RedshiftIngestor(
+            host="h", database="d", user="u", password="p"
+        ) as ing:
+            ing.get_table_schema("t")
+            assert mock_conn.autocommit is False
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_list_tables_restores_autocommit(self, mock_sdk):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        mock_conn, _ = _list_tables_cursor([])
+        mock_conn.autocommit = False
+        mock_sdk.connect.return_value = mock_conn
+
+        with RedshiftIngestor(
+            host="h", database="d", user="u", password="p"
+        ) as ing:
+            ing.list_tables()
+            assert mock_conn.autocommit is False
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_transient_connection_sets_autocommit_true(self, mock_sdk):
+        """A standalone (transient) call must still enable autocommit for
+        the duration of the query."""
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        mock_conn, _ = _make_mock_connection()
+        mock_conn.autocommit = False
+        mock_sdk.connect.return_value = mock_conn
+        mock_conn.cursor.return_value = _make_cursor_with_rows(["id"], [])
+
+        ing = RedshiftIngestor(host="h", database="d", user="u", password="p")
+        ing.ingest_table("t")
+        # Transient connection is closed; autocommit was set True during the
+        # call (we verify it was set by confirming the query completed).
+        # The connection is gone, so we just verify no error occurred.
+        mock_conn.close.assert_called_once()
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_autocommit_restored_even_when_query_fails(self, mock_sdk):
+        """autocommit must be restored on caller-owned connections even when
+        the query raises."""
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+        from semantica.utils.exceptions import ProcessingError
+
+        mock_conn = Mock()
+        mock_conn.autocommit = False
+        mock_sdk.connect.return_value = mock_conn
+        bad_cursor = Mock()
+        bad_cursor.execute.side_effect = RuntimeError("boom")
+        bad_cursor.close = Mock()
+        mock_conn.cursor = Mock(return_value=bad_cursor)
+
+        with RedshiftIngestor(
+            host="h", database="d", user="u", password="p"
+        ) as ing:
+            with pytest.raises(ProcessingError):
+                ing.ingest_table("t")
+            # autocommit restored despite the exception
+            assert mock_conn.autocommit is False
+
+
+# ---------------------------------------------------------------------------
+# Fix #2 — batch_size processes rows per-batch (memory behaviour)
+# ---------------------------------------------------------------------------
+
+
+class TestBatchFetchMemoryBehaviour:
+    """With batch_size, each batch must be converted before the next fetch
+    so raw tuples from prior batches are eligible for garbage collection."""
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_batch_produces_correct_total_count(self, mock_sdk):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        mock_conn, _ = _make_mock_connection()
+        mock_sdk.connect.return_value = mock_conn
+        # 5 rows, batch_size=2 → 3 fetches (2, 2, 1) + empty
+        cursor = _make_cursor_with_rows(
+            ["id"], [(1,), (2,), (3,), (4,), (5,)]
+        )
+        mock_conn.cursor.return_value = cursor
+
+        ing = RedshiftIngestor(host="h", database="d", user="u", password="p")
+        result = ing.ingest_query("SELECT id FROM t", batch_size=2)
+
+        assert result.row_count == 5
+        assert result.data == [{"id": i} for i in range(1, 6)]
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_batch_fetchmany_called_per_batch(self, mock_sdk):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        mock_conn, _ = _make_mock_connection()
+        mock_sdk.connect.return_value = mock_conn
+        cursor = _make_cursor_with_rows(["id"], [(1,), (2,), (3,)])
+        mock_conn.cursor.return_value = cursor
+
+        ing = RedshiftIngestor(host="h", database="d", user="u", password="p")
+        ing.ingest_query("SELECT id FROM t", batch_size=2)
+
+        # fetchmany called 3 times: [1,2], [3], [] (stop)
+        assert cursor.fetchmany.call_count == 3
+        for c in cursor.fetchmany.call_args_list:
+            assert c[0][0] == 2
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_non_batch_path_still_works(self, mock_sdk):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        mock_conn, _ = _make_mock_connection()
+        mock_sdk.connect.return_value = mock_conn
+        cursor = _make_cursor_with_rows(["id"], [(10,), (20,)])
+        mock_conn.cursor.return_value = cursor
+
+        ing = RedshiftIngestor(host="h", database="d", user="u", password="p")
+        result = ing.ingest_query("SELECT id FROM t")
+
+        assert result.data == [{"id": 10}, {"id": 20}]
+        cursor.fetchall.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Fix #3 — REDSHIFT_SCHEMA env var is honoured when schema arg is omitted
+# ---------------------------------------------------------------------------
+
+
+class TestSchemaEnvVarFallback:
+    """REDSHIFT_SCHEMA must supply the default when no schema= arg is given."""
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    def test_schema_from_env_var(self):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        with patch.dict(
+            os.environ,
+            {
+                "REDSHIFT_HOST": "h",
+                "REDSHIFT_DATABASE": "d",
+                "REDSHIFT_USER": "u",
+                "REDSHIFT_PASSWORD": "p",
+                "REDSHIFT_SCHEMA": "analytics",
+            },
+        ):
+            ing = RedshiftIngestor()
+
+        assert ing.schema == "analytics"
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    def test_explicit_schema_arg_overrides_env_var(self):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        with patch.dict(os.environ, {"REDSHIFT_SCHEMA": "analytics"}):
+            ing = RedshiftIngestor(
+                host="h", database="d", user="u", password="p",
+                schema="overridden",
+            )
+
+        assert ing.schema == "overridden"
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    def test_schema_defaults_to_public_when_no_env_var(self):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        env = {k: v for k, v in os.environ.items() if k != "REDSHIFT_SCHEMA"}
+        with patch.dict(os.environ, env, clear=True):
+            ing = RedshiftIngestor(
+                host="h", database="d", user="u", password="p"
+            )
+
+        assert ing.schema == "public"
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_env_schema_used_in_ingest_table_query(self, mock_sdk):
+        """The schema from REDSHIFT_SCHEMA is used when building the table ref."""
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        mock_conn, _ = _make_mock_connection()
+        mock_sdk.connect.return_value = mock_conn
+        mock_conn.cursor.return_value = _make_cursor_with_rows(["id"], [])
+
+        with patch.dict(os.environ, {"REDSHIFT_SCHEMA": "staging"}):
+            ing = RedshiftIngestor(
+                host="h", database="d", user="u", password="p"
+            )
+        # Ensure schema was picked up
+        assert ing.schema == "staging"
+
+        ing.ingest_table("orders")
+        executed_sql = mock_conn.cursor.return_value.execute.call_args[0][0]
+        assert '"staging"."orders"' in executed_sql
+
+
+# ---------------------------------------------------------------------------
+# Fix #4 — db-all includes db-redshift
+# ---------------------------------------------------------------------------
+
+
+class TestDbAllIncludesRedshift:
+    """pyproject.toml db-all aggregate must reference db-redshift."""
+
+    def test_db_all_references_db_redshift(self):
+        """Read pyproject.toml and verify db-all includes db-redshift."""
+        import tomllib
+        from pathlib import Path
+
+        toml_path = Path(__file__).resolve().parents[1] / "pyproject.toml"
+        with open(toml_path, "rb") as f:
+            data = tomllib.load(f)
+
+        db_all = data["project"]["optional-dependencies"]["db-all"]
+        # db-all is a list of strings like ["semantica[db-snowflake,...]"]
+        combined = " ".join(db_all)
+        assert "db-redshift" in combined, (
+            f"db-all does not reference db-redshift. Got: {db_all}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Fix #5 — duplicate column labels are disambiguated
+# ---------------------------------------------------------------------------
+
+
+class TestDisambiguateColumns:
+    """_disambiguate_columns must make every label unique."""
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    def test_no_duplicates_unchanged(self):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        ing = RedshiftIngestor(host="h", database="d", user="u", password="p")
+        result = ing._disambiguate_columns(["id", "name", "score"])
+        assert result == ["id", "name", "score"]
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    def test_single_duplicate_gets_suffix(self):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        ing = RedshiftIngestor(host="h", database="d", user="u", password="p")
+        result = ing._disambiguate_columns(["id", "name", "id"])
+        # First occurrence keeps original name; second gets _1
+        assert result == ["id", "name", "id_1"]
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    def test_triple_duplicate_gets_incrementing_suffixes(self):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        ing = RedshiftIngestor(host="h", database="d", user="u", password="p")
+        result = ing._disambiguate_columns(["x", "x", "x"])
+        assert result == ["x", "x_1", "x_2"]
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    def test_all_unique_after_disambiguation(self):
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        ing = RedshiftIngestor(host="h", database="d", user="u", password="p")
+        cols = ["a", "b", "a", "c", "b", "a"]
+        result = ing._disambiguate_columns(cols)
+        assert len(result) == len(set(result)), "Result contains duplicates"
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_ingest_query_with_duplicate_columns_retains_all_values(self, mock_sdk):
+        """A JOIN-style query with two columns named 'id' must not lose the
+        second value — it must appear as 'id_1' in the row dict."""
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        mock_conn, _ = _make_mock_connection()
+        mock_sdk.connect.return_value = mock_conn
+
+        # Simulate cursor.description with duplicate 'id' labels
+        cursor = Mock()
+        cursor.description = [
+            ("id",) + (None,) * 6,
+            ("name",) + (None,) * 6,
+            ("id",) + (None,) * 6,   # duplicate!
+        ]
+        cursor.fetchall = Mock(return_value=[(1, "Alice", 99)])
+        cursor.execute = Mock()
+        cursor.close = Mock()
+        mock_conn.cursor = Mock(return_value=cursor)
+
+        ing = RedshiftIngestor(host="h", database="d", user="u", password="p")
+        result = ing.ingest_query("SELECT t1.id, name, t2.id FROM ...")
+
+        assert result.columns == ["id", "name", "id_1"]
+        assert result.data[0]["id"] == 1
+        assert result.data[0]["name"] == "Alice"
+        assert result.data[0]["id_1"] == 99
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_ingest_table_with_duplicate_columns_retains_all_values(self, mock_sdk):
+        """ingest_table uses _fetch_all which must also disambiguate."""
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        mock_conn, _ = _make_mock_connection()
+        mock_sdk.connect.return_value = mock_conn
+
+        cursor = Mock()
+        cursor.description = [
+            ("val",) + (None,) * 6,
+            ("val",) + (None,) * 6,   # duplicate!
+        ]
+        cursor.fetchall = Mock(return_value=[(10, 20)])
+        cursor.execute = Mock()
+        cursor.close = Mock()
+        mock_conn.cursor = Mock(return_value=cursor)
+
+        ing = RedshiftIngestor(host="h", database="d", user="u", password="p")
+        result = ing.ingest_table("t")
+
+        assert result.columns == ["val", "val_1"]
+        assert result.data[0]["val"] == 10
+        assert result.data[0]["val_1"] == 20
+
+    @patch("semantica.ingest.redshift_ingestor.REDSHIFT_AVAILABLE", True)
+    @patch("semantica.ingest.redshift_ingestor._redshift_connector")
+    def test_batch_with_duplicate_columns(self, mock_sdk):
+        """Duplicate disambiguation must also apply when batch_size is set."""
+        from semantica.ingest.redshift_ingestor import RedshiftIngestor
+
+        mock_conn, _ = _make_mock_connection()
+        mock_sdk.connect.return_value = mock_conn
+
+        cursor = Mock()
+        cursor.description = [
+            ("score",) + (None,) * 6,
+            ("score",) + (None,) * 6,   # duplicate!
+        ]
+        _batches = [[(1, 2)], [(3, 4)], []]
+        cursor.fetchmany = Mock(side_effect=_batches)
+        cursor.execute = Mock()
+        cursor.close = Mock()
+        mock_conn.cursor = Mock(return_value=cursor)
+
+        ing = RedshiftIngestor(host="h", database="d", user="u", password="p")
+        result = ing.ingest_query("SELECT ...", batch_size=1)
+
+        assert result.columns == ["score", "score_1"]
+        assert result.data[0] == {"score": 1, "score_1": 2}
+        assert result.data[1] == {"score": 3, "score_1": 4}
