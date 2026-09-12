@@ -214,14 +214,17 @@ def test_salesforce_ingestor_package_import_missing_hint():
     # Patch only the __init__.py sentinel and the module-level flag together so
     # the patch fully restores both on exit, leaving no stale state for later
     # tests in other modules.
-    with patch("semantica.ingest.salesforce_ingestor.SALESFORCE_AVAILABLE", False), \
-         patch("semantica.ingest._OPTIONAL_DEPENDENCY_MESSAGES",
-               {**ingest_mod._OPTIONAL_DEPENDENCY_MESSAGES}):
-        with pytest.raises(ImportError, match=r"semantica\[db-salesforce\]"):
-            _ = ingest_mod.SalesforceIngestor
-    # Ensure the __init__ globals cache is clean so the next access re-runs
-    # __getattr__ cleanly (important when this test runs before salesforce tests).
-    ingest_mod.__dict__.pop("SalesforceIngestor", None)
+    try:
+        with patch("semantica.ingest.salesforce_ingestor.SALESFORCE_AVAILABLE", False), \
+             patch("semantica.ingest._OPTIONAL_DEPENDENCY_MESSAGES",
+                   {**ingest_mod._OPTIONAL_DEPENDENCY_MESSAGES}):
+            with pytest.raises(ImportError, match=r"semantica\[db-salesforce\]"):
+                _ = ingest_mod.SalesforceIngestor
+    finally:
+        # Ensure the __init__ globals cache is clean so the next access re-runs
+        # __getattr__ cleanly (important when this test runs before salesforce
+        # tests).  Runs in finally so it executes even if the assertion fails.
+        ingest_mod.__dict__.pop("SalesforceIngestor", None)
 
 
 def test_parse_methods_dynamic_default_resolution():

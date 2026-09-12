@@ -123,17 +123,16 @@ def _mock_simple_salesforce_if_needed(request):
             with patch.object(_sf_ingestor_mod, "_SalesforceAuthenticationFailed", _SFAuthFailed), \
                  patch.object(_sf_ingestor_mod, "_SalesforceError", _SFError), \
                  patch.object(_sf_ingestor_mod, "SALESFORCE_AVAILABLE", True):
-                yield
-
-        # Teardown: remove any Salesforce exports that were cached in the
-        # package globals during the test so subsequent availability checks
-        # re-run the real __getattr__ guard (which will raise ImportError
-        # when SALESFORCE_AVAILABLE is False, as the production code requires).
-        for name in _SF_EXPORT_NAMES:
-            # Remove the entry only if it was absent before this test ran.
-            # If it was already present before the test, leave it unchanged.
-            if _cached_before[name] is None:
-                _ingest_pkg.__dict__.pop(name, None)
+                try:
+                    yield
+                finally:
+                    # Teardown: remove any Salesforce exports that were cached in
+                    # the package globals during the test so subsequent availability
+                    # checks re-run the real __getattr__ guard.  Runs in finally so
+                    # it executes even when the test raises (e.g. assertion failure).
+                    for name in _SF_EXPORT_NAMES:
+                        if _cached_before[name] is None:
+                            _ingest_pkg.__dict__.pop(name, None)
     else:
         yield
 
@@ -1092,6 +1091,12 @@ class TestImportBehaviourWithoutLib:
         # SalesforceData has no SDK guard and is always importable.
         from semantica.ingest import SalesforceData  # must not raise
         assert SalesforceData.__name__ == "SalesforceData"
+
+        # Accessing SalesforceIngestor must fire the production missing-dep
+        # guard with the correct install hint — not silently succeed.
+        import semantica.ingest as _pkg
+        with pytest.raises(ImportError, match=r"semantica\[db-salesforce\]"):
+            _ = _pkg.SalesforceIngestor
 
     def test_all_contains_salesforce_names(self):
         """All three Salesforce symbols appear in semantica.ingest.__all__."""
