@@ -781,8 +781,17 @@ class BigQueryIngestor:
                     tracking_id, message="Fetching results..."
                 )
 
-                rows = list(query_job.result())
-                columns, data = self._rows_to_dicts(rows)
+                result_iter = query_job.result()
+                # Extract column names from the RowIterator schema BEFORE
+                # materialising rows so zero-row results preserve the
+                # declared schema (Finding 2).
+                schema_columns = (
+                    [field.name for field in result_iter.schema]
+                    if result_iter.schema
+                    else None
+                )
+                rows = list(result_iter)
+                columns, data = self._rows_to_dicts(rows, schema_columns=schema_columns)
                 data = self._convert_rows(data)
 
             finally:
@@ -892,8 +901,17 @@ class BigQueryIngestor:
                     tracking_id, message="Fetching results..."
                 )
 
-                rows = list(query_job.result())
-                columns, data = self._rows_to_dicts(rows)
+                result_iter = query_job.result()
+                # Extract column names from the RowIterator schema BEFORE
+                # materialising rows so zero-row results preserve the
+                # declared schema (Finding 2).
+                schema_columns = (
+                    [field.name for field in result_iter.schema]
+                    if result_iter.schema
+                    else None
+                )
+                rows = list(result_iter)
+                columns, data = self._rows_to_dicts(rows, schema_columns=schema_columns)
                 data = self._convert_rows(data)
 
             finally:
@@ -1190,8 +1208,15 @@ class BigQueryIngestor:
         documents: List[Dict[str, Any]] = []
 
         for idx, row in enumerate(data.data):
+            # Treat a present-but-None id_field value the same as a
+            # missing key: fall back to the row index.  This prevents
+            # every null-id row from receiving the shared string "None"
+            # as its document identifier (Finding 3).
+            raw_id = row.get(id_field)
+            doc_id = str(raw_id) if raw_id is not None else str(idx)
+
             doc: Dict[str, Any] = {
-                "id": str(row.get(id_field, idx)),
+                "id": doc_id,
                 "metadata": {
                     "source": "bigquery",
                     "table": data.table_name,
@@ -1231,74 +1256,109 @@ class BigQueryIngestor:
     @staticmethod
     def _rows_to_dicts(
         rows: List[Any],
+        schema_columns: Optional[List[str]] = None,
     ) -> Tuple[List[str], List[Dict[str, Any]]]:
         """Convert BigQuery ``Row`` objects to plain dictionaries.
 
         ``google.cloud.bigquery.Row`` supports ``dict(row)`` and
-        ``row.keys()``.  An empty result set has no ``Row`` objects, so
-        we derive columns from ``row.keys()`` of the first row.  When
-        *rows* is empty, both the column list and the data list are empty.
+        ``row.keys()``.  Column names are derived from *schema_columns*
+        when supplied (populated from the ``RowIterator.schema`` before
+        row materialisation, so empty result sets preserve the declared
+        schema).  When *schema_columns* is ``None`` and rows are present,
+        column names are taken from the first row.  When both are absent
+        the column list is empty.
 
         Args:
             rows: List of ``google.cloud.bigquery.Row`` objects from a
                 completed ``QueryJob``.
+            schema_columns: Optional ordered list of column names derived
+                from the ``RowIterator`` schema before rows are fetched.
+                Pass this to preserve columns for zero-row results.
 
         Returns:
             A ``(columns, data)`` tuple where *columns* is the ordered
             list of column-name strings and *data* is the list of row
             dictionaries.
         """
-        if not rows:
-            return [], []
-        columns = list(rows[0].keys())
+        if schema_columns is not None:
+            columns = schema_columns
+        elif rows:
+            columns = list(rows[0].keys())
+        else:
+            columns = []
         data = [dict(row) for row in rows]
         return columns, data
+
+    @staticmethod
+    def _convert_value(value: Any) -> Any:
+        """Recursively convert a single value to a JSON-serialisable type.
+
+        Handles scalars, ``dict``-like BigQuery RECORD/STRUCT values, and
+        ``list``-like REPEATED field values at every nesting level so that
+        nested records containing dates, decimals, or bytes do not reach
+        ``BigQueryData.data`` or document metadata in their raw SDK form.
+
+        Conversion rules (applied at every nesting level):
+
+        * ``datetime`` → ISO-8601 string (checked before ``date`` because
+          ``datetime`` is a subclass of ``date``).
+        * ``date`` / ``time`` → ISO-8601 string.
+        * ``decimal.Decimal`` → ``str`` (preserves full NUMERIC precision).
+        * ``bytes`` → UTF-8 decoded string; falls back to ``str()`` on
+          ``UnicodeDecodeError``.
+        * ``dict`` / mapping → recursively converted ``dict``.
+        * ``list`` / sequence (but not ``str`` / ``bytes``) → recursively
+          converted ``list``.
+        * Everything else (``int``, ``float``, ``bool``, ``None``,
+          ``str``) → passed through unchanged.
+
+        Args:
+            value: Any value returned by the BigQuery Python client.
+
+        Returns:
+            A JSON-serialisable Python value.
+        """
+        if isinstance(value, datetime):
+            return value.isoformat()
+        if isinstance(value, date):
+            # Checked AFTER datetime: datetime is a subclass of date.
+            return value.isoformat()
+        if isinstance(value, time):
+            return value.isoformat()
+        if isinstance(value, decimal.Decimal):
+            return str(value)
+        if isinstance(value, bytes):
+            try:
+                return value.decode("utf-8")
+            except UnicodeDecodeError:
+                return str(value)
+        if isinstance(value, dict):
+            return {k: BigQueryIngestor._convert_value(v) for k, v in value.items()}
+        # Handle list-like repeated fields; exclude str/bytes which are
+        # also sequences but must not be iterated character-by-character.
+        if isinstance(value, list):
+            return [BigQueryIngestor._convert_value(item) for item in value]
+        return value
 
     def _convert_rows(
         self, rows: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        """Convert row dicts to JSON-serialisable format.
+        """Convert row dicts to JSON-serialisable format at every level.
 
-        Applies the following transformations:
-
-        * ``datetime`` / ``date`` / ``time`` values → ISO-8601 string
-          via ``.isoformat()``.  Note that BigQuery returns
-          ``datetime.datetime``, ``datetime.date``, and
-          ``datetime.time`` objects for the corresponding column types.
-        * ``decimal.Decimal`` (``NUMERIC`` / ``BIGNUMERIC``) → ``str``
-          to preserve full precision without floating-point rounding.
-        * ``bytes`` → UTF-8 decoded string; falls back to ``str()``
-          when the bytes are not valid UTF-8.
-        * All other scalar types (``int``, ``float``, ``str``,
-          ``bool``, ``None``) are passed through unchanged.
+        Delegates each top-level value to :meth:`_convert_value`, which
+        recurses into BigQuery RECORD (STRUCT) and REPEATED fields so that
+        nested dates, decimals, bytes, or further sub-records are converted
+        correctly rather than left as raw SDK objects.
 
         Args:
             rows: List of row dictionaries produced by
                 :meth:`_rows_to_dicts`.
 
         Returns:
-            New list of row dictionaries with type conversions applied.
+            New list of row dictionaries with type conversions applied
+            at all nesting levels.
         """
-        converted = []
-        for row in rows:
-            converted_row: Dict[str, Any] = {}
-            for key, value in row.items():
-                if isinstance(value, datetime):
-                    converted_row[key] = value.isoformat()
-                elif isinstance(value, date):
-                    # date must be checked AFTER datetime because datetime
-                    # is a subclass of date.
-                    converted_row[key] = value.isoformat()
-                elif isinstance(value, time):
-                    converted_row[key] = value.isoformat()
-                elif isinstance(value, decimal.Decimal):
-                    converted_row[key] = str(value)
-                elif isinstance(value, bytes):
-                    try:
-                        converted_row[key] = value.decode("utf-8")
-                    except UnicodeDecodeError:
-                        converted_row[key] = str(value)
-                else:
-                    converted_row[key] = value
-            converted.append(converted_row)
-        return converted
+        return [
+            {key: self._convert_value(value) for key, value in row.items()}
+            for row in rows
+        ]

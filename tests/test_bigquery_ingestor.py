@@ -145,9 +145,37 @@ def _make_mock_row(keys: list, values: list) -> Mock:
 
 
 def _make_query_job(rows: list) -> Mock:
-    """Return a Mock that behaves like a bigquery.QueryJob."""
+    """Return a Mock that behaves like a bigquery.QueryJob.
+
+    The mock's ``.result()`` returns a RowIterator-like object with a
+    ``.schema`` attribute (list of SchemaField mocks derived from the first
+    row's keys when rows are present) and is iterable.
+    """
     job = Mock()
-    job.result = Mock(return_value=rows)
+
+    # Build a RowIterator-like mock that has .schema and is iterable.
+    result_iter = Mock()
+
+    if rows:
+        # Derive schema field names from the first row's keys (if it's a dict).
+        first = rows[0]
+        if isinstance(first, dict):
+            schema_fields = []
+            for name in first.keys():
+                f = Mock()
+                f.name = name
+                schema_fields.append(f)
+            result_iter.schema = schema_fields
+        else:
+            # Non-dict row (e.g. plain Mock for test_connection ping) — no schema.
+            result_iter.schema = []
+    else:
+        result_iter.schema = []
+
+    result_iter.__iter__ = Mock(return_value=iter(rows))
+    # list(result_iter) needs __iter__ to work; also support being called
+    # as an iterable directly.
+    job.result = Mock(return_value=result_iter)
     return job
 
 
@@ -640,7 +668,7 @@ class TestBigQueryIngestorTable:
         with patch.object(
             type(ing),
             "_rows_to_dicts",
-            staticmethod(lambda rows: (["id", "name"], [{"id": "1", "name": "Alice"}, {"id": "2", "name": "Bob"}])),
+            staticmethod(lambda rows, schema_columns=None: (["id", "name"], [{"id": "1", "name": "Alice"}, {"id": "2", "name": "Bob"}])),
         ):
             data = ing.ingest_table("users")
 
@@ -1234,6 +1262,16 @@ class TestRowConversion:
         assert data == []
 
     @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_rows_to_dicts_empty_with_schema_columns_preserves_columns(self):
+        """Zero rows with schema_columns preserves the declared schema (Finding 2)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        columns, data = ing._rows_to_dicts([], schema_columns=["id", "name", "score"])
+        assert columns == ["id", "name", "score"]
+        assert data == []
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
     def test_rows_to_dicts_extracts_column_names(self):
         from semantica.ingest.bigquery_ingestor import BigQueryIngestor
 
@@ -1630,12 +1668,331 @@ class TestImportBehaviourWithoutLib:
 
 
 # ---------------------------------------------------------------------------
-# TestDbAllIncludesBigQuery
+# TestNestedConversion — Finding 1
 # ---------------------------------------------------------------------------
 
 
+class TestNestedConversion:
+    """_convert_rows recurses into RECORD and REPEATED fields (Finding 1)."""
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_nested_record_dates_converted(self):
+        """RECORD (STRUCT) fields containing date/datetime must be converted (Finding 1)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        rows = [{
+            "id": "1",
+            "metadata": {
+                "created": date(2024, 3, 15),
+                "updated": datetime(2024, 3, 15, 10, 30, 0),
+            }
+        }]
+        result = ing._convert_rows(rows)
+        assert result[0]["metadata"]["created"] == "2024-03-15"
+        assert result[0]["metadata"]["updated"] == "2024-03-15T10:30:00"
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_nested_record_decimal_converted(self):
+        """RECORD fields containing Decimal must be converted (Finding 1)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        rows = [{"price": {"amount": decimal.Decimal("99.99"), "currency": "USD"}}]
+        result = ing._convert_rows(rows)
+        assert result[0]["price"]["amount"] == "99.99"
+        assert result[0]["price"]["currency"] == "USD"
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_nested_record_bytes_converted(self):
+        """RECORD fields containing bytes must be decoded (Finding 1)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        rows = [{"attachment": {"data": b"hello", "mime": "text/plain"}}]
+        result = ing._convert_rows(rows)
+        assert result[0]["attachment"]["data"] == "hello"
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_repeated_field_dates_converted(self):
+        """REPEATED (ARRAY) fields containing dates must be converted (Finding 1)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        rows = [{
+            "id": "1",
+            "event_dates": [date(2024, 1, 1), date(2024, 6, 15)],
+        }]
+        result = ing._convert_rows(rows)
+        assert result[0]["event_dates"] == ["2024-01-01", "2024-06-15"]
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_repeated_field_decimals_converted(self):
+        """REPEATED fields containing Decimals must be converted (Finding 1)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        rows = [{"scores": [decimal.Decimal("1.5"), decimal.Decimal("2.75")]}]
+        result = ing._convert_rows(rows)
+        assert result[0]["scores"] == ["1.5", "2.75"]
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_repeated_record_nested_dates_converted(self):
+        """REPEATED RECORD (array of structs) at multiple nesting levels (Finding 1)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        rows = [{
+            "line_items": [
+                {"name": "Widget", "ordered_on": date(2024, 1, 10)},
+                {"name": "Gadget", "ordered_on": date(2024, 2, 20)},
+            ]
+        }]
+        result = ing._convert_rows(rows)
+        assert result[0]["line_items"][0]["ordered_on"] == "2024-01-10"
+        assert result[0]["line_items"][1]["ordered_on"] == "2024-02-20"
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_string_and_scalars_unchanged_in_nested_record(self):
+        """Plain scalar types inside RECORD must pass through unchanged (Finding 1)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        rows = [{
+            "profile": {
+                "name": "Alice",
+                "age": 30,
+                "active": True,
+                "score": 9.5,
+                "notes": None,
+            }
+        }]
+        result = ing._convert_rows(rows)
+        p = result[0]["profile"]
+        assert p["name"] == "Alice"
+        assert p["age"] == 30
+        assert p["active"] is True
+        assert p["score"] == 9.5
+        assert p["notes"] is None
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_convert_value_static_method(self):
+        """_convert_value is callable as a static method (Finding 1)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+
+        assert BigQueryIngestor._convert_value(date(2024, 1, 1)) == "2024-01-01"
+        assert BigQueryIngestor._convert_value(decimal.Decimal("3.14")) == "3.14"
+        assert BigQueryIngestor._convert_value(42) == 42
+        assert BigQueryIngestor._convert_value(None) is None
+        assert BigQueryIngestor._convert_value("text") == "text"
+        assert BigQueryIngestor._convert_value([date(2024, 1, 1)]) == ["2024-01-01"]
+        assert BigQueryIngestor._convert_value({"d": date(2024, 6, 1)}) == {"d": "2024-06-01"}
+
+
+# ---------------------------------------------------------------------------
+# TestZeroRowResults — Finding 2
+# ---------------------------------------------------------------------------
+
+
+class TestZeroRowResults:
+    """ingest_table and ingest_query preserve column schema for zero-row results."""
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    @patch("semantica.ingest.bigquery_ingestor._bigquery")
+    def test_ingest_table_zero_rows_preserves_columns(self, mock_bq):
+        """Zero-row ingest_table must still return the correct column list (Finding 2)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+
+        mock_client = _make_mock_bq_client()
+
+        # Build a mock RowIterator with schema but no rows.
+        mock_result = Mock()
+        field1, field2, field3 = Mock(), Mock(), Mock()
+        field1.name = "order_id"
+        field2.name = "customer"
+        field3.name = "total"
+        mock_result.schema = [field1, field2, field3]
+        mock_result.__iter__ = Mock(return_value=iter([]))
+
+        mock_job = Mock()
+        mock_job.result = Mock(return_value=mock_result)
+        mock_client.query = Mock(return_value=mock_job)
+        mock_bq.Client.return_value = mock_client
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        data = ing.ingest_table("orders")
+
+        assert data.row_count == 0
+        assert data.data == []
+        assert data.columns == ["order_id", "customer", "total"]
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    @patch("semantica.ingest.bigquery_ingestor._bigquery")
+    def test_ingest_query_zero_rows_preserves_columns(self, mock_bq):
+        """Zero-row ingest_query must still return the correct column list (Finding 2)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+
+        mock_client = _make_mock_bq_client()
+
+        mock_result = Mock()
+        f1, f2 = Mock(), Mock()
+        f1.name = "id"
+        f2.name = "name"
+        mock_result.schema = [f1, f2]
+        mock_result.__iter__ = Mock(return_value=iter([]))
+
+        mock_job = Mock()
+        mock_job.result = Mock(return_value=mock_result)
+        mock_client.query = Mock(return_value=mock_job)
+        mock_bq.Client.return_value = mock_client
+
+        ing = BigQueryIngestor(project="p")
+        data = ing.ingest_query("SELECT id, name FROM t WHERE 1=0")
+
+        assert data.row_count == 0
+        assert data.data == []
+        assert data.columns == ["id", "name"]
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    @patch("semantica.ingest.bigquery_ingestor._bigquery")
+    def test_ingest_table_zero_rows_no_schema_returns_empty_columns(self, mock_bq):
+        """If RowIterator has no schema (e.g. DDL), columns is empty but no crash."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+
+        mock_client = _make_mock_bq_client()
+
+        mock_result = Mock()
+        mock_result.schema = None
+        mock_result.__iter__ = Mock(return_value=iter([]))
+
+        mock_job = Mock()
+        mock_job.result = Mock(return_value=mock_result)
+        mock_client.query = Mock(return_value=mock_job)
+        mock_bq.Client.return_value = mock_client
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        data = ing.ingest_table("t")
+
+        assert data.columns == []
+        assert data.data == []
+
+
+# ---------------------------------------------------------------------------
+# TestNullIdHandling — Finding 3
+# ---------------------------------------------------------------------------
+
+
+class TestNullIdHandling:
+    """export_as_documents handles None id_field values as fallback (Finding 3)."""
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_none_id_field_value_uses_row_index(self):
+        """A present-but-None id_field must fall back to the row index (Finding 3)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryData, BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        data = BigQueryData(
+            data=[
+                {"id": None, "name": "Alice"},
+                {"id": None, "name": "Bob"},
+            ],
+            row_count=2,
+            columns=["id", "name"],
+            table_name="t",
+        )
+
+        docs = ing.export_as_documents(data, id_field="id")
+
+        # Each None id must yield its row index, not the shared string "None".
+        assert docs[0]["id"] == "0"
+        assert docs[1]["id"] == "1"
+        # Must NOT be "None".
+        assert docs[0]["id"] != "None"
+        assert docs[1]["id"] != "None"
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_multiple_none_ids_get_distinct_fallback_indices(self):
+        """Multiple rows with None id must produce distinct document IDs (Finding 3)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryData, BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        data = BigQueryData(
+            data=[
+                {"id": None, "name": "Row0"},
+                {"id": None, "name": "Row1"},
+                {"id": None, "name": "Row2"},
+            ],
+            row_count=3,
+            columns=["id", "name"],
+            table_name="t",
+        )
+
+        docs = ing.export_as_documents(data, id_field="id")
+
+        ids = [d["id"] for d in docs]
+        assert ids == ["0", "1", "2"]
+        # All distinct.
+        assert len(set(ids)) == 3
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_mixed_real_and_none_ids(self):
+        """Rows with real IDs keep them; None rows fall back to their indices."""
+        from semantica.ingest.bigquery_ingestor import BigQueryData, BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        data = BigQueryData(
+            data=[
+                {"id": "real-001", "name": "Alice"},
+                {"id": None, "name": "Bob"},
+                {"id": "real-003", "name": "Carol"},
+            ],
+            row_count=3,
+            columns=["id", "name"],
+            table_name="t",
+        )
+
+        docs = ing.export_as_documents(data, id_field="id")
+
+        assert docs[0]["id"] == "real-001"
+        assert docs[1]["id"] == "1"   # row index fallback
+        assert docs[2]["id"] == "real-003"
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_missing_id_field_still_uses_index(self):
+        """Absent id_field key (not present in row) still falls back to index."""
+        from semantica.ingest.bigquery_ingestor import BigQueryData, BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        data = BigQueryData(
+            data=[{"name": "No-ID"}],
+            row_count=1,
+            columns=["name"],
+            table_name="t",
+        )
+        docs = ing.export_as_documents(data)
+        assert docs[0]["id"] == "0"
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_zero_numeric_id_is_not_treated_as_falsy(self):
+        """An id value of integer 0 or string '0' must NOT fall back to index."""
+        from semantica.ingest.bigquery_ingestor import BigQueryData, BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        data = BigQueryData(
+            data=[
+                {"id": 0, "name": "Zero-int"},
+                {"id": "0", "name": "Zero-str"},
+            ],
+            row_count=2,
+            columns=["id", "name"],
+            table_name="t",
+        )
+        docs = ing.export_as_documents(data, id_field="id")
+        assert docs[0]["id"] == "0"   # str(0)
+        assert docs[1]["id"] == "0"   # "0"
+
+
 def _load_pyproject_toml():
-    """Load pyproject.toml using tomllib (3.11+) or the tomli backport."""
     try:
         import tomllib  # Python 3.11+
     except ModuleNotFoundError:
