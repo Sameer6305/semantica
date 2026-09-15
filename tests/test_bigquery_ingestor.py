@@ -833,6 +833,18 @@ class TestBigQueryIngestorTable:
             ing.ingest_table("t", dataset="my dataset")
 
     @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_ingest_table_missing_dataset_raises(self):
+        """ingest_table must reject calls when no dataset is configured (PR comment)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+        from semantica.utils.exceptions import ValidationError
+
+        # No dataset on the ingestor, none passed at call site.
+        ing = BigQueryIngestor(project="my-project")
+
+        with pytest.raises(ValidationError, match="dataset is required"):
+            ing.ingest_table("orders")
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
     def test_ingest_table_valid_project_id_with_hyphens(self):
         """ingest_table must not reject valid GCP project IDs that contain hyphens."""
         from semantica.ingest.bigquery_ingestor import BigQueryIngestor
@@ -1055,6 +1067,18 @@ class TestBigQueryIngestorSchema:
 
         with pytest.raises(ValidationError):
             ing.get_table_schema("my-table")
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_get_table_schema_missing_dataset_raises(self):
+        """get_table_schema must reject calls when no dataset is configured (PR comment)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+        from semantica.utils.exceptions import ValidationError
+
+        # No dataset on the ingestor, none passed at call site.
+        ing = BigQueryIngestor(project="my-project")
+
+        with pytest.raises(ValidationError, match="dataset is required"):
+            ing.get_table_schema("orders")
 
     @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
     @patch("semantica.ingest.bigquery_ingestor._bigquery")
@@ -1787,6 +1811,17 @@ class TestNestedConversion:
         assert BigQueryIngestor._convert_value("text") == "text"
         assert BigQueryIngestor._convert_value([date(2024, 1, 1)]) == ["2024-01-01"]
         assert BigQueryIngestor._convert_value({"d": date(2024, 6, 1)}) == {"d": "2024-06-01"}
+
+    @patch("semantica.ingest.bigquery_ingestor.BIGQUERY_AVAILABLE", True)
+    def test_tuple_repeated_field_converted(self):
+        """Tuple values are also recursively converted (PR nit 3)."""
+        from semantica.ingest.bigquery_ingestor import BigQueryIngestor
+
+        ing = BigQueryIngestor(project="p", dataset="d")
+        rows = [{"tags": (date(2024, 1, 1), date(2024, 6, 15))}]
+        result = ing._convert_rows(rows)
+        # Tuples are converted element-by-element; result is a list.
+        assert result[0]["tags"] == ["2024-01-01", "2024-06-15"]
 
 
 # ---------------------------------------------------------------------------

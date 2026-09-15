@@ -97,14 +97,10 @@ from .db_ingestor import _validate_sql_fragment
 # ---------------------------------------------------------------------------
 try:
     from google.cloud import bigquery as _bigquery
-    from google.api_core.exceptions import GoogleAPICallError as _GoogleAPICallError
-    from google.auth.exceptions import DefaultCredentialsError as _DefaultCredentialsError
 
     BIGQUERY_AVAILABLE = True
 except (ImportError, OSError):
     _bigquery = None  # type: ignore[assignment]
-    _GoogleAPICallError = None  # type: ignore[assignment]
-    _DefaultCredentialsError = None  # type: ignore[assignment]
     BIGQUERY_AVAILABLE = False
 
 __all__ = [
@@ -736,9 +732,14 @@ class BigQueryIngestor:
         # Validate all identifiers and SQL fragments BEFORE connecting so
         # invalid inputs are rejected cheaply without any network call.
         # ------------------------------------------------------------------
+        if not effective_dataset:
+            raise ValidationError(
+                "BigQuery dataset is required for ingest_table(). "
+                "Provide via 'dataset' argument or the BIGQUERY_DATASET "
+                "environment variable."
+            )
         _validate_bq_identifier(table_name, "table_name")
-        if effective_dataset:
-            _validate_bq_identifier(effective_dataset, "dataset")
+        _validate_bq_identifier(effective_dataset, "dataset")
         if effective_project:
             _validate_bq_project_id(effective_project)
         if where:
@@ -999,9 +1000,14 @@ class BigQueryIngestor:
         effective_project = project or self.connector.project
         effective_dataset = dataset or self.connector.dataset
 
+        if not effective_dataset:
+            raise ValidationError(
+                "BigQuery dataset is required for get_table_schema(). "
+                "Provide via 'dataset' argument or the BIGQUERY_DATASET "
+                "environment variable."
+            )
         _validate_bq_identifier(table_name, "table_name")
-        if effective_dataset:
-            _validate_bq_identifier(effective_dataset, "dataset")
+        _validate_bq_identifier(effective_dataset, "dataset")
         if effective_project:
             _validate_bq_project_id(effective_project)
 
@@ -1336,7 +1342,7 @@ class BigQueryIngestor:
             return {k: BigQueryIngestor._convert_value(v) for k, v in value.items()}
         # Handle list-like repeated fields; exclude str/bytes which are
         # also sequences but must not be iterated character-by-character.
-        if isinstance(value, list):
+        if isinstance(value, (list, tuple)):
             return [BigQueryIngestor._convert_value(item) for item in value]
         return value
 
