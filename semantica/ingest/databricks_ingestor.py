@@ -459,6 +459,11 @@ class DatabricksIngestor:
         catalog = catalog or self.connector.catalog
         schema = schema or self.connector.schema
 
+        # Validate SQL fragments BEFORE opening any connection so invalid
+        # inputs are rejected cheaply without a network round-trip.
+        if where:
+            _validate_sql_fragment(where, "where")
+
         tracking_id = self.progress_tracker.start_tracking(
             file=f"{catalog}.{schema}.{table_name}",
             module="ingest",
@@ -475,7 +480,6 @@ class DatabricksIngestor:
                 query = f"SELECT * FROM {table_ref}"
 
                 if where:
-                    _validate_sql_fragment(where, "where")
                     query += f" WHERE {where}"
 
                 if order_by:
@@ -540,9 +544,14 @@ class DatabricksIngestor:
                 if not already_connected:
                     self.connector.disconnect()
 
-        except (ValidationError, ProcessingError):
+        except ValidationError:
             self.progress_tracker.stop_tracking(
                 tracking_id, status="failed", message="Validation failed"
+            )
+            raise
+        except ProcessingError:
+            self.progress_tracker.stop_tracking(
+                tracking_id, status="failed", message="Processing failed"
             )
             raise
         except Exception as e:

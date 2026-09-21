@@ -620,6 +620,28 @@ class TestSnowflakeIngestor:
         executed_query = mock_cursor.execute.call_args[0][0]
         assert "WHERE NAME = 'Credit Union'" in executed_query
 
+    @patch("semantica.ingest.snowflake_ingestor.SNOWFLAKE_AVAILABLE", True)
+    @patch("semantica.ingest.snowflake_ingestor.snowflake")
+    def test_invalid_where_rejected_before_connect(
+        self, mock_snowflake, mock_snowflake_connection
+    ):
+        """ValidationError must be raised before any connection is attempted."""
+        from semantica.ingest.snowflake_ingestor import SnowflakeIngestor
+        from semantica.utils.exceptions import ValidationError
+
+        mock_conn, _ = mock_snowflake_connection
+        mock_snowflake.connector.connect = Mock(return_value=mock_conn)
+
+        ingestor = SnowflakeIngestor(
+            account="test_account",
+            user="test_user",
+            password="test_password",
+        )
+        with pytest.raises(ValidationError):
+            ingestor.ingest_table("CUSTOMERS", where="1=1 UNION SELECT * FROM secrets")
+
+        mock_snowflake.connector.connect.assert_not_called()
+
 
 class TestSnowflakeData:
     """Test SnowflakeData dataclass."""
