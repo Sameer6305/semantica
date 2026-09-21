@@ -46,6 +46,7 @@ from typing import Any, Dict, List, Optional
 from ..utils.exceptions import ProcessingError, ValidationError
 from ..utils.logging import get_logger
 from ..utils.progress_tracker import get_progress_tracker
+from .db_ingestor import _validate_sql_fragment
 
 try:
     from databricks import sql as databricks_sql
@@ -474,10 +475,7 @@ class DatabricksIngestor:
                 query = f"SELECT * FROM {table_ref}"
 
                 if where:
-                    if ";" in where:
-                        raise ValueError(
-                            "Invalid WHERE clause: semicolons not permitted."
-                        )
+                    _validate_sql_fragment(where, "where")
                     query += f" WHERE {where}"
 
                 if order_by:
@@ -542,6 +540,11 @@ class DatabricksIngestor:
                 if not already_connected:
                     self.connector.disconnect()
 
+        except (ValidationError, ProcessingError):
+            self.progress_tracker.stop_tracking(
+                tracking_id, status="failed", message="Validation failed"
+            )
+            raise
         except Exception as e:
             self.progress_tracker.stop_tracking(
                 tracking_id, status="failed", message=str(e)
