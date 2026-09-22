@@ -315,7 +315,16 @@ spacy, SPACY_AVAILABLE = safe_import("spacy")
 # Scoring Helper Functions
 # ============================================================================
 
-# Global cache for spacy model and text embedder to avoid reloading
+# Sentinel stored in _nlp_cache / _embedder_cache after a failed load attempt.
+# Waiting threads check for this value and immediately return None rather than
+# retrying the expensive (and already-failed) construction on every call.
+# Using a dedicated object instead of a string avoids any accidental truthiness
+# collision with a real model object.
+_LOAD_FAILED = object()
+
+# Global cache for spacy model and text embedder to avoid reloading.
+# Values are either None (not yet attempted), _LOAD_FAILED (attempted and
+# failed — callers get None without retrying), or the live model object.
 _nlp_cache = None
 _embedder_cache = None
 # Guards for _nlp_cache and _embedder_cache lazy init and pipeline use.
@@ -463,9 +472,14 @@ def get_text_embedder():
 
     Thread-safe: ``_embedder_cache_lock`` serializes the check + construction
     so that concurrent threads never build more than one instance.
+
+    A failed construction stores ``_LOAD_FAILED`` so subsequent callers return
+    ``None`` immediately instead of each retrying the expensive construction.
     """
     global _embedder_cache
     with _embedder_cache_lock:
+        if _embedder_cache is _LOAD_FAILED:
+            return None
         if _embedder_cache:
             return _embedder_cache
 
@@ -479,6 +493,7 @@ def get_text_embedder():
             return _embedder_cache
         except Exception as e:
             logger.warning(f"Failed to load TextEmbedder: {e}")
+            _embedder_cache = _LOAD_FAILED
             return None
 
 def get_nlp_model():
@@ -488,9 +503,14 @@ def get_nlp_model():
 
     Thread-safe: ``_nlp_cache_lock`` serializes the check + spacy.load() so
     that concurrent threads never load the model more than once.
+
+    A failed load stores ``_LOAD_FAILED`` so subsequent callers return ``None``
+    immediately instead of each retrying the expensive load attempt.
     """
     global _nlp_cache
     with _nlp_cache_lock:
+        if _nlp_cache is _LOAD_FAILED:
+            return None
         if _nlp_cache:
             return _nlp_cache
 
@@ -519,6 +539,7 @@ def get_nlp_model():
 
         except Exception as e:
             logger.warning(f"Failed to load spaCy model for similarity: {e}")
+        _nlp_cache = _LOAD_FAILED
         return None
 
 # Common synonyms for entity matching optimization

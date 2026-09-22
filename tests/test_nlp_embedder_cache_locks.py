@@ -19,6 +19,8 @@ The fix:
   _nlp_cache_lock      — module-level Lock; held across the check + load
   _nlp_call_lock       — module-level Lock; held across every nlp(text) call
   _embedder_cache_lock — module-level Lock; held across the check + construct
+  _LOAD_FAILED         — sentinel stored after a failed attempt so subsequent
+                         callers return None without re-attempting the load
 
 These tests verify all three invariants in the style of the existing
 tests/test_spacy_cache_bounds_and_locks.py.
@@ -35,9 +37,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from semantica.semantic_extract import methods
 from semantica.semantic_extract.methods import (
+    _LOAD_FAILED,
     get_nlp_model,
     get_text_embedder,
 )
+
+import semantica.embeddings.text_embedder as _te_mod
 
 
 # ---------------------------------------------------------------------------
@@ -70,8 +75,8 @@ def _make_spacy_mock(load_counter: list, sleep: float = 0.05):
     return spacy_mock, nlp_mock
 
 
-def _make_embedder_mock(construct_counter: list, sleep: float = 0.05):
-    """Return a TextEmbedder class mock that increments *construct_counter*."""
+def _make_embedder_class(construct_counter: list, sleep: float = 0.05):
+    """Return a TextEmbedder replacement class that records constructions."""
     class SlowEmbedder:
         def __init__(self, model_name, normalize):
             time.sleep(sleep)       # GIL released; other threads can run
@@ -147,6 +152,65 @@ class TestNlpCacheInitialization(unittest.TestCase):
             "every thread must receive the same Language instance",
         )
 
+    def test_failed_nlp_load_attempted_exactly_once_under_concurrent_load(self):
+        """When spacy.load() fails, _LOAD_FAILED is stored so all waiting
+        threads return None immediately without each retrying the load.
+        spacy.load() must be attempted exactly once, not once per thread."""
+        load_counter = []
+
+        def failing_load(name, **kw):
+            time.sleep(0.05)
+            load_counter.append(1)
+            raise OSError("model not found")
+
+        spacy_mock = MagicMock()
+        spacy_mock.util.is_package.return_value = True
+        spacy_mock.load.side_effect = failing_load
+
+        n_threads = 8
+        barrier = threading.Barrier(n_threads)
+        errors = []
+        results = []
+
+        def worker():
+            try:
+                barrier.wait()
+                with patch.object(methods, "spacy", spacy_mock), \
+                     patch.object(methods, "SPACY_AVAILABLE", True):
+                    results.append(get_nlp_model())
+            except Exception as exc:
+                errors.append(str(exc))
+
+        threads = [threading.Thread(target=worker) for _ in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        self.assertEqual(errors, [], f"unexpected exceptions: {errors}")
+        # All threads must get None back (no crash).
+        self.assertTrue(
+            all(r is None for r in results),
+            f"failed load must return None to all callers; got: {results}",
+        )
+        # The expensive load must only have been attempted once even with
+        # the fallback en_core_web_sm path also being tried — total attempts
+        # across all model names in one pass is ≤ 4 (lg, md, sm, fallback sm).
+        # Critically it must NOT be n_threads * attempts_per_pass.
+        self.assertLessEqual(
+            len(load_counter),
+            4,  # at most one pass through the model preference list
+            f"spacy.load() must only be tried once (across all model names); "
+            f"tried {len(load_counter)} times with {n_threads} threads",
+        )
+        # And _nlp_cache must hold _LOAD_FAILED so subsequent callers skip
+        # the load entirely without touching the lock for long.
+        self.assertIs(
+            methods._nlp_cache,
+            _LOAD_FAILED,
+            "_nlp_cache must be set to _LOAD_FAILED after a failed load",
+        )
+
 
 # ---------------------------------------------------------------------------
 # _embedder_cache initialization
@@ -162,9 +226,17 @@ class TestEmbedderCacheInitialization(unittest.TestCase):
 
     def test_embedder_constructed_exactly_once_under_concurrent_load(self):
         """_embedder_cache_lock must prevent multiple TextEmbedder constructions
-        when threads race to initialize simultaneously."""
+        when threads race to initialize simultaneously.
+
+        The patch is applied in the outer (test) thread so that all worker
+        threads share one stable mock — exactly the pattern used by
+        test_bound_never_exceeded_under_concurrent_load in
+        test_spacy_cache_bounds_and_locks.py.  This avoids the per-thread
+        patching race where one thread's context-manager exit can restore the
+        real class while another thread is mid-construction.
+        """
         construct_counter = []
-        SlowEmbedder = _make_embedder_mock(construct_counter, sleep=0.05)
+        SlowEmbedder = _make_embedder_class(construct_counter, sleep=0.05)
         n_threads = 8
         barrier = threading.Barrier(n_threads)
         errors = []
@@ -172,114 +244,101 @@ class TestEmbedderCacheInitialization(unittest.TestCase):
         def worker():
             try:
                 barrier.wait()
-                with patch(
-                    "semantica.semantic_extract.methods.TextEmbedder",
-                    SlowEmbedder,
-                    create=True,
-                ):
-                    # Patch the import path used inside get_text_embedder
-                    import semantica.embeddings.text_embedder as te_mod
-                    with patch.object(te_mod, "TextEmbedder", SlowEmbedder):
-                        get_text_embedder()
+                get_text_embedder()
             except Exception as exc:
                 errors.append(str(exc))
 
-        # The import inside get_text_embedder uses a relative import; patch
-        # the module attribute directly after the first real import attempt so
-        # we can intercept without restructuring the function.
-        _reset_embedder_cache()
+        with patch.object(_te_mod, "TextEmbedder", SlowEmbedder):
+            _reset_embedder_cache()     # ensure cold start inside the patch
+            threads = [threading.Thread(target=worker) for _ in range(n_threads)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
 
-        def worker_direct():
-            """Patch methods._embedder_cache directly via the module path."""
-            try:
-                barrier.wait()
-                # Monkey-patch the TextEmbedder class inside the methods module's
-                # import namespace by temporarily replacing the cached result of
-                # the lazy import.  The cleanest way is to pre-seed _embedder_cache
-                # with None and let the lock logic construct via our mock.
-                pass
-            except Exception as exc:
-                errors.append(str(exc))
-
-        # Simpler, reliable approach: patch the module-level import directly.
-        construct_counter2 = []
-        SlowEmbedder2 = _make_embedder_mock(construct_counter2, sleep=0.05)
-
-        _reset_embedder_cache()
-        barrier2 = threading.Barrier(n_threads)
-        errors2 = []
-
-        original_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else None
-
-        def worker2():
-            try:
-                barrier2.wait()
-                # Use the simplest reliable patch: replace the TextEmbedder
-                # import inside the embeddings submodule that get_text_embedder
-                # imports from.
-                try:
-                    import semantica.embeddings.text_embedder as te
-                    with patch.object(te, "TextEmbedder", SlowEmbedder2):
-                        # Force re-import path: get_text_embedder does
-                        # `from ..embeddings.text_embedder import TextEmbedder`
-                        # which is resolved at call time. Patching the module
-                        # attribute ensures the live lookup hits our mock.
-                        get_text_embedder()
-                except ImportError:
-                    # TextEmbedder optional dep not installed: skip gracefully
-                    pass
-            except Exception as exc:
-                errors2.append(str(exc))
-
-        threads2 = [threading.Thread(target=worker2) for _ in range(n_threads)]
-        for t in threads2:
-            t.start()
-        for t in threads2:
-            t.join()
-
-        self.assertEqual(errors2, [], f"unexpected exceptions: {errors2}")
-        # Either the dep is present (construct_counter2 == 1) or absent (== 0).
-        self.assertLessEqual(
-            len(construct_counter2), 1,
-            f"TextEmbedder must be constructed at most once; constructed {len(construct_counter2)} times",
+        self.assertEqual(errors, [], f"unexpected exceptions: {errors}")
+        self.assertEqual(
+            len(construct_counter), 1,
+            f"TextEmbedder must be constructed exactly once; "
+            f"constructed {len(construct_counter)} times",
         )
 
     def test_embedder_constructed_exactly_once_via_module_patch(self):
-        """Patch the TextEmbedder class at the methods-module level to verify
-        _embedder_cache_lock prevents duplicate construction."""
+        """Second independent verification using a different sleep duration
+        so the race window is wide enough to catch an unguarded implementation."""
         construct_counter = []
-        SlowEmbedder = _make_embedder_mock(construct_counter, sleep=0.06)
-
+        SlowEmbedder = _make_embedder_class(construct_counter, sleep=0.08)
         n_threads = 8
         barrier = threading.Barrier(n_threads)
         errors = []
-        _reset_embedder_cache()
 
         def worker():
             try:
                 barrier.wait()
-                # Import the submodule and patch TextEmbedder there; the lazy
-                # `from ..embeddings.text_embedder import TextEmbedder` inside
-                # get_text_embedder picks it up at call time.
-                try:
-                    import semantica.embeddings.text_embedder as te
-                    with patch.object(te, "TextEmbedder", SlowEmbedder):
-                        get_text_embedder()
-                except ImportError:
-                    pass  # optional dep absent; test degrades gracefully
+                get_text_embedder()
             except Exception as exc:
                 errors.append(str(exc))
 
-        threads = [threading.Thread(target=worker) for _ in range(n_threads)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
+        with patch.object(_te_mod, "TextEmbedder", SlowEmbedder):
+            _reset_embedder_cache()
+            threads = [threading.Thread(target=worker) for _ in range(n_threads)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
 
         self.assertEqual(errors, [], f"unexpected exceptions: {errors}")
-        self.assertLessEqual(
+        self.assertEqual(
             len(construct_counter), 1,
-            f"TextEmbedder must be constructed at most once; constructed {len(construct_counter)} times",
+            f"TextEmbedder must be constructed exactly once; "
+            f"constructed {len(construct_counter)} times",
+        )
+
+    def test_failed_embedder_construction_attempted_exactly_once(self):
+        """When TextEmbedder() raises, _LOAD_FAILED is stored so all waiting
+        threads return None without each retrying the construction."""
+        construct_counter = []
+
+        class FailingEmbedder:
+            def __init__(self, model_name, normalize):
+                time.sleep(0.05)
+                construct_counter.append(1)
+                raise RuntimeError("embedder unavailable")
+
+        n_threads = 8
+        barrier = threading.Barrier(n_threads)
+        errors = []
+        results = []
+
+        def worker():
+            try:
+                barrier.wait()
+                results.append(get_text_embedder())
+            except Exception as exc:
+                errors.append(str(exc))
+
+        with patch.object(_te_mod, "TextEmbedder", FailingEmbedder):
+            _reset_embedder_cache()
+            threads = [threading.Thread(target=worker) for _ in range(n_threads)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+        self.assertEqual(errors, [], f"unexpected exceptions: {errors}")
+        self.assertTrue(
+            all(r is None for r in results),
+            f"failed construction must return None to all callers; got: {results}",
+        )
+        self.assertEqual(
+            len(construct_counter), 1,
+            f"TextEmbedder() must only be attempted once; "
+            f"attempted {len(construct_counter)} times with {n_threads} threads",
+        )
+        self.assertIs(
+            methods._embedder_cache,
+            _LOAD_FAILED,
+            "_embedder_cache must be set to _LOAD_FAILED after a failed construction",
         )
 
 
@@ -291,23 +350,33 @@ class TestNlpCallSerialization(unittest.TestCase):
 
     def setUp(self):
         _reset_nlp_cache()
+        methods._embedder_cache = _LOAD_FAILED  # disable embedder stage
 
     def tearDown(self):
         _reset_nlp_cache()
+        methods._embedder_cache = None
 
     def test_concurrent_nlp_calls_never_overlap(self):
         """_nlp_call_lock must prevent concurrent nlp(text) invocations on the
         shared Language object.  This mirrors test_concurrent_calls_on_one_model_never_overlap
-        from test_spacy_cache_bounds_and_locks.py."""
+        from test_spacy_cache_bounds_and_locks.py.
+
+        The mocked nlp() uses a barrier-style overlap detector: if two calls
+        run simultaneously the 'active' list will contain more than one entry.
+        The test also asserts that nlp() was actually invoked — it must not
+        pass vacuously.
+        """
         overlaps = []
         active = []
         state_lock = threading.Lock()
+        nlp_call_count = []
 
         def slow_nlp_call(text):
             with state_lock:
                 active.append(text)
                 if len(active) > 1:
                     overlaps.append(list(active))
+                nlp_call_count.append(text)
             time.sleep(0.05)
             with state_lock:
                 active.pop()
@@ -339,8 +408,10 @@ class TestNlpCallSerialization(unittest.TestCase):
             def worker(i):
                 try:
                     barrier.wait()
-                    # Use a low early-exit threshold so all threads reach the
-                    # vector similarity stage (stage 4).
+                    # _embedder_cache is _LOAD_FAILED (set in setUp) so the
+                    # embedding stage (3) is always skipped, guaranteeing every
+                    # thread reaches the vector-similarity stage (4) that holds
+                    # _nlp_call_lock.
                     find_best_match_index(f"query_{i}", ["alpha", "beta", "gamma"])
                 except Exception as exc:
                     errors.append(str(exc))
@@ -352,6 +423,10 @@ class TestNlpCallSerialization(unittest.TestCase):
                 t.join()
 
         self.assertEqual(errors, [], f"unexpected exceptions: {errors}")
+        self.assertGreater(
+            len(nlp_call_count), 0,
+            "nlp() must have been called — test must not pass vacuously",
+        )
         self.assertEqual(
             overlaps, [],
             f"concurrent nlp(text) calls detected — _nlp_call_lock is broken: {overlaps}",
